@@ -26,3 +26,12 @@ export interface DealList {
   sheetUrl: string;
   columnMapping: ColumnMapping;
 }
+
+export interface FirebaseConfig {
+  apiKey: string;
+  authDomain: string;
+  projectId: string;
+  storageBucket: string;
+  messagingSenderId: string;
+  appId: string;
+}

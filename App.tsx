@@ -1,11 +1,26 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Product, ColumnMapping, DealList } from './types';
+import { Product, ColumnMapping, DealList, FirebaseConfig } from './types';
 import { fetchProducts, fetchSheetPreviewAndHeaders } from './services/googleSheetService';
 import { Calculator } from './components/Calculator';
-import { RefreshIcon, LinkIcon, SheetIcon, EditIcon, CogIcon, PlusIcon, TrashIcon } from './components/Icons';
+import { RefreshIcon, LinkIcon, SheetIcon, EditIcon, CogIcon, PlusIcon, TrashIcon, FirebaseIcon, GoogleIcon, LogoutIcon } from './components/Icons';
 
-type AppState = 'MANAGE_LISTS' | 'CONNECT_SHEET' | 'MAP_COLUMNS' | 'VIEW_DATA';
+// Declare firebase globally as it's loaded from a script tag
+declare const firebase: any;
+
+// PASTE YOUR FIREBASE CONFIG HERE
+// Replace this with the config object from your Firebase project settings.
+const firebaseConfig: FirebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+
+type AppState = 'LOADING' | 'LOGIN' | 'MANAGE_LISTS' | 'CONNECT_SHEET' | 'MAP_COLUMNS' | 'VIEW_DATA';
 
 const MAPPING_CONFIG: { key: keyof ColumnMapping; label: string; keywords: string[], required: boolean }[] = [
     { key: 'id', label: 'ID Sản phẩm', keywords: ['id happyskinvn', 'id', 'sku', 'mã sản phẩm'], required: true },
@@ -29,21 +44,12 @@ const getCsvUrl = (url: string): string | null => {
     return sheetId ? `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv` : null;
 };
 
-
 const App: React.FC = () => {
-    const [dealLists, setDealLists] = useState<DealList[]>(() => {
-        try {
-            const saved = localStorage.getItem('dealLists');
-            return saved ? JSON.parse(saved) : [];
-        } catch {
-            return [];
-        }
-    });
+    const [appState, setAppState] = useState<AppState>('LOADING');
+    const [dealLists, setDealLists] = useState<DealList[]>([]);
     const [activeDealListId, setActiveDealListId] = useState<string | null>(() => sessionStorage.getItem('activeDealListId'));
-
-    const [appState, setAppState] = useState<AppState>('MANAGE_LISTS');
+    
     const [editingDealList, setEditingDealList] = useState<Partial<DealList> | null>(null);
-
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
@@ -54,12 +60,81 @@ const App: React.FC = () => {
     const [tempMapping, setTempMapping] = useState<Partial<ColumnMapping>>({});
     const [activeMappingKey, setActiveMappingKey] = useState<keyof ColumnMapping | null>(null);
 
+    // Firebase state
+    const [db, setDb] = useState<any | null>(null);
+    const [user, setUser] = useState<any | null>(null);
+
     const activeDealList = useMemo(() => dealLists.find(dl => dl.id === activeDealListId), [dealLists, activeDealListId]);
     const embedUrl = useMemo(() => (activeDealList ? getEmbedUrl(activeDealList.sheetUrl) : null), [activeDealList]);
+    
+    useEffect(() => {
+        try {
+            if (firebaseConfig.apiKey === "YOUR_API_KEY") {
+                setError("Vui lòng cấu hình Firebase trong file App.tsx.");
+                setAppState('LOGIN'); // Show login screen but with an error
+                return;
+            }
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            const firestore = firebase.firestore();
+            setDb(firestore);
 
-    const updateDealLists = (newDealLists: DealList[]) => {
-        setDealLists(newDealLists);
-        localStorage.setItem('dealLists', JSON.stringify(newDealLists));
+            const unsubscribe = firebase.auth().onAuthStateChanged((user: any) => {
+                if (user) {
+                    setUser(user);
+                    const userDocRef = firestore.collection('users').doc(user.uid);
+                    
+                    const unsubSnapshot = userDocRef.onSnapshot((doc: any) => {
+                        const data = doc.data();
+                        const lists = data?.dealLists || [];
+                        setDealLists(lists);
+                         if (lists.length > 0 && activeDealListId && lists.some((dl: DealList) => dl.id === activeDealListId)) {
+                            setAppState('VIEW_DATA');
+                        } else {
+                            setAppState('MANAGE_LISTS');
+                        }
+                    }, (error: any) => {
+                         console.error("Firestore snapshot error:", error);
+                         setError("Không thể tải dữ liệu. Vui lòng kiểm tra lại quy tắc bảo mật Firestore.");
+                    });
+                     // Cleanup Firestore listener on user change
+                     return () => unsubSnapshot();
+                } else {
+                    setUser(null);
+                    setDealLists([]);
+                    setAppState('LOGIN');
+                }
+            });
+            // Cleanup auth listener on component unmount
+            return () => unsubscribe();
+
+        } catch (err) {
+            console.error("Firebase initialization error:", err);
+            setError("Cấu hình Firebase không hợp lệ. Vui lòng kiểm tra lại trong App.tsx.");
+            setAppState('LOGIN');
+        }
+    }, [activeDealListId]);
+
+    const handleGoogleSignIn = () => {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        firebase.auth().signInWithPopup(provider).catch((error: any) => {
+            console.error("Google Sign-In failed:", error);
+            setError(error.message);
+        });
+    };
+
+    const handleLogout = () => {
+        firebase.auth().signOut();
+    };
+    
+    const updateDealLists = async (newDealLists: DealList[]) => {
+        if (user && db) {
+            const userDocRef = db.collection('users').doc(user.uid);
+            await userDocRef.set({ dealLists: newDealLists });
+        } else {
+            setError("Không thể lưu dữ liệu. Vui lòng đăng nhập lại.");
+        }
     };
 
     const handleFetchAndMap = useCallback(async (url: string) => {
@@ -121,14 +196,6 @@ const App: React.FC = () => {
         }
     }, []);
 
-    useEffect(() => {
-        if (dealLists.length > 0 && activeDealListId && dealLists.some(dl => dl.id === activeDealListId)) {
-            setAppState('VIEW_DATA');
-        } else {
-            setAppState('MANAGE_LISTS');
-        }
-    }, []);
-    
     useEffect(() => {
         if (appState === 'VIEW_DATA' && activeDealList) {
             loadProducts(activeDealList);
@@ -217,14 +284,50 @@ const App: React.FC = () => {
         setAppState('VIEW_DATA');
     }
 
+    if (appState === 'LOADING') {
+         return (
+             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                     <RefreshIcon className="w-12 h-12 text-indigo-600 animate-spin" />
+                     <p className="text-gray-600 font-medium">Đang tải...</p>
+                </div>
+            </div>
+         )
+    }
+
+    if (appState === 'LOGIN') {
+        return (
+             <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <div className="w-full max-w-sm bg-white p-8 rounded-2xl shadow-lg border border-gray-200 text-center">
+                    <SheetIcon className="w-12 h-12 mx-auto text-green-600"/>
+                    <h1 className="text-3xl font-bold text-gray-800 mt-4">Công cụ Tính giá</h1>
+                    <p className="mt-2 text-gray-600">Đăng nhập để quản lý các Deal List của bạn.</p>
+                    
+                    {error && (<div className="my-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-left" role="alert"><p>{error}</p></div>)}
+
+                    <div className="mt-8">
+                        <button onClick={handleGoogleSignIn} className="w-full flex items-center justify-center gap-3 px-6 py-3 border border-gray-300 rounded-md shadow-sm text-base font-medium text-gray-700 bg-white hover:bg-gray-50">
+                            <GoogleIcon className="w-5 h-5" />
+                            Đăng nhập với Google
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
     if (appState === 'MANAGE_LISTS') {
         return (
              <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
                 <div className="w-full max-w-2xl bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
-                    <div className="text-center">
-                        <SheetIcon className="w-12 h-12 mx-auto text-green-600"/>
-                        <h1 className="text-3xl font-bold text-gray-800 mt-4">Quản lý Deal Lists</h1>
-                        <p className="mt-2 text-gray-600">Chọn một deal list để làm việc hoặc thêm một list mới.</p>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-800">Quản lý Deal Lists</h1>
+                            <p className="mt-1 text-gray-600">Chào, {user?.displayName || 'bạn'}!</p>
+                        </div>
+                         <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50">
+                            <LogoutIcon className="w-4 h-4" /> Đăng xuất
+                        </button>
                     </div>
 
                     <div className="mt-8 space-y-4">
@@ -368,6 +471,9 @@ const App: React.FC = () => {
                         </button>
                         <button onClick={() => setAppState('MANAGE_LISTS')} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
                            <CogIcon className="w-5 h-5" /> Quản lý
+                        </button>
+                         <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                           <LogoutIcon className="w-5 h-5" /> Đăng xuất
                         </button>
                     </div>
                 </div>
