@@ -1,0 +1,5 @@
+{
+  "name": "Công cụ tính giá Google Sheet",
+  "description": "Một ứng dụng để lấy dữ liệu sản phẩm từ Google Sheet, cho phép người dùng tìm kiếm sản phẩm và tính toán số tiền voucher do người bán tài trợ dựa trên giá mong muốn và chiết khấu của nền tảng.",
+  "requestFramePermissions": []
+}
