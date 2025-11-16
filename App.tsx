@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Product, ColumnMapping } from './types';
+import { Product, ColumnMapping, DealList } from './types';
 import { fetchProducts, fetchSheetPreviewAndHeaders } from './services/googleSheetService';
 import { Calculator } from './components/Calculator';
-import { RefreshIcon, LinkIcon, SheetIcon, EditIcon, CogIcon } from './components/Icons';
+import { RefreshIcon, LinkIcon, SheetIcon, EditIcon, CogIcon, PlusIcon, TrashIcon } from './components/Icons';
 
-type AppState = 'CONNECT_SHEET' | 'MAP_COLUMNS' | 'VIEW_DATA';
+type AppState = 'MANAGE_LISTS' | 'CONNECT_SHEET' | 'MAP_COLUMNS' | 'VIEW_DATA';
 
 const MAPPING_CONFIG: { key: keyof ColumnMapping; label: string; keywords: string[], required: boolean }[] = [
     { key: 'id', label: 'ID Sản phẩm', keywords: ['id happyskinvn', 'id', 'sku', 'mã sản phẩm'], required: true },
@@ -13,7 +14,6 @@ const MAPPING_CONFIG: { key: keyof ColumnMapping; label: string; keywords: strin
     { key: 'modelId', label: 'Model ID', keywords: ['model id', 'model'], required: false },
 ];
 
-// --- URL Helper Functions ---
 const getSheetIdFromUrl = (url: string): string | null => {
     const match = url.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
     return match ? match[1] : null;
@@ -21,7 +21,6 @@ const getSheetIdFromUrl = (url: string): string | null => {
 
 const getEmbedUrl = (url: string): string | null => {
     const sheetId = getSheetIdFromUrl(url);
-    // Using /preview is cleaner for embedding
     return sheetId ? `https://docs.google.com/spreadsheets/d/${sheetId}/preview?rm=minimal` : null;
 };
 
@@ -29,28 +28,39 @@ const getCsvUrl = (url: string): string | null => {
     const sheetId = getSheetIdFromUrl(url);
     return sheetId ? `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv` : null;
 };
-// ----------------------------
 
 
 const App: React.FC = () => {
-    const [sheetUrl, setSheetUrl] = useState<string | null>(() => localStorage.getItem('googleSheetUrl'));
-    const [columnMapping, setColumnMapping] = useState<ColumnMapping | null>(() => {
-        const saved = localStorage.getItem('googleSheetColumnMapping');
-        return saved ? JSON.parse(saved) : null;
+    const [dealLists, setDealLists] = useState<DealList[]>(() => {
+        try {
+            const saved = localStorage.getItem('dealLists');
+            return saved ? JSON.parse(saved) : [];
+        } catch {
+            return [];
+        }
     });
+    const [activeDealListId, setActiveDealListId] = useState<string | null>(() => sessionStorage.getItem('activeDealListId'));
 
-    const [appState, setAppState] = useState<AppState>('VIEW_DATA');
-    const [tempUrl, setTempUrl] = useState<string>(sheetUrl || '');
+    const [appState, setAppState] = useState<AppState>('MANAGE_LISTS');
+    const [editingDealList, setEditingDealList] = useState<Partial<DealList> | null>(null);
+
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+    
     const [sheetHeaders, setSheetHeaders] = useState<string[]>([]);
     const [sheetPreview, setSheetPreview] = useState<string[][]>([]);
     const [tempMapping, setTempMapping] = useState<Partial<ColumnMapping>>({});
     const [activeMappingKey, setActiveMappingKey] = useState<keyof ColumnMapping | null>(null);
 
-    const embedUrl = useMemo(() => (sheetUrl ? getEmbedUrl(sheetUrl) : null), [sheetUrl]);
+    const activeDealList = useMemo(() => dealLists.find(dl => dl.id === activeDealListId), [dealLists, activeDealListId]);
+    const embedUrl = useMemo(() => (activeDealList ? getEmbedUrl(activeDealList.sheetUrl) : null), [activeDealList]);
+
+    const updateDealLists = (newDealLists: DealList[]) => {
+        setDealLists(newDealLists);
+        localStorage.setItem('dealLists', JSON.stringify(newDealLists));
+    };
 
     const handleFetchAndMap = useCallback(async (url: string) => {
         setIsLoading(true);
@@ -58,64 +68,53 @@ const App: React.FC = () => {
         const csvUrl = getCsvUrl(url);
         if (!csvUrl) {
             setError('URL không hợp lệ. Vui lòng kiểm tra lại URL.');
-            setAppState('CONNECT_SHEET');
             setIsLoading(false);
             return;
         }
         try {
             const { headers, previewData } = await fetchSheetPreviewAndHeaders(csvUrl);
-            if (headers.length === 0) {
-                throw new Error("Không tìm thấy cột nào trong Sheet. File có trống không?");
-            }
+            if (headers.length === 0) throw new Error("Không tìm thấy cột nào trong Sheet. File có trống không?");
+            
             setSheetHeaders(headers);
             setSheetPreview(previewData);
 
-            const initialMapping: Partial<ColumnMapping> = {};
-            MAPPING_CONFIG.forEach(config => {
-                const foundHeader = headers.find(h => config.keywords.some(kw => h.toLowerCase().includes(kw)));
-                if (foundHeader && !Object.values(initialMapping).includes(foundHeader)) {
-                   initialMapping[config.key] = foundHeader;
-                }
-            });
+            const initialMapping: Partial<ColumnMapping> = editingDealList?.columnMapping || {};
+            if (!editingDealList?.columnMapping) { // Only auto-map if not editing an existing mapping
+                MAPPING_CONFIG.forEach(config => {
+                    const foundHeader = headers.find(h => config.keywords.some(kw => h.toLowerCase().includes(kw)));
+                    if (foundHeader && !Object.values(initialMapping).includes(foundHeader)) {
+                       initialMapping[config.key] = foundHeader;
+                    }
+                });
+            }
             setTempMapping(initialMapping);
             setAppState('MAP_COLUMNS');
             const firstUnmapped = MAPPING_CONFIG.find(c => c.required && !initialMapping[c.key]);
             setActiveMappingKey(firstUnmapped ? firstUnmapped.key : null);
-
         } catch (err) {
             setError('URL không hợp lệ hoặc không thể truy cập. Vui lòng kiểm tra lại URL và quyền chia sẻ.');
             console.error(err);
-            setAppState('CONNECT_SHEET');
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [editingDealList]);
 
-    useEffect(() => {
-        if (sheetUrl && columnMapping) {
-            setAppState('VIEW_DATA');
-        } else if (sheetUrl) {
-            handleFetchAndMap(sheetUrl);
-        } else {
-            setAppState('CONNECT_SHEET');
-        }
-    }, [sheetUrl, columnMapping, handleFetchAndMap]);
-
-    const loadProducts = useCallback(async (url: string, mapping: ColumnMapping) => {
+    const loadProducts = useCallback(async (dealList: DealList) => {
         setIsLoading(true);
         setError(null);
-        const csvUrl = getCsvUrl(url);
+        setProducts([]);
+        const csvUrl = getCsvUrl(dealList.sheetUrl);
         if (!csvUrl) {
             setError('URL không hợp lệ.');
             setIsLoading(false);
             return;
         }
         try {
-            const fetchedProducts = await fetchProducts(csvUrl, mapping);
+            const fetchedProducts = await fetchProducts(csvUrl, dealList.columnMapping);
             setProducts(fetchedProducts);
             setLastUpdated(new Date());
         } catch (err) {
-            setError('Không thể tải dữ liệu nền cho máy tính. Vui lòng kiểm tra lại URL và ánh xạ cột.');
+            setError('Không thể tải dữ liệu. Vui lòng kiểm tra lại URL và ánh xạ cột.');
             console.error(err);
         } finally {
             setIsLoading(false);
@@ -123,111 +122,162 @@ const App: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (appState === 'VIEW_DATA' && sheetUrl && columnMapping) {
-            loadProducts(sheetUrl, columnMapping);
+        if (dealLists.length > 0 && activeDealListId && dealLists.some(dl => dl.id === activeDealListId)) {
+            setAppState('VIEW_DATA');
+        } else {
+            setAppState('MANAGE_LISTS');
         }
-    }, [appState, sheetUrl, columnMapping, loadProducts]);
+    }, []);
+    
+    useEffect(() => {
+        if (appState === 'VIEW_DATA' && activeDealList) {
+            loadProducts(activeDealList);
+        }
+    }, [appState, activeDealList, loadProducts]);
 
     const handleConnectSheet = () => {
-        if (getSheetIdFromUrl(tempUrl)) {
+        if (editingDealList && getSheetIdFromUrl(editingDealList.sheetUrl || '')) {
             setError(null);
-            localStorage.setItem('googleSheetUrl', tempUrl);
-            setSheetUrl(tempUrl);
-            // useEffect will trigger handleFetchAndMap
+            handleFetchAndMap(editingDealList.sheetUrl!);
         } else {
-            setError('URL không hợp lệ. Vui lòng dán link chia sẻ Google Sheet (ví dụ: https://docs.google.com/spreadsheets/d/...).');
+            setError('URL không hợp lệ hoặc tên deal list trống.');
         }
     };
     
     const handleMappingConfirm = () => {
-        const requiredFields = MAPPING_CONFIG.filter(c => c.required).map(c => c.key);
-        const allRequiredMapped = requiredFields.every(key => tempMapping[key]);
-        
-        if (allRequiredMapped) {
+        const allRequiredMapped = MAPPING_CONFIG.filter(c => c.required).every(key => tempMapping[key.key]);
+        if (allRequiredMapped && editingDealList) {
             const finalMapping = { ...tempMapping } as ColumnMapping;
-            localStorage.setItem('googleSheetColumnMapping', JSON.stringify(finalMapping));
-            setColumnMapping(finalMapping);
-            // useEffect will trigger state change to VIEW_DATA
+            const newDealList: DealList = {
+                id: editingDealList.id!,
+                name: editingDealList.name!,
+                sheetUrl: editingDealList.sheetUrl!,
+                columnMapping: finalMapping
+            };
+
+            const existingIndex = dealLists.findIndex(dl => dl.id === newDealList.id);
+            if (existingIndex > -1) {
+                const updatedLists = [...dealLists];
+                updatedLists[existingIndex] = newDealList;
+                updateDealLists(updatedLists);
+            } else {
+                updateDealLists([...dealLists, newDealList]);
+            }
+            setActiveDealListId(newDealList.id);
+            sessionStorage.setItem('activeDealListId', newDealList.id);
+            setAppState('VIEW_DATA');
+            setEditingDealList(null);
         } else {
-            setError("Vui lòng ánh xạ tất cả các trường bắt buộc: ID Sản phẩm, Tên Sản phẩm, và Giá hiển thị.");
+            setError("Vui lòng ánh xạ tất cả các trường bắt buộc.");
         }
-    }
-    
-    const handleDisconnect = () => {
-        localStorage.removeItem('googleSheetUrl');
-        localStorage.removeItem('googleSheetColumnMapping');
-        setSheetUrl(null);
-        setColumnMapping(null);
-        setProducts([]);
-        setTempUrl('');
-        setError(null);
-        // useEffect will trigger state change to CONNECT_SHEET
-    }
-    
-    const handleEditMapping = () => {
-        if (!sheetUrl) return;
-        localStorage.removeItem('googleSheetColumnMapping');
-        setColumnMapping(null);
-        // useEffect will trigger handleFetchAndMap
     }
 
     const handleHeaderClick = (header: string) => {
         if (activeMappingKey) {
             setTempMapping(prev => {
                 const newMapping = { ...prev };
-                // Unmap any other field that might be using this header
-                for (const key in newMapping) {
+                Object.keys(newMapping).forEach(key => {
                     if (newMapping[key as keyof ColumnMapping] === header) {
                         delete newMapping[key as keyof ColumnMapping];
                     }
-                }
+                });
                 newMapping[activeMappingKey] = header;
                 return newMapping;
             });
-            // Auto-advance to next unmapped required field
             const currentIndex = MAPPING_CONFIG.findIndex(c => c.key === activeMappingKey);
-            const nextUnmapped = MAPPING_CONFIG.slice(currentIndex + 1).concat(MAPPING_CONFIG.slice(0, currentIndex + 1))
-                                            .find(c => c.required && !tempMapping[c.key]);
+            const nextUnmapped = [...MAPPING_CONFIG.slice(currentIndex + 1), ...MAPPING_CONFIG.slice(0, currentIndex + 1)]
+                .find(c => c.required && !tempMapping[c.key]);
             setActiveMappingKey(nextUnmapped ? nextUnmapped.key : null);
         }
     };
 
+    const handleAddNewList = () => {
+        setEditingDealList({ id: Date.now().toString() });
+        setAppState('CONNECT_SHEET');
+    }
+    
+    const handleEditList = (list: DealList) => {
+        setEditingDealList(list);
+        setAppState('CONNECT_SHEET');
+    };
+
+    const handleDeleteList = (listId: string) => {
+        if (window.confirm("Bạn có chắc chắn muốn xóa deal list này?")) {
+            updateDealLists(dealLists.filter(dl => dl.id !== listId));
+            if (activeDealListId === listId) {
+                setActiveDealListId(null);
+                sessionStorage.removeItem('activeDealListId');
+            }
+        }
+    }
+    
+    const handleSelectList = (listId: string) => {
+        setActiveDealListId(listId);
+        sessionStorage.setItem('activeDealListId', listId);
+        setAppState('VIEW_DATA');
+    }
+
+    if (appState === 'MANAGE_LISTS') {
+        return (
+             <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <div className="w-full max-w-2xl bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
+                    <div className="text-center">
+                        <SheetIcon className="w-12 h-12 mx-auto text-green-600"/>
+                        <h1 className="text-3xl font-bold text-gray-800 mt-4">Quản lý Deal Lists</h1>
+                        <p className="mt-2 text-gray-600">Chọn một deal list để làm việc hoặc thêm một list mới.</p>
+                    </div>
+
+                    <div className="mt-8 space-y-4">
+                        {dealLists.map(list => (
+                            <div key={list.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <span className="font-medium text-gray-800">{list.name}</span>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => handleSelectList(list.id)} className="px-4 py-1.5 text-sm font-semibold text-white bg-indigo-600 rounded-md hover:bg-indigo-700">Chọn</button>
+                                    <button onClick={() => handleEditList(list)} className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-gray-200 rounded-md"><EditIcon className="w-5 h-5"/></button>
+                                    <button onClick={() => handleDeleteList(list.id)} className="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-200 rounded-md"><TrashIcon className="w-5 h-5"/></button>
+                                </div>
+                            </div>
+                        ))}
+                        {dealLists.length === 0 && <p className="text-center text-gray-500 py-4">Chưa có deal list nào.</p>}
+                    </div>
+
+                    <div className="mt-8">
+                        <button onClick={handleAddNewList} className="w-full flex items-center justify-center gap-2 px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+                            <PlusIcon className="w-5 h-5" />
+                            Thêm Deal List mới
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
 
     if (appState === 'CONNECT_SHEET') {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
                 <div className="w-full max-w-2xl bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
                     <div className="text-center">
-                        <SheetIcon className="w-12 h-12 mx-auto text-green-600"/>
-                        <h1 className="text-3xl font-bold text-gray-800 mt-4">Kết nối Google Sheet của bạn</h1>
-                        <p className="mt-2 text-gray-600">Để bắt đầu, hãy dán URL chia sẻ của Google Sheet.</p>
+                        <h1 className="text-3xl font-bold text-gray-800 mt-4">{editingDealList?.columnMapping ? 'Chỉnh sửa' : 'Thêm mới'} Deal List</h1>
                     </div>
                     
-                    <div className="mt-8 space-y-2">
-                        <label htmlFor="sheetUrlInput" className="block text-sm font-medium text-gray-700">URL Chia sẻ Google Sheet</label>
-                        <div className="flex items-center gap-2">
-                            <div className="relative flex-grow">
-                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                    <LinkIcon className="h-5 w-5 text-gray-400" />
-                                </div>
-                                <input id="sheetUrlInput" type="text" value={tempUrl} onChange={(e) => setTempUrl(e.target.value)} placeholder="https://docs.google.com/spreadsheets/d/..." className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" aria-label="Google Sheet URL" />
-                            </div>
-                            <button onClick={handleConnectSheet} disabled={isLoading} className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50">
-                                {isLoading ? 'Đang xử lý...' : 'Tiếp tục'}
-                            </button>
+                    <div className="mt-8 space-y-4">
+                         <div>
+                            <label htmlFor="dealListNameInput" className="block text-sm font-medium text-gray-700">Tên Deal List</label>
+                            <input id="dealListNameInput" type="text" value={editingDealList?.name || ''} onChange={(e) => setEditingDealList(p => ({...p, name: e.target.value}))} placeholder="Ví dụ: KOC A - Livestream 6/6" className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+                        </div>
+                        <div>
+                            <label htmlFor="sheetUrlInput" className="block text-sm font-medium text-gray-700">URL Chia sẻ Google Sheet</label>
+                            <input id="sheetUrlInput" type="text" value={editingDealList?.sheetUrl || ''} onChange={(e) => setEditingDealList(p => ({...p, sheetUrl: e.target.value}))} placeholder="https://docs.google.com/spreadsheets/d/..." className="mt-1 w-full pl-3 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" aria-label="Google Sheet URL" />
                         </div>
                     </div>
                     
                     {error && (<div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg" role="alert"><p>{error}</p></div>)}
 
-                    <div className="mt-8 text-sm text-gray-500">
-                        <h4 className="font-semibold text-gray-600">Cách lấy URL:</h4>
-                        <ol className="list-decimal list-inside space-y-1 mt-2">
-                            <li>Trong Google Sheets, nhấp vào nút "Chia sẻ" màu xanh ở góc trên bên phải.</li>
-                            <li>Trong mục "Quyền truy cập chung", thay đổi thành <code className="bg-gray-100 px-1 py-0.5 rounded">Bất kỳ ai có đường liên kết</code>.</li>
-                            <li>Đảm bảo vai trò được đặt là <code className="bg-gray-100 px-1 py-0.5 rounded">Người xem</code>.</li>
-                            <li>Nhấp vào "Sao chép đường liên kết" và dán vào ô trên.</li>
-                        </ol>
+                    <div className="mt-8 flex justify-between">
+                         <button onClick={() => setAppState('MANAGE_LISTS')} className="text-sm font-medium text-gray-600 hover:text-red-600 transition-colors">Hủy</button>
+                         <button onClick={handleConnectSheet} disabled={isLoading || !editingDealList?.name || !editingDealList?.sheetUrl} className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">
+                            {isLoading ? 'Đang xử lý...' : 'Tiếp tục'}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -235,14 +285,13 @@ const App: React.FC = () => {
     }
     
     if (appState === 'MAP_COLUMNS') {
-        const mappedHeaders = Object.values(tempMapping);
         return (
             <div className="min-h-screen bg-gray-50 flex flex-col p-4 sm:p-6 lg:p-8">
                 <div className="w-full max-w-7xl mx-auto bg-white p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-200">
                     <div className="text-center">
                        <CogIcon className="w-12 h-12 mx-auto text-indigo-600"/>
                         <h1 className="text-3xl font-bold text-gray-800 mt-4">Ánh xạ Cột Dữ liệu</h1>
-                        <p className="mt-2 text-gray-600">Nhấp vào một trường, sau đó nhấp vào tiêu đề cột tương ứng trong bảng xem trước để ánh xạ.</p>
+                        <p className="mt-2 text-gray-600">Nhấp vào một trường, sau đó nhấp vào tiêu đề cột tương ứng để ánh xạ.</p>
                     </div>
                     
                     <div className="mt-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -264,7 +313,7 @@ const App: React.FC = () => {
                                        <tr>
                                            {sheetHeaders.map((header, index) => (
                                                <th key={index} scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                                   <button onClick={() => handleHeaderClick(header)} className={`w-full text-left p-1 rounded transition-colors ${mappedHeaders.includes(header) ? 'bg-indigo-200 text-indigo-800 font-bold' : 'hover:bg-gray-200'}`}>
+                                                   <button onClick={() => handleHeaderClick(header)} className={`w-full text-left p-1 rounded transition-colors ${Object.values(tempMapping).includes(header) ? 'bg-indigo-200 text-indigo-800 font-bold' : 'hover:bg-gray-200'}`}>
                                                        {header || `Cột ${index + 1}`}
                                                    </button>
                                                </th>
@@ -275,9 +324,7 @@ const App: React.FC = () => {
                                         {sheetPreview.map((row, rowIndex) => (
                                             <tr key={rowIndex}>
                                                 {row.map((cell, cellIndex) => (
-                                                    <td key={cellIndex} className="px-3 py-2 whitespace-nowrap text-sm text-gray-700 truncate max-w-xs">
-                                                        {cell}
-                                                    </td>
+                                                    <td key={cellIndex} className="px-3 py-2 whitespace-nowrap text-sm text-gray-700 truncate max-w-xs">{cell}</td>
                                                 ))}
                                             </tr>
                                         ))}
@@ -290,10 +337,8 @@ const App: React.FC = () => {
                     {error && (<div className="mt-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg" role="alert"><p>{error}</p></div>)}
 
                     <div className="mt-8 flex justify-between items-center">
-                        <button onClick={handleDisconnect} className="text-sm font-medium text-gray-600 hover:text-red-600 transition-colors">Bắt đầu lại</button>
-                        <button onClick={handleMappingConfirm} className="px-8 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            Xác nhận & Tải Dữ liệu
-                        </button>
+                        <button onClick={() => setAppState('CONNECT_SHEET')} className="text-sm font-medium text-gray-600 hover:text-red-600 transition-colors">Quay lại</button>
+                        <button onClick={handleMappingConfirm} className="px-8 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700">Xác nhận & Tải Dữ liệu</button>
                     </div>
                 </div>
             </div>
@@ -307,23 +352,22 @@ const App: React.FC = () => {
                     <div className="flex items-center gap-4">
                         <SheetIcon className="w-10 h-10 text-green-600" />
                         <div>
-                            <h1 className="text-xl font-bold text-gray-800">Bảng điều khiển giá</h1>
-                            <p className="text-sm text-gray-500">
-                                {lastUpdated ? `Cập nhật lần cuối: ${lastUpdated.toLocaleTimeString('vi-VN')}` : 'Đang tải...'}
-                            </p>
+                             <label htmlFor="dealListSelect" className="text-xs text-gray-500">Deal List hiện tại</label>
+                             <select id="dealListSelect" value={activeDealListId || ''} onChange={e => handleSelectList(e.target.value)} className="text-xl font-bold text-gray-800 bg-transparent border-0 focus:ring-0 p-0">
+                                {dealLists.map(dl => <option key={dl.id} value={dl.id}>{dl.name}</option>)}
+                             </select>
+                            <p className="text-sm text-gray-500">{lastUpdated ? `Cập nhật lần cuối: ${lastUpdated.toLocaleTimeString('vi-VN')}` : 'Đang tải...'}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
-                        <button onClick={() => sheetUrl && columnMapping && loadProducts(sheetUrl, columnMapping)} disabled={isLoading} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50">
-                            <RefreshIcon className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
-                            Làm mới
+                        <button onClick={() => activeDealList && loadProducts(activeDealList)} disabled={isLoading} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+                            <RefreshIcon className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} /> Làm mới
                         </button>
-                        <button onClick={handleEditMapping} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            <EditIcon className="w-5 h-5" />
-                            Sửa
+                         <button onClick={() => activeDealList && handleEditList(activeDealList)} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                            <EditIcon className="w-5 h-5" /> Sửa
                         </button>
-                        <button onClick={handleDisconnect} className="flex items-center gap-2 px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                            Ngắt kết nối
+                        <button onClick={() => setAppState('MANAGE_LISTS')} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                           <CogIcon className="w-5 h-5" /> Quản lý
                         </button>
                     </div>
                 </div>
@@ -332,7 +376,7 @@ const App: React.FC = () => {
             
             <main className="flex-grow flex flex-col lg:flex-row gap-8 min-h-0">
                 <section className="lg:w-1/3 lg:flex-shrink-0">
-                    <Calculator products={products} />
+                    {activeDealList && <Calculator key={activeDealList.id} products={products} dealListName={activeDealList.name} />}
                 </section>
 
                 <section className="flex-grow lg:w-2/3 min-h-[600px] lg:min-h-0">

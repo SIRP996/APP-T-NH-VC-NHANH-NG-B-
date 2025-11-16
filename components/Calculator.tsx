@@ -67,11 +67,12 @@ const SearchField: React.FC<{
 // Fix: Define CalculatorProps interface for the Calculator component.
 interface CalculatorProps {
     products: Product[];
+    dealListName: string;
 }
 
 const ALL_POSSIBLE_VOUCHERS = Array.from({ length: 19 }, (_, i) => i + 7); // 7 to 25
 
-export const Calculator: React.FC<CalculatorProps> = ({ products }) => {
+export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName }) => {
     const [productId, setProductId] = useState('');
     const [currentPrice, setCurrentPrice] = useState('');
     const [desiredPrice, setDesiredPrice] = useState('');
@@ -268,12 +269,15 @@ export const Calculator: React.FC<CalculatorProps> = ({ products }) => {
 
     return (
         <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 w-full h-full">
-            <div className="flex items-center justify-between gap-3 mb-6">
+            <div className="flex items-start justify-between gap-3 mb-6">
                 <div className="flex items-center gap-3">
-                    <CalculatorIcon className="w-8 h-8 text-indigo-600" />
-                    <h2 className="text-2xl font-bold text-gray-800">Công cụ tính giá</h2>
+                    <CalculatorIcon className="w-8 h-8 text-indigo-600 flex-shrink-0 mt-1" />
+                     <div>
+                        <h2 className="text-2xl font-bold text-gray-800">Công cụ tính giá</h2>
+                        <p className="text-sm font-medium text-indigo-700 truncate" title={dealListName}>{dealListName}</p>
+                    </div>
                 </div>
-                <div className="text-xl font-bold text-gray-600 bg-gray-100 px-4 py-2 rounded-lg">
+                <div className="text-4xl font-bold text-gray-600 bg-gray-100 px-6 py-3 rounded-lg flex-shrink-0">
                      <span>{formattedTime}</span>
                 </div>
             </div>

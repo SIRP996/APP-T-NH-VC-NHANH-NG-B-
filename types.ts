@@ -19,3 +19,10 @@ export interface ColumnMapping {
   name: string;
   finalPrice: string;
 }
+
+export interface DealList {
+  id: string;
+  name: string;
+  sheetUrl: string;
+  columnMapping: ColumnMapping;
+}
