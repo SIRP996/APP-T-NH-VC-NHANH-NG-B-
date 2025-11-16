@@ -12,31 +12,38 @@ const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('vi-VN').format(Math.round(value));
 };
 
-const InputField: React.FC<{ 
-    label: string; 
-    id: string; 
-    value: string; 
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; 
-    placeholder?: string; 
+interface InputFieldProps {
+    label: string;
+    id: string;
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    placeholder?: string;
     type?: string;
     onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-}> = ({ label, id, value, onChange, placeholder, type = "text", onKeyDown }) => (
-    <div>
-        <label htmlFor={id} className="block text-sm font-medium text-gray-700">{label}</label>
-        <div className="mt-1">
-            <input
-                type={type}
-                id={id}
-                value={value}
-                onChange={onChange}
-                onKeyDown={onKeyDown}
-                placeholder={placeholder}
-                autoComplete="off"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50 text-gray-900 placeholder-gray-500 font-medium"
-            />
+}
+
+const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
+    ({ label, id, value, onChange, placeholder, type = "text", onKeyDown }, ref) => (
+        <div>
+            <label htmlFor={id} className="block text-sm font-medium text-gray-700">{label}</label>
+            <div className="mt-1">
+                <input
+                    ref={ref}
+                    type={type}
+                    id={id}
+                    value={value}
+                    onChange={onChange}
+                    onKeyDown={onKeyDown}
+                    placeholder={placeholder}
+                    autoComplete="off"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50 text-gray-900 placeholder-gray-500 font-medium"
+                />
+            </div>
         </div>
-    </div>
+    )
 );
+
+const ALL_POSSIBLE_VOUCHERS = Array.from({ length: 19 }, (_, i) => i + 7); // 7 to 25
 
 export const Calculator: React.FC<CalculatorProps> = ({ products }) => {
     const [productId, setProductId] = useState('');
@@ -51,6 +58,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ products }) => {
     const [suggestions, setSuggestions] = useState<Product[]>([]);
     const [isSuggestionsVisible, setIsSuggestionsVisible] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
+    const voucherInputRef = useRef<HTMLInputElement>(null);
     const isSelectionInProgress = useRef(false); // Ref to prevent re-search after selection
     const [isCopied, setIsCopied] = useState(false);
 
@@ -63,7 +71,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ products }) => {
         }
     });
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const [tempPresets, setTempPresets] = useState(presetVouchers.join(', '));
+    const [tempSelectedPresets, setTempSelectedPresets] = useState<number[]>([]);
     
     const handleProductSelect = useCallback((product: Product) => {
         isSelectionInProgress.current = true; // Flag that a programmatic selection is happening
@@ -157,6 +165,19 @@ export const Calculator: React.FC<CalculatorProps> = ({ products }) => {
         }
     };
 
+     // Special handler for desiredPrice to override Tab behavior
+    const handleDesiredPriceKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            handleCalculation();
+        } else if (event.key === 'Tab' && !event.shiftKey) {
+            // Skip the radio buttons and focus directly on the voucher value input
+            event.preventDefault();
+            voucherInputRef.current?.focus();
+        }
+    };
+
+
     const formatCurrencyForInput = (value: string): string => {
         if (!value) return '';
         const number = parseInt(value, 10);
@@ -168,16 +189,9 @@ export const Calculator: React.FC<CalculatorProps> = ({ products }) => {
     };
     
     const handleSavePresets = () => {
-        const newPresets = tempPresets
-            .split(',')
-            .map(s => parseInt(s.trim(), 10))
-            .filter(n => !isNaN(n) && n > 0 && n < 100);
-        
-        // Fix: Explicitly type sort callback parameters to prevent type inference issues.
-        const uniquePresets = [...new Set(newPresets)].sort((a: number, b: number) => a - b);
-        
-        setPresetVouchers(uniquePresets);
-        localStorage.setItem('presetVouchers', JSON.stringify(uniquePresets));
+        const sortedPresets = [...tempSelectedPresets].sort((a, b) => a - b);
+        setPresetVouchers(sortedPresets);
+        localStorage.setItem('presetVouchers', JSON.stringify(sortedPresets));
         setIsSettingsOpen(false);
     };
 
@@ -190,6 +204,22 @@ export const Calculator: React.FC<CalculatorProps> = ({ products }) => {
         }
     };
 
+    const toggleSettings = () => {
+        if (!isSettingsOpen) {
+            setTempSelectedPresets(presetVouchers);
+        }
+        setIsSettingsOpen(!isSettingsOpen);
+    };
+
+    const handlePresetSelectionChange = (voucherValue: number) => {
+        setTempSelectedPresets(prev => {
+            if (prev.includes(voucherValue)) {
+                return prev.filter(v => v !== voucherValue); // Uncheck
+            } else {
+                return [...prev, voucherValue]; // Check
+            }
+        });
+    };
 
     return (
         <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 w-full h-full">
@@ -236,7 +266,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ products }) => {
                     onChange={(e) => setDesiredPrice(parseInput(e.target.value))} 
                     placeholder="ví dụ: 99,000" 
                     type="text"
-                    onKeyDown={handleKeyDown}
+                    onKeyDown={handleDesiredPriceKeyDown}
                 />
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Loại Voucher</label>
@@ -252,6 +282,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ products }) => {
                     </div>
                 </div>
                  <InputField 
+                    ref={voucherInputRef}
                     label={voucherType === VoucherType.Percentage ? "Voucher Sàn (%)" : "Số tiền Voucher Sàn"}
                     id="voucherValue" 
                     value={voucherType === VoucherType.Fixed ? formatCurrencyForInput(voucherValue) : voucherValue} 
@@ -265,22 +296,30 @@ export const Calculator: React.FC<CalculatorProps> = ({ products }) => {
                     <div className="pt-2">
                          <div className="flex justify-between items-center mb-2">
                             <p className="text-xs text-gray-500">Hoặc chọn nhanh voucher thường dùng:</p>
-                            <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className="text-gray-500 hover:text-indigo-600 p-1 rounded-full hover:bg-gray-100" aria-label="Cài đặt voucher nhanh">
+                            <button onClick={toggleSettings} className="text-gray-500 hover:text-indigo-600 p-1 rounded-full hover:bg-gray-100" aria-label="Cài đặt voucher nhanh">
                                 <CogIcon className="w-5 h-5" />
                             </button>
                         </div>
                          {isSettingsOpen && (
                             <div className="p-3 bg-gray-50 rounded-md border mb-3 transition-all duration-300 ease-in-out">
-                                <label htmlFor="preset-input" className="text-sm font-medium text-gray-700 block mb-1">Chỉnh sửa voucher (phân cách bằng dấu phẩy)</label>
-                                <div className="flex gap-2">
-                                    <input 
-                                        id="preset-input"
-                                        type="text" 
-                                        value={tempPresets}
-                                        onChange={(e) => setTempPresets(e.target.value)}
-                                        className="w-full px-2 py-1 border border-gray-300 rounded-md sm:text-sm focus:ring-indigo-500 focus:border-indigo-500"
-                                    />
-                                    <button onClick={handleSavePresets} className="px-4 py-1 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Lưu</button>
+                                <p className="text-sm font-medium text-gray-700 block mb-3">Chọn voucher để hiển thị:</p>
+                                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mb-4">
+                                    {ALL_POSSIBLE_VOUCHERS.map((val) => (
+                                        <label key={val} className="flex items-center justify-center gap-2 p-2 rounded-md hover:bg-gray-200 cursor-pointer text-sm text-gray-800">
+                                            <input
+                                                type="checkbox"
+                                                checked={tempSelectedPresets.includes(val)}
+                                                onChange={() => handlePresetSelectionChange(val)}
+                                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                            />
+                                            {val}%
+                                        </label>
+                                    ))}
+                                </div>
+                                <div className="flex justify-end">
+                                    <button onClick={handleSavePresets} className="px-4 py-1.5 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                        Lưu
+                                    </button>
                                 </div>
                             </div>
                         )}
