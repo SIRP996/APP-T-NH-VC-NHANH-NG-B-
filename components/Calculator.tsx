@@ -273,7 +273,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ products }) => {
                     <CalculatorIcon className="w-8 h-8 text-indigo-600" />
                     <h2 className="text-2xl font-bold text-gray-800">Công cụ tính giá</h2>
                 </div>
-                <div className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-md">
+                <div className="text-xl font-bold text-gray-600 bg-gray-100 px-4 py-2 rounded-lg">
                      <span>{formattedTime}</span>
                 </div>
             </div>
