@@ -1,11 +1,8 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Product, VoucherType } from '../types';
 import { CalculatorIcon, CogIcon, CopyIcon, CheckIcon } from './Icons';
-
-interface CalculatorProps {
-  products: Product[];
-}
 
 const formatCurrency = (value: number) => {
     if (isNaN(value) || !isFinite(value)) return "0";
@@ -43,6 +40,35 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
     )
 );
 
+// New component for the taller search field with text wrapping
+const SearchField: React.FC<{
+    label: string;
+    id: string;
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+    placeholder?: string;
+}> = ({ label, id, value, onChange, placeholder }) => (
+    <div>
+        <label htmlFor={id} className="block text-sm font-medium text-gray-700">{label}</label>
+        <div className="mt-1">
+            <textarea
+                id={id}
+                value={value}
+                onChange={onChange}
+                placeholder={placeholder}
+                rows={2}
+                autoComplete="off"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50 text-gray-900 placeholder-gray-500 font-medium resize-y"
+            />
+        </div>
+    </div>
+);
+
+// Fix: Define CalculatorProps interface for the Calculator component.
+interface CalculatorProps {
+    products: Product[];
+}
+
 const ALL_POSSIBLE_VOUCHERS = Array.from({ length: 19 }, (_, i) => i + 7); // 7 to 25
 
 export const Calculator: React.FC<CalculatorProps> = ({ products }) => {
@@ -61,6 +87,8 @@ export const Calculator: React.FC<CalculatorProps> = ({ products }) => {
     const voucherInputRef = useRef<HTMLInputElement>(null);
     const isSelectionInProgress = useRef(false); // Ref to prevent re-search after selection
     const [isCopied, setIsCopied] = useState(false);
+    const [currentTime, setCurrentTime] = useState(new Date());
+
 
     const [presetVouchers, setPresetVouchers] = useState<number[]>(() => {
         try {
@@ -73,6 +101,23 @@ export const Calculator: React.FC<CalculatorProps> = ({ products }) => {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [tempSelectedPresets, setTempSelectedPresets] = useState<number[]>([]);
     
+    // Clock effect
+    useEffect(() => {
+        const timerId = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 1000);
+        return () => clearInterval(timerId);
+    }, []);
+
+    const formattedTime = currentTime.toLocaleTimeString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZone: 'Asia/Ho_Chi_Minh'
+    });
+
+
     const handleProductSelect = useCallback((product: Product) => {
         isSelectionInProgress.current = true; // Flag that a programmatic selection is happening
         setProductId(product.id);
@@ -223,13 +268,18 @@ export const Calculator: React.FC<CalculatorProps> = ({ products }) => {
 
     return (
         <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 w-full h-full">
-            <div className="flex items-center gap-3 mb-6">
-                <CalculatorIcon className="w-8 h-8 text-indigo-600" />
-                <h2 className="text-2xl font-bold text-gray-800">Công cụ tính giá</h2>
+            <div className="flex items-center justify-between gap-3 mb-6">
+                <div className="flex items-center gap-3">
+                    <CalculatorIcon className="w-8 h-8 text-indigo-600" />
+                    <h2 className="text-2xl font-bold text-gray-800">Công cụ tính giá</h2>
+                </div>
+                <div className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-md">
+                     <span>{formattedTime}</span>
+                </div>
             </div>
             <div className="space-y-4">
                  <div className="relative" ref={searchRef}>
-                    <InputField 
+                    <SearchField 
                         label="Tìm kiếm sản phẩm (Tên, ID, Model)" 
                         id="productSearch" 
                         value={searchTerm} 
