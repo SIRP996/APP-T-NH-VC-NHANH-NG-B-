@@ -1,6 +1,7 @@
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Product, VoucherType } from '../types';
-import { CalculatorIcon, CogIcon } from './Icons';
+import { CalculatorIcon, CogIcon, CopyIcon, CheckIcon } from './Icons';
 
 interface CalculatorProps {
   products: Product[];
@@ -31,7 +32,7 @@ const InputField: React.FC<{
                 onKeyDown={onKeyDown}
                 placeholder={placeholder}
                 autoComplete="off"
-                className="w-full px-3 py-2 border border-zinc-700 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-zinc-800 text-white placeholder-gray-400"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50 text-gray-900 placeholder-gray-500 font-medium"
             />
         </div>
     </div>
@@ -51,6 +52,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ products }) => {
     const [isSuggestionsVisible, setIsSuggestionsVisible] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
     const isSelectionInProgress = useRef(false); // Ref to prevent re-search after selection
+    const [isCopied, setIsCopied] = useState(false);
 
     const [presetVouchers, setPresetVouchers] = useState<number[]>(() => {
         try {
@@ -179,6 +181,15 @@ export const Calculator: React.FC<CalculatorProps> = ({ products }) => {
         setIsSettingsOpen(false);
     };
 
+    const handleCopy = () => {
+        if (result !== null) {
+            navigator.clipboard.writeText(String(Math.round(result))).then(() => {
+                setIsCopied(true);
+                setTimeout(() => setIsCopied(false), 2000); // Reset after 2 seconds
+            });
+        }
+    };
+
 
     return (
         <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 w-full h-full">
@@ -301,8 +312,17 @@ export const Calculator: React.FC<CalculatorProps> = ({ products }) => {
 
                 {result !== null && (
                     <div className="mt-6 p-4 rounded-lg bg-indigo-50 border border-indigo-200">
-                        <p className="text-sm font-medium text-indigo-800">Voucher người bán cần có:</p>
-                        <p className="text-3xl font-bold text-indigo-600 text-center tracking-tight">{formatCurrency(result)} VND</p>
+                        <p className="text-sm font-medium text-indigo-800 text-center">Voucher người bán cần có:</p>
+                        <div className="flex items-center justify-center gap-2 mt-1">
+                            <p className="text-3xl font-bold text-indigo-600 tracking-tight">{formatCurrency(result)} VND</p>
+                             <button
+                                onClick={handleCopy}
+                                className="p-2 rounded-full text-gray-500 hover:bg-indigo-100 hover:text-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                aria-label="Sao chép số tiền"
+                            >
+                                {isCopied ? <CheckIcon className="w-5 h-5 text-green-600" /> : <CopyIcon className="w-5 h-5" />}
+                            </button>
+                        </div>
                          {result < 0 && <p className="text-center text-sm text-red-600 mt-2">Lưu ý: Giá trị âm có nghĩa là giá có thể giảm mà không cần thêm voucher của người bán.</p>}
                     </div>
                 )}
