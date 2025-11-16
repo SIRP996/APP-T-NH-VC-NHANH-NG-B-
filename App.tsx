@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Product, ColumnMapping, DealList, FirebaseConfig } from './types';
 import { fetchProducts, fetchSheetPreviewAndHeaders } from './services/googleSheetService';
 import { Calculator } from './components/Calculator';
-import { RefreshIcon, LinkIcon, SheetIcon, EditIcon, CogIcon, PlusIcon, TrashIcon, FirebaseIcon, GoogleIcon, LogoutIcon } from './components/Icons';
+import { RefreshIcon, LinkIcon, SheetIcon, EditIcon, CogIcon, PlusIcon, TrashIcon, FirebaseIcon, GoogleIcon, LogoutIcon, MailIcon, LockClosedIcon } from './components/Icons';
 
 // Declare firebase globally as it's loaded from a script tag
 declare const firebase: any;
@@ -43,6 +43,134 @@ const getCsvUrl = (url: string): string | null => {
     return sheetId ? `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv` : null;
 };
 
+const LoginScreen: React.FC<{
+    onGoogleSignIn: () => void;
+    isFirebaseReady: boolean;
+    isConfigPlaceholder: boolean;
+}> = ({ onGoogleSignIn, isFirebaseReady, isConfigPlaceholder }) => {
+    const [mode, setMode] = useState<'login' | 'register' | 'reset'>('login');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [message, setMessage] = useState('');
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError('');
+        setMessage('');
+        try {
+            if (mode === 'login') {
+                await firebase.auth().signInWithEmailAndPassword(email, password);
+            } else if (mode === 'register') {
+                await firebase.auth().createUserWithEmailAndPassword(email, password);
+            } else if (mode === 'reset') {
+                await firebase.auth().sendPasswordResetEmail(email);
+                setMessage('Email khôi phục mật khẩu đã được gửi!');
+                setMode('login');
+            }
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const title = mode === 'login' ? 'Đăng nhập' : mode === 'register' ? 'Đăng ký tài khoản' : 'Quên mật khẩu';
+    const buttonText = mode === 'login' ? 'Đăng nhập' : mode === 'register' ? 'Đăng ký' : 'Gửi email khôi phục';
+    const switchModeText = mode === 'login' ? 'Chưa có tài khoản?' : 'Đã có tài khoản?';
+
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
+            <div className="p-8 bg-white rounded-xl shadow-md text-center max-w-sm w-full">
+                <FirebaseIcon className="mx-auto w-16 h-16 mb-4" />
+                <h1 className="text-2xl font-bold text-gray-800 mb-2">{title}</h1>
+                <p className="text-gray-600 mb-6">Truy cập vào công cụ quản lý deal list của bạn.</p>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                            <MailIcon className="w-5 h-5 text-gray-400" />
+                        </span>
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="Email"
+                            required
+                            className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                    </div>
+
+                    {mode !== 'reset' && (
+                        <div className="relative">
+                            <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                                <LockClosedIcon className="w-5 h-5 text-gray-400" />
+                            </span>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Mật khẩu"
+                                required
+                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                            />
+                        </div>
+                    )}
+                    
+                    {error && <p className="text-red-500 text-sm">{error}</p>}
+                    {message && <p className="text-green-600 text-sm">{message}</p>}
+
+                    <button
+                        type="submit"
+                        disabled={isLoading || !isFirebaseReady || isConfigPlaceholder}
+                        className="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                        {isLoading ? 'Đang xử lý...' : buttonText}
+                    </button>
+                </form>
+
+                <div className="text-sm text-center mt-4">
+                    {mode !== 'reset' && (
+                        <button onClick={() => setMode(mode === 'login' ? 'register' : 'login')} className="font-medium text-indigo-600 hover:text-indigo-500">
+                            {switchModeText} {mode === 'login' ? 'Đăng ký' : 'Đăng nhập'}
+                        </button>
+                    )}
+                     {mode === 'login' && (
+                        <>
+                            <span className="mx-2 text-gray-400">|</span>
+                            <button onClick={() => setMode('reset')} className="font-medium text-indigo-600 hover:text-indigo-500">Quên mật khẩu?</button>
+                        </>
+                    )}
+                     {mode === 'reset' && (
+                         <button onClick={() => setMode('login')} className="font-medium text-indigo-600 hover:text-indigo-500">Quay lại đăng nhập</button>
+                    )}
+                </div>
+
+                <div className="my-6 flex items-center">
+                    <div className="flex-grow border-t border-gray-300"></div>
+                    <span className="flex-shrink mx-4 text-gray-400 text-sm">hoặc</span>
+                    <div className="flex-grow border-t border-gray-300"></div>
+                </div>
+
+                <button
+                    onClick={onGoogleSignIn}
+                    disabled={!isFirebaseReady || isConfigPlaceholder}
+                    className="w-full inline-flex justify-center items-center gap-3 py-3 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                >
+                    <GoogleIcon className="w-5 h-5" />
+                    Tiếp tục với Google
+                </button>
+                {isConfigPlaceholder && (
+                    <p className="text-red-500 text-xs mt-4">Lỗi: Cấu hình Firebase chưa được cập nhật. Vui lòng liên hệ quản trị viên.</p>
+                )}
+            </div>
+        </div>
+    );
+};
+
+
 const App: React.FC = () => {
     const [appState, setAppState] = useState<AppState>('LOADING');
     const [dealLists, setDealLists] = useState<DealList[]>([]);
@@ -72,7 +200,7 @@ const App: React.FC = () => {
             if (firebaseConfig.apiKey === "YOUR_API_KEY") {
                 setError("Vui lòng cấu hình Firebase trong file App.tsx.");
                 setIsFirebaseReady(false);
-                setAppState('LOGIN'); // Show login screen but with an error
+                setAppState('LOGIN');
                 return;
             }
             if (!firebase.apps.length) {
@@ -100,7 +228,6 @@ const App: React.FC = () => {
                          console.error("Firestore snapshot error:", error);
                          setError("Không thể tải dữ liệu. Vui lòng kiểm tra lại quy tắc bảo mật Firestore.");
                     });
-                     // Cleanup Firestore listener on user change
                      return () => unsubSnapshot();
                 } else {
                     setUser(null);
@@ -108,7 +235,6 @@ const App: React.FC = () => {
                     setAppState('LOGIN');
                 }
             });
-            // Cleanup auth listener on component unmount
             return () => unsubscribe();
 
         } catch (err) {
@@ -288,28 +414,6 @@ const App: React.FC = () => {
     );
     
     const isConfigPlaceholder = firebaseConfig.apiKey === "YOUR_API_KEY";
-
-    const renderLogin = () => (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100">
-            <div className="p-8 bg-white rounded-xl shadow-md text-center max-w-sm w-full">
-                <FirebaseIcon className="mx-auto w-16 h-16 mb-4" />
-                <h1 className="text-2xl font-bold text-gray-800 mb-2">Chào mừng bạn!</h1>
-                <p className="text-gray-600 mb-6">Đăng nhập để quản lý các deal list của bạn một cách an toàn.</p>
-                <button
-                    onClick={handleGoogleSignIn}
-                    disabled={!isFirebaseReady || isConfigPlaceholder}
-                    className="w-full inline-flex justify-center items-center gap-3 py-3 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-                >
-                    <GoogleIcon className="w-5 h-5" />
-                    Đăng nhập với Google
-                </button>
-                 {isConfigPlaceholder && (
-                    <p className="text-red-500 text-xs mt-4">Lỗi: Cấu hình Firebase chưa được cập nhật trong file App.tsx. Vui lòng liên hệ quản trị viên.</p>
-                )}
-                 {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
-            </div>
-        </div>
-    );
 
     const renderManageLists = () => (
         <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -541,7 +645,7 @@ const App: React.FC = () => {
         case 'LOADING':
             return renderLoading();
         case 'LOGIN':
-            return renderLogin();
+            return <LoginScreen onGoogleSignIn={handleGoogleSignIn} isFirebaseReady={isFirebaseReady} isConfigPlaceholder={isConfigPlaceholder} />;
         case 'MANAGE_LISTS':
             return renderManageLists();
         case 'CONNECT_SHEET':
@@ -553,7 +657,7 @@ const App: React.FC = () => {
             setAppState('MANAGE_LISTS'); // Fallback if no active list
             return renderManageLists();
         default:
-            return renderLogin();
+            return <LoginScreen onGoogleSignIn={handleGoogleSignIn} isFirebaseReady={isFirebaseReady} isConfigPlaceholder={isConfigPlaceholder} />;
     }
 };
 
