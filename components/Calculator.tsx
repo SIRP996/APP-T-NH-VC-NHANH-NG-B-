@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Product, VoucherType } from '../types';
 import { CalculatorIcon, CogIcon, CopyIcon, CheckIcon } from './Icons';
@@ -34,7 +35,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                     onKeyDown={onKeyDown}
                     placeholder={placeholder}
                     autoComplete="off"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50 text-gray-900 placeholder-gray-500 font-medium"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500 sm:text-sm bg-white text-gray-900 placeholder-gray-400 font-medium transition-all duration-200"
                 />
             </div>
         </div>
@@ -51,7 +52,7 @@ const SearchDisplayField: React.FC<{
             readOnly
             value={value}
             placeholder="Chọn một sản phẩm từ bảng..."
-            className="mt-1 w-full p-3 border border-gray-300 rounded-md bg-gray-100 text-gray-800 sm:text-sm resize-y min-h-[60px] h-[60px] placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500"
+            className="mt-1 w-full p-3 border border-gray-200 rounded-lg bg-gray-100 text-gray-800 sm:text-sm resize-y min-h-[60px] h-[60px] placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 cursor-default"
         />
     </div>
 );
@@ -282,7 +283,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                                 readOnly
                                 value={productId}
                                 title={productId}
-                                className="w-full px-3 py-1.5 border border-gray-300 rounded-md bg-gray-100 text-gray-700 sm:text-sm focus:ring-0 focus:border-gray-300 cursor-default"
+                                className="w-full px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-100 text-gray-700 sm:text-sm focus:outline-none focus:ring-1 focus:ring-indigo-300 cursor-default"
                             />
                             <button
                                 onClick={handleIdCopy}
@@ -333,7 +334,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                             onKeyDown={handleDesiredPriceKeyDown}
                             placeholder={isQuickPriceInput ? "ví dụ: 99" : "ví dụ: 99,000"}
                             autoComplete="off"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50 text-gray-900 placeholder-gray-500 font-medium"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500 sm:text-sm bg-white text-gray-900 placeholder-gray-400 font-medium transition-all duration-200"
                         />
                     </div>
                 </div>
