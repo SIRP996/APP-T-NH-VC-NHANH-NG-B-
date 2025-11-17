@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Product, ColumnMapping, DealList, FirebaseConfig } from './types';
 import { fetchProductsFromSheet, fetchSheetPreviewAndHeaders } from './services/googleSheetService';
@@ -77,16 +76,16 @@ const LoginScreen: React.FC<{
     const switchModeText = mode === 'login' ? 'Chưa có tài khoản?' : 'Đã có tài khoản?';
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
+        <div className="flex items-center justify-center min-h-screen bg-slate-100 p-4">
             <div className="p-8 bg-white rounded-xl shadow-md text-center max-w-sm w-full">
                 <FirebaseIcon className="mx-auto w-16 h-16 mb-4" />
-                <h1 className="text-2xl font-bold text-gray-800 mb-2">{title}</h1>
-                <p className="text-gray-600 mb-6">Truy cập vào công cụ quản lý deal list của bạn.</p>
+                <h1 className="text-2xl font-bold text-slate-800 mb-2">{title}</h1>
+                <p className="text-slate-600 mb-6">Truy cập vào công cụ quản lý deal list của bạn.</p>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="relative">
                         <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                            <MailIcon className="w-5 h-5 text-gray-400" />
+                            <MailIcon className="w-5 h-5 text-slate-400" />
                         </span>
                         <input
                             type="email"
@@ -94,14 +93,14 @@ const LoginScreen: React.FC<{
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="Email"
                             required
-                            className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                         />
                     </div>
 
                     {mode !== 'reset' && (
                         <div className="relative">
                             <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                                <LockClosedIcon className="w-5 h-5 text-gray-400" />
+                                <LockClosedIcon className="w-5 h-5 text-slate-400" />
                             </span>
                             <input
                                 type="password"
@@ -109,7 +108,7 @@ const LoginScreen: React.FC<{
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="Mật khẩu"
                                 required
-                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                                className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                             />
                         </div>
                     )}
@@ -134,7 +133,7 @@ const LoginScreen: React.FC<{
                     )}
                      {mode === 'login' && (
                         <>
-                            <span className="mx-2 text-gray-400">|</span>
+                            <span className="mx-2 text-slate-400">|</span>
                             <button onClick={() => setMode('reset')} className="font-medium text-indigo-600 hover:text-indigo-500">Quên mật khẩu?</button>
                         </>
                     )}
@@ -144,15 +143,15 @@ const LoginScreen: React.FC<{
                 </div>
 
                 <div className="my-6 flex items-center">
-                    <div className="flex-grow border-t border-gray-300"></div>
-                    <span className="flex-shrink mx-4 text-gray-400 text-sm">hoặc</span>
-                    <div className="flex-grow border-t border-gray-300"></div>
+                    <div className="flex-grow border-t border-slate-300"></div>
+                    <span className="flex-shrink mx-4 text-slate-400 text-sm">hoặc</span>
+                    <div className="flex-grow border-t border-slate-300"></div>
                 </div>
 
                 <button
                     onClick={onGoogleSignIn}
                     disabled={!isFirebaseReady || isConfigPlaceholder}
-                    className="w-full inline-flex justify-center items-center gap-3 py-3 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                    className="w-full inline-flex justify-center items-center gap-3 py-3 px-4 border border-slate-300 rounded-md shadow-sm bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
                 >
                     <GoogleIcon className="w-5 h-5" />
                     Tiếp tục với Google
@@ -544,10 +543,10 @@ const App: React.FC = () => {
     }, [user, db, editingDealList, tempMapping, handleSync, tempExcelData, syncProductsToFirestore]);
 
     const renderLoading = () => (
-        <div className="flex items-center justify-center h-screen bg-gray-100">
+        <div className="flex items-center justify-center h-screen bg-slate-100">
             <div className="text-center">
                 <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-indigo-600 mx-auto"></div>
-                <h2 className="mt-4 text-xl font-semibold text-gray-700">Đang tải ứng dụng...</h2>
+                <h2 className="mt-4 text-xl font-semibold text-slate-700">Đang tải ứng dụng...</h2>
             </div>
         </div>
     );
@@ -555,199 +554,205 @@ const App: React.FC = () => {
     const isConfigPlaceholder = firebaseConfig.apiKey === "YOUR_API_KEY";
 
     const renderManageLists = () => (
-        <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
-            <input type="file" ref={fileInputRef} onChange={handleFileImport} className="hidden" accept=".xlsx, .xls, .csv" />
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-800">Quản lý Deal Lists</h1>
-                {user && (
-                    <div className="flex items-center gap-2">
-                         <span className="text-sm text-gray-600 hidden sm:inline">{user.displayName || user.email}</span>
-                        <button onClick={handleLogout} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-red-600" aria-label="Đăng xuất">
-                            <LogoutIcon className="w-5 h-5"/>
+        <div className="bg-slate-100 min-h-screen">
+            <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+                <input type="file" ref={fileInputRef} onChange={handleFileImport} className="hidden" accept=".xlsx, .xls, .csv" />
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-3xl font-bold text-slate-800">Quản lý Deal Lists</h1>
+                    {user && (
+                        <div className="flex items-center gap-2">
+                             <span className="text-sm text-slate-600 hidden sm:inline">{user.displayName || user.email}</span>
+                            <button onClick={handleLogout} className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-red-600" aria-label="Đăng xuất">
+                                <LogoutIcon className="w-5 h-5"/>
+                            </button>
+                        </div>
+                    )}
+                </div>
+                
+                <div className="space-y-4">
+                    {dealLists.map(dl => (
+                        <div key={dl.id} className="bg-white p-4 rounded-lg shadow-sm border flex items-center justify-between">
+                            <div>
+                                <p className="font-semibold text-slate-900 flex items-center gap-2">
+                                    {dl.name}
+                                    {dl.source === 'excel' && <span className="text-xs font-medium bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Excel</span>}
+                                </p>
+                                <a href={dl.sheetUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline truncate">{dl.sheetUrl || 'Dữ liệu từ file đã nhập'}</a>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                                <button onClick={() => handleSetActiveDealList(dl.id)} className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700">Vào xem</button>
+                                <button onClick={() => handleEditList(dl)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-md disabled:opacity-40 disabled:cursor-not-allowed" disabled={dl.source === 'excel'}><EditIcon className="w-5 h-5"/></button>
+                                <button onClick={() => handleDeleteList(dl.id)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-slate-100 rounded-md"><TrashIcon className="w-5 h-5"/></button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                {dealLists.length === 0 && (
+                    <div className="text-center py-12 border-2 border-dashed rounded-lg mt-6">
+                         <SheetIcon className="mx-auto h-12 w-12 text-slate-400" />
+                        <h3 className="mt-2 text-sm font-medium text-slate-900">Chưa có deal list nào</h3>
+                        <p className="mt-1 text-sm text-slate-500">Hãy bắt đầu bằng cách thêm một list mới hoặc nhập từ Excel.</p>
+                         <div className="mt-6 flex justify-center gap-4">
+                             <button onClick={handleAddNewList} className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
+                                Thêm từ Google Sheet
+                            </button>
+                             <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center px-4 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                Nhập từ Excel
+                            </button>
+                        </div>
+                    </div>
+                )}
+                 {dealLists.length > 0 && (
+                    <div className="mt-6 text-center flex justify-center gap-4">
+                        <button onClick={handleAddNewList} className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
+                            Thêm từ Google Sheet
+                        </button>
+                        <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center px-4 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Nhập từ Excel
                         </button>
                     </div>
                 )}
             </div>
-            
-            <div className="space-y-4">
-                {dealLists.map(dl => (
-                    <div key={dl.id} className="bg-white p-4 rounded-lg shadow-sm border flex items-center justify-between">
-                        <div>
-                            <p className="font-semibold text-gray-900 flex items-center gap-2">
-                                {dl.name}
-                                {dl.source === 'excel' && <span className="text-xs font-medium bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Excel</span>}
-                            </p>
-                            <a href={dl.sheetUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline truncate">{dl.sheetUrl || 'Dữ liệu từ file đã nhập'}</a>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                            <button onClick={() => handleSetActiveDealList(dl.id)} className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700">Vào xem</button>
-                            <button onClick={() => handleEditList(dl)} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-gray-100 rounded-md disabled:opacity-40 disabled:cursor-not-allowed" disabled={dl.source === 'excel'}><EditIcon className="w-5 h-5"/></button>
-                            <button onClick={() => handleDeleteList(dl.id)} className="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-md"><TrashIcon className="w-5 h-5"/></button>
-                        </div>
-                    </div>
-                ))}
-            </div>
-            {dealLists.length === 0 && (
-                <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                     <SheetIcon className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">Chưa có deal list nào</h3>
-                    <p className="mt-1 text-sm text-gray-500">Hãy bắt đầu bằng cách thêm một list mới hoặc nhập từ Excel.</p>
-                     <div className="mt-6 flex justify-center gap-4">
-                         <button onClick={handleAddNewList} className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-                            Thêm từ Google Sheet
-                        </button>
-                         <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            Nhập từ Excel
-                        </button>
-                    </div>
-                </div>
-            )}
-             {dealLists.length > 0 && (
-                <div className="mt-6 text-center flex justify-center gap-4">
-                    <button onClick={handleAddNewList} className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-                        Thêm từ Google Sheet
-                    </button>
-                    <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        Nhập từ Excel
-                    </button>
-                </div>
-            )}
         </div>
     );
     
     const renderConnectSheet = () => (
-        <div className="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8">
-            <div className="bg-white p-8 rounded-xl shadow-lg border">
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">{editingDealList?.id ? 'Chỉnh sửa Deal List' : 'Thêm Deal List Mới'}</h2>
-                <p className="text-gray-600 mb-6">Cung cấp thông tin về Google Sheet bạn muốn kết nối.</p>
-                <form onSubmit={handleConnectSheetSubmit} className="space-y-6">
-                    <div>
-                        <label htmlFor="dealListName" className="block text-sm font-medium text-gray-700">Tên Deal List</label>
-                        <input
-                            type="text"
-                            id="dealListName"
-                            value={editingDealList?.name || ''}
-                            onChange={(e) => setEditingDealList(prev => ({...prev, name: e.target.value}))}
-                            placeholder="Ví dụ: Deal 11.11"
-                            required
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="sheetUrl" className="block text-sm font-medium text-gray-700">URL Google Sheet</label>
-                        <div className="mt-1 flex rounded-md shadow-sm">
-                            <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
-                                <LinkIcon className="w-5 h-5"/>
-                            </span>
-                             <input
-                                type="url"
-                                id="sheetUrl"
-                                value={editingDealList?.sheetUrl || ''}
-                                onChange={(e) => setEditingDealList(prev => ({...prev, sheetUrl: e.target.value}))}
-                                placeholder="https://docs.google.com/spreadsheets/d/..."
+        <div className="bg-slate-100 min-h-screen">
+            <div className="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8">
+                <div className="bg-white p-8 rounded-xl shadow-lg border">
+                    <h2 className="text-2xl font-bold text-slate-800 mb-2">{editingDealList?.id ? 'Chỉnh sửa Deal List' : 'Thêm Deal List Mới'}</h2>
+                    <p className="text-slate-600 mb-6">Cung cấp thông tin về Google Sheet bạn muốn kết nối.</p>
+                    <form onSubmit={handleConnectSheetSubmit} className="space-y-6">
+                        <div>
+                            <label htmlFor="dealListName" className="block text-sm font-medium text-slate-700">Tên Deal List</label>
+                            <input
+                                type="text"
+                                id="dealListName"
+                                value={editingDealList?.name || ''}
+                                onChange={(e) => setEditingDealList(prev => ({...prev, name: e.target.value}))}
+                                placeholder="Ví dụ: Deal 11.11"
                                 required
-                                className="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-300"
+                                className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                             />
                         </div>
-                        <p className="mt-2 text-xs text-gray-500">Lưu ý: Sheet phải được chia sẻ công khai ("Bất kỳ ai có đường liên kết").</p>
-                    </div>
-                    {error && <p className="text-red-500 text-sm">{error}</p>}
-                    <div className="flex justify-end gap-3">
-                        <button type="button" onClick={() => setAppState('MANAGE_LISTS')} className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Hủy</button>
-                        <button type="submit" disabled={isLoading} className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">
-                            {isLoading ? 'Đang kiểm tra...' : 'Tiếp tục'}
-                        </button>
-                    </div>
-                </form>
+                        <div>
+                            <label htmlFor="sheetUrl" className="block text-sm font-medium text-slate-700">URL Google Sheet</label>
+                            <div className="mt-1 flex rounded-md shadow-sm">
+                                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-slate-300 bg-slate-50 text-slate-500 sm:text-sm">
+                                    <LinkIcon className="w-5 h-5"/>
+                                </span>
+                                 <input
+                                    type="url"
+                                    id="sheetUrl"
+                                    value={editingDealList?.sheetUrl || ''}
+                                    onChange={(e) => setEditingDealList(prev => ({...prev, sheetUrl: e.target.value}))}
+                                    placeholder="https://docs.google.com/spreadsheets/d/..."
+                                    required
+                                    className="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-slate-300"
+                                />
+                            </div>
+                            <p className="mt-2 text-xs text-slate-500">Lưu ý: Sheet phải được chia sẻ công khai ("Bất kỳ ai có đường liên kết").</p>
+                        </div>
+                        {error && <p className="text-red-500 text-sm">{error}</p>}
+                        <div className="flex justify-end gap-3">
+                            <button type="button" onClick={() => setAppState('MANAGE_LISTS')} className="px-4 py-2 border border-slate-300 rounded-md shadow-sm text-sm font-medium text-slate-700 bg-white hover:bg-slate-50">Hủy</button>
+                            <button type="submit" disabled={isLoading} className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">
+                                {isLoading ? 'Đang kiểm tra...' : 'Tiếp tục'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     );
 
     const renderMapColumns = () => (
-       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">Ánh xạ Cột Dữ liệu</h2>
-            <p className="text-gray-600 mb-6">Hãy cho chúng tôi biết cột nào tương ứng với dữ liệu nào. Các cột có dấu (*) là bắt buộc.</p>
+       <div className="bg-slate-100 min-h-screen">
+            <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+                <h2 className="text-3xl font-bold text-slate-800 mb-2">Ánh xạ Cột Dữ liệu</h2>
+                <p className="text-slate-600 mb-6">Hãy cho chúng tôi biết cột nào tương ứng với dữ liệu nào. Các cột có dấu (*) là bắt buộc.</p>
 
-            {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-            
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                {/* FIX: Replaced malformed div containing an error list with the correct JSX for the column mapping UI. */}
-                <div className="lg:col-span-2">
-                    <div className="bg-white p-6 rounded-lg shadow-md border sticky top-6">
-                        <h3 className="font-semibold text-lg mb-4">Cột cần ánh xạ</h3>
-                        <div className="space-y-3">
-                            {MAPPING_CONFIG.map(config => (
-                                <div key={config.key} onClick={() => setActiveMappingKey(config.key)} className={`p-3 rounded-md cursor-pointer border-2 transition-all ${activeMappingKey === config.key ? 'border-indigo-500 bg-indigo-50' : 'border-transparent hover:bg-gray-100'}`}>
-                                    <p className="font-medium text-gray-800">{config.label} {config.required && <span className="text-red-500">*</span>}</p>
-                                    <div className={`mt-1 text-sm px-3 py-1.5 rounded-md w-full text-left truncate ${tempMapping[config.key] ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-500'}`}>
-                                        {tempMapping[config.key] || 'Chưa chọn'}
+                {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+                
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    {/* FIX: Replaced malformed div containing an error list with the correct JSX for the column mapping UI. */}
+                    <div className="lg:col-span-2">
+                        <div className="bg-white p-6 rounded-lg shadow-md border sticky top-6">
+                            <h3 className="font-semibold text-lg mb-4 text-slate-900">Cột cần ánh xạ</h3>
+                            <div className="space-y-3">
+                                {MAPPING_CONFIG.map(config => (
+                                    <div key={config.key} onClick={() => setActiveMappingKey(config.key)} className={`p-3 rounded-md cursor-pointer border-2 transition-all ${activeMappingKey === config.key ? 'border-indigo-500 bg-indigo-50' : 'border-transparent hover:bg-slate-100'}`}>
+                                        <p className="font-medium text-slate-800">{config.label} {config.required && <span className="text-red-500">*</span>}</p>
+                                        <div className={`mt-1 text-sm px-3 py-1.5 rounded-md w-full text-left truncate ${tempMapping[config.key] ? 'bg-blue-100 text-blue-800' : 'bg-slate-200 text-slate-500'}`}>
+                                            {tempMapping[config.key] || 'Chưa chọn'}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                        {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
-                        <div className="mt-6 flex justify-end gap-3">
-                            <button onClick={() => setAppState('MANAGE_LISTS')} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Quay lại</button>
-                            <button onClick={handleMappingSave} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700">Lưu & Đồng bộ</button>
+                                ))}
+                            </div>
+                            {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
+                            <div className="mt-6 flex justify-end gap-3">
+                                <button onClick={() => setAppState('MANAGE_LISTS')} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50">Quay lại</button>
+                                <button onClick={handleMappingSave} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700">Lưu & Đồng bộ</button>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div className="lg:col-span-3">
-                 <h3 className="font-semibold text-lg mb-4">Xem trước dữ liệu (15 hàng đầu tiên)</h3>
-                <div className="overflow-x-auto bg-white rounded-lg shadow-md border">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                {sheetHeaders.map((header, index) => (
-                                    <th key={index} scope="col" className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap ${Object.values(tempMapping).includes(header) ? 'text-indigo-600' : 'text-gray-500'}`}>
-                                        <button 
-                                            onClick={() => {
-                                                if (activeMappingKey) {
-                                                    setTempMapping(prev => ({ ...prev, [activeMappingKey]: header }));
-                                                    const currentMappingIndex = MAPPING_CONFIG.findIndex(c => c.key === activeMappingKey);
-                                                    const nextUnmapped = MAPPING_CONFIG.find((c, idx) => idx > currentMappingIndex && c.required && !tempMapping[c.key]);
-                                                    setActiveMappingKey(nextUnmapped ? nextUnmapped.key : null);
-                                                }
-                                            }}
-                                            className="w-full text-left"
-                                        >
-                                            {header}
-                                        </button>
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {sheetPreview.map((row, rowIndex) => (
-                                <tr key={rowIndex}>
-                                    {row.map((cell, cellIndex) => (
-                                        <td key={cellIndex} className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 truncate max-w-[200px]">
-                                            {cell}
-                                        </td>
+                    <div className="lg:col-span-3">
+                     <h3 className="font-semibold text-lg mb-4 text-slate-900">Xem trước dữ liệu (15 hàng đầu tiên)</h3>
+                    <div className="overflow-x-auto bg-white rounded-lg shadow-md border">
+                        <table className="min-w-full divide-y divide-slate-200">
+                            <thead className="bg-slate-50">
+                                <tr>
+                                    {sheetHeaders.map((header, index) => (
+                                        <th key={index} scope="col" className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap ${Object.values(tempMapping).includes(header) ? 'text-indigo-600' : 'text-slate-500'}`}>
+                                            <button 
+                                                onClick={() => {
+                                                    if (activeMappingKey) {
+                                                        setTempMapping(prev => ({ ...prev, [activeMappingKey]: header }));
+                                                        const currentMappingIndex = MAPPING_CONFIG.findIndex(c => c.key === activeMappingKey);
+                                                        const nextUnmapped = MAPPING_CONFIG.find((c, idx) => idx > currentMappingIndex && c.required && !tempMapping[c.key]);
+                                                        setActiveMappingKey(nextUnmapped ? nextUnmapped.key : null);
+                                                    }
+                                                }}
+                                                className="w-full text-left"
+                                            >
+                                                {header}
+                                            </button>
+                                        </th>
                                     ))}
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-slate-200">
+                                {sheetPreview.map((row, rowIndex) => (
+                                    <tr key={rowIndex}>
+                                        {row.map((cell, cellIndex) => (
+                                            <td key={cellIndex} className="px-4 py-3 whitespace-nowrap text-sm text-slate-600 truncate max-w-[200px]">
+                                                {cell}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+       </div>
     );
 
     const renderViewData = () => (
-        <div className="h-screen w-screen flex flex-col bg-gray-100 p-4 gap-4">
-            <header className="flex-shrink-0 bg-white rounded-xl shadow-md p-4 border border-gray-200">
+        <div className="h-screen w-screen flex flex-col bg-slate-100 p-4 gap-4">
+            <header className="flex-shrink-0 bg-white rounded-xl shadow-lg p-4 border border-slate-200">
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-4">
-                        <button onClick={() => setAppState('MANAGE_LISTS')} className="text-gray-500 hover:text-indigo-600 p-2 rounded-full hover:bg-gray-100">
+                        <button onClick={() => setAppState('MANAGE_LISTS')} className="text-slate-500 hover:text-indigo-600 p-2 rounded-full hover:bg-slate-100">
                             <CogIcon className="w-6 h-6" />
                         </button>
                         <div>
-                            <h1 className="text-xl font-bold text-gray-800">{activeDealList?.name || 'Loading...'}</h1>
-                             <p className="text-xs text-gray-500">
+                            <h1 className="text-xl font-bold text-slate-800">{activeDealList?.name || 'Loading...'}</h1>
+                             <p className="text-xs text-slate-500">
                                 {activeDealList?.lastSynced ? `Lần cuối đồng bộ: ${new Date(activeDealList.lastSynced.toDate()).toLocaleString('vi-VN')}` : 'Chưa đồng bộ'}
                             </p>
                         </div>
@@ -762,8 +767,8 @@ const App: React.FC = () => {
                     </div>
                      {user && (
                         <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-600 hidden sm:inline">{user.displayName || user.email}</span>
-                            <button onClick={handleLogout} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-red-600" aria-label="Đăng xuất">
+                            <span className="text-sm text-slate-600 hidden sm:inline">{user.displayName || user.email}</span>
+                            <button onClick={handleLogout} className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-red-600" aria-label="Đăng xuất">
                                 <LogoutIcon className="w-5 h-5"/>
                             </button>
                         </div>
