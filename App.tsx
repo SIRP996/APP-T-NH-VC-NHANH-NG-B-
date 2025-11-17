@@ -1,10 +1,11 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Product, ColumnMapping, DealList, FirebaseConfig } from './types';
 import { fetchProductsFromSheet, fetchSheetPreviewAndHeaders } from './services/googleSheetService';
 import { Calculator } from './components/Calculator';
 import { ProductTable } from './components/ProductTable';
-import { SyncIcon, LinkIcon, SheetIcon, EditIcon, CogIcon, PlusIcon, TrashIcon, FirebaseIcon, GoogleIcon, LogoutIcon, MailIcon, LockClosedIcon } from './components/Icons';
+import { SyncIcon, LinkIcon, SheetIcon, EditIcon, CogIcon, PlusIcon, TrashIcon, FirebaseIcon, GoogleIcon, LogoutIcon, MailIcon, LockClosedIcon, SpinnerIcon } from './components/Icons';
 
 // Declare firebase and XLSX globally as they're loaded from script tags
 declare const firebase: any;
@@ -28,7 +29,7 @@ const MAPPING_CONFIG: { key: keyof ColumnMapping; label: string; keywords: strin
     { key: 'name', label: 'Tên Sản phẩm', keywords: ['tên sản phẩm', 'tên', 'name'], required: true },
     { key: 'displayPrice', label: 'Giá hiển thị', keywords: ['giá hiển thị hiện tại', 'giá live (trước voucher)', 'giá live', 'giá trước voucher', 'giá', 'price', 'giá cài'], required: true },
     { key: 'finalPrice', label: 'Giá cuối', keywords: ['giá cuối'], required: false },
-    { key: 'modelId', label: 'Model ID', keywords: ['model id', 'model'], required: false },
+    { key: 'modelId', label: 'Model ID', keywords: ['model'], required: false },
     { key: 'gift', label: 'Quà Tặng', keywords: ['quà', 'gift', 'quà tặng'], required: false },
 ];
 
@@ -36,6 +37,46 @@ const getCsvUrl = (url: string): string | null => {
     const match = url.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
     return match ? `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv` : null;
 };
+
+const DeleteConfirmationModal: React.FC<{
+    dealList: DealList | null;
+    onClose: () => void;
+    onConfirm: () => void;
+    isDeleting: boolean;
+}> = ({ dealList, onClose, onConfirm, isDeleting }) => {
+    if (!dealList) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 transition-opacity duration-300" onClick={onClose}>
+            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md m-4" onClick={e => e.stopPropagation()}>
+                <h3 className="text-lg font-bold text-slate-900">Xác nhận xóa</h3>
+                <p className="mt-2 text-sm text-slate-600">
+                    Bạn có chắc chắn muốn xóa deal list <strong className="font-semibold text-slate-800">{dealList.name}</strong>?
+                </p>
+                <p className="mt-1 text-sm text-slate-600">
+                    Tất cả dữ liệu sản phẩm liên quan cũng sẽ bị xóa vĩnh viễn. Thao tác này không thể hoàn tác.
+                </p>
+                <div className="mt-6 flex justify-end gap-3">
+                    <button
+                        onClick={onClose}
+                        disabled={isDeleting}
+                        className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50"
+                    >
+                        Hủy
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={isDeleting}
+                        className="px-4 py-2 w-28 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-wait flex items-center justify-center"
+                    >
+                        {isDeleting ? <SpinnerIcon className="w-5 h-5" /> : 'Xóa'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const LoginScreen: React.FC<{
     onGoogleSignIn: () => void;
@@ -184,6 +225,11 @@ const App: React.FC = () => {
     const [activeMappingKey, setActiveMappingKey] = useState<keyof ColumnMapping | null>(null);
     const [tempExcelData, setTempExcelData] = useState<any[] | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const isInitialLoad = useRef(true);
+    
+    const [listPendingDeletion, setListPendingDeletion] = useState<DealList | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
 
     // Firebase state
     const [db, setDb] = useState<any | null>(null);
@@ -229,18 +275,26 @@ const App: React.FC = () => {
 
     // Effect for fetching deal lists when user logs in
     useEffect(() => {
-        if (!user || !db) return;
-
+        // Reset the flag on logout or if db/user are not ready
+        if (!user || !db) {
+            isInitialLoad.current = true;
+            return;
+        }
+    
         const dealListsRef = db.collection('users').doc(user.uid).collection('dealLists');
         const unsubscribe = dealListsRef.onSnapshot((snapshot: any) => {
             const lists = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
             setDealLists(lists);
-            if (appState === 'LOADING' || appState === 'LOGIN') {
+            
+            // This initial routing logic will now only run once per login session
+            if (isInitialLoad.current) {
+                isInitialLoad.current = false; // Prevent this from running on subsequent data updates
                 const lastActiveId = sessionStorage.getItem('activeDealListId');
                 if (lastActiveId && lists.some((l: DealList) => l.id === lastActiveId)) {
                     setActiveDealListId(lastActiveId);
                     setAppState('VIEW_DATA');
                 } else {
+                    // If there's no valid last-active list, go to the management screen
                     setAppState('MANAGE_LISTS');
                 }
             }
@@ -248,9 +302,9 @@ const App: React.FC = () => {
             console.error("Firestore deal lists snapshot error:", error);
             setError("Không thể tải danh sách deals. Vui lòng kiểm tra lại quy tắc bảo mật Firestore.");
         });
-
+    
         return () => unsubscribe();
-    }, [user, db, appState]);
+    }, [user, db]); // This effect now correctly depends only on user and db
 
     // Effect for fetching products when active deal list changes
     useEffect(() => {
@@ -458,19 +512,46 @@ const App: React.FC = () => {
         setAppState('CONNECT_SHEET');
     }, []);
     
-    const handleDeleteList = useCallback(async (id: string) => {
-        if (window.confirm("Bạn có chắc chắn muốn xóa deal list này không? Thao tác này sẽ xóa cả dữ liệu sản phẩm đã đồng bộ.")) {
-            if (!user || !db) return;
-            // Note: Deleting subcollections from the client is complex. This only deletes the parent doc.
-            // For a full solution, a Cloud Function would be needed to clean up the products.
-            await db.collection('users').doc(user.uid).collection('dealLists').doc(id).delete();
-            if (activeDealListId === id) {
+    const handleConfirmDelete = useCallback(async () => {
+        if (!listPendingDeletion || !user || !db) {
+            return;
+        }
+
+        setIsDeleting(true);
+        setError(null);
+        try {
+            const idToDelete = listPendingDeletion.id;
+            const dealListRef = db.collection('users').doc(user.uid).collection('dealLists').doc(idToDelete);
+            const productsRef = dealListRef.collection('products');
+
+            // Deleting a subcollection requires deleting all its documents first.
+            const productsSnapshot = await productsRef.get();
+            if (!productsSnapshot.empty) {
+                const batch = db.batch();
+                productsSnapshot.docs.forEach((doc: any) => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+            }
+
+            // After subcollection is cleared, delete the main document.
+            await dealListRef.delete();
+
+            // Cleanup local state
+            if (activeDealListId === idToDelete) {
                 setActiveDealListId(null);
                 sessionStorage.removeItem('activeDealListId');
-                setAppState('MANAGE_LISTS');
             }
+
+            setListPendingDeletion(null); // Close modal on success
+        } catch (err: any) {
+            console.error("Lỗi khi xóa deal list:", err);
+            setError(`Không thể xóa: ${err.message}`);
+            setListPendingDeletion(null);
+        } finally {
+            setIsDeleting(false);
         }
-    }, [user, db, activeDealListId]);
+    }, [listPendingDeletion, user, db, activeDealListId]);
     
     const handleConnectSheetSubmit = useCallback((e: React.FormEvent) => {
         e.preventDefault();
@@ -513,11 +594,9 @@ const App: React.FC = () => {
                 if (priceValue === null || priceValue === undefined || priceValue === '') {
                     return 0;
                 }
-                // If the value from Excel is already a number (like a float), round it.
                 if (typeof priceValue === 'number') {
                     return Math.round(priceValue);
                 }
-                // If it's a string, clean it by removing common thousands separators for VND.
                 const cleanedString = String(priceValue).replace(/[.,]/g, '');
                 const number = parseInt(cleanedString, 10);
                 return isNaN(number) ? 0 : number;
@@ -569,6 +648,8 @@ const App: React.FC = () => {
                     )}
                 </div>
                 
+                {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">{error}</div>}
+
                 <div className="space-y-4">
                     {dealLists.map(dl => (
                         <div key={dl.id} className="bg-white p-4 rounded-lg shadow-sm border flex items-center justify-between">
@@ -582,7 +663,12 @@ const App: React.FC = () => {
                             <div className="flex items-center gap-2 flex-shrink-0">
                                 <button onClick={() => handleSetActiveDealList(dl.id)} className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700">Vào xem</button>
                                 <button onClick={() => handleEditList(dl)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-md disabled:opacity-40 disabled:cursor-not-allowed" disabled={dl.source === 'excel'}><EditIcon className="w-5 h-5"/></button>
-                                <button onClick={() => handleDeleteList(dl.id)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-slate-100 rounded-md"><TrashIcon className="w-5 h-5"/></button>
+                                <button 
+                                    onClick={() => setListPendingDeletion(dl)}
+                                    className="p-2 text-slate-500 hover:text-red-600 hover:bg-slate-100 rounded-md"
+                                >
+                                    <TrashIcon className="w-5 h-5"/>
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -614,6 +700,12 @@ const App: React.FC = () => {
                         </button>
                     </div>
                 )}
+                <DeleteConfirmationModal
+                    dealList={listPendingDeletion}
+                    onClose={() => setListPendingDeletion(null)}
+                    onConfirm={handleConfirmDelete}
+                    isDeleting={isDeleting}
+                />
             </div>
         </div>
     );
@@ -758,8 +850,8 @@ const App: React.FC = () => {
                         </div>
                         <button 
                             onClick={() => activeDealList && handleSync(activeDealList)} 
-                            disabled={isSyncing}
-                            className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-md text-sm font-medium hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-wait"
+                            disabled={isSyncing || activeDealList?.source === 'excel'}
+                            className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-md text-sm font-medium hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <SyncIcon className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
                             {isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ'}
@@ -778,7 +870,7 @@ const App: React.FC = () => {
             </header>
             <main className="flex-grow flex gap-4 min-h-0">
                 <div className="w-1/3 h-full">
-                    <Calculator selectedProduct={selectedProduct} dealListName={activeDealList?.name || ''} />
+                     <Calculator selectedProduct={selectedProduct} dealListName={activeDealList?.name || ''} />
                 </div>
                 <div className="w-2/3 h-full">
                     <ProductTable products={products} onProductSelect={setSelectedProduct} isLoading={isLoading} activeDealListId={activeDealListId} />
