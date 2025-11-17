@@ -50,17 +50,17 @@ const DeleteConfirmationModal: React.FC<{
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 transition-opacity duration-300" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md m-4" onClick={e => e.stopPropagation()}>
                 <h3 className="text-lg font-bold text-slate-900">Xác nhận xóa</h3>
-                <p className="mt-2 text-sm text-slate-600">
-                    Bạn có chắc chắn muốn xóa deal list <strong className="font-semibold text-slate-800">{dealList.name}</strong>?
+                <p className="mt-2 text-sm text-slate-800">
+                    Bạn có chắc chắn muốn xóa deal list <strong className="font-semibold text-slate-900">{dealList.name}</strong>?
                 </p>
-                <p className="mt-1 text-sm text-slate-600">
+                <p className="mt-1 text-sm text-slate-800">
                     Tất cả dữ liệu sản phẩm liên quan cũng sẽ bị xóa vĩnh viễn. Thao tác này không thể hoàn tác.
                 </p>
                 <div className="mt-6 flex justify-end gap-3">
                     <button
                         onClick={onClose}
                         disabled={isDeleting}
-                        className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50"
+                        className="px-4 py-2 text-sm font-medium text-slate-800 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50"
                     >
                         Hủy
                     </button>
@@ -120,8 +120,8 @@ const LoginScreen: React.FC<{
         <div className="flex items-center justify-center min-h-screen bg-slate-100 p-4">
             <div className="p-8 bg-white rounded-xl shadow-md text-center max-w-sm w-full">
                 <FirebaseIcon className="mx-auto w-16 h-16 mb-4" />
-                <h1 className="text-2xl font-bold text-slate-800 mb-2">{title}</h1>
-                <p className="text-slate-600 mb-6">Truy cập vào công cụ quản lý deal list của bạn.</p>
+                <h1 className="text-2xl font-bold text-slate-900 mb-2">{title}</h1>
+                <p className="text-slate-800 mb-6">Truy cập vào công cụ quản lý deal list của bạn.</p>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="relative">
@@ -192,7 +192,7 @@ const LoginScreen: React.FC<{
                 <button
                     onClick={onGoogleSignIn}
                     disabled={!isFirebaseReady || isConfigPlaceholder}
-                    className="w-full inline-flex justify-center items-center gap-3 py-3 px-4 border border-slate-300 rounded-md shadow-sm bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                    className="w-full inline-flex justify-center items-center gap-3 py-3 px-4 border border-slate-300 rounded-md shadow-sm bg-white text-sm font-medium text-slate-800 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
                 >
                     <GoogleIcon className="w-5 h-5" />
                     Tiếp tục với Google
@@ -637,11 +637,11 @@ const App: React.FC = () => {
             <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
                 <input type="file" ref={fileInputRef} onChange={handleFileImport} className="hidden" accept=".xlsx, .xls, .csv" />
                 <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-3xl font-bold text-slate-800">Quản lý Deal Lists</h1>
+                    <h1 className="text-3xl font-bold text-slate-900">Quản lý Deal Lists</h1>
                     {user && (
                         <div className="flex items-center gap-2">
-                             <span className="text-sm text-slate-600 hidden sm:inline">{user.displayName || user.email}</span>
-                            <button onClick={handleLogout} className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-red-600" aria-label="Đăng xuất">
+                             <span className="text-sm text-slate-800 hidden sm:inline">{user.displayName || user.email}</span>
+                            <button onClick={handleLogout} className="p-2 rounded-full text-slate-700 hover:bg-slate-200 hover:text-red-600" aria-label="Đăng xuất">
                                 <LogoutIcon className="w-5 h-5"/>
                             </button>
                         </div>
@@ -662,10 +662,10 @@ const App: React.FC = () => {
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
                                 <button onClick={() => handleSetActiveDealList(dl.id)} className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700">Vào xem</button>
-                                <button onClick={() => handleEditList(dl)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-md disabled:opacity-40 disabled:cursor-not-allowed" disabled={dl.source === 'excel'}><EditIcon className="w-5 h-5"/></button>
+                                <button onClick={() => handleEditList(dl)} className="p-2 text-slate-700 hover:text-blue-600 hover:bg-slate-100 rounded-md disabled:opacity-40 disabled:cursor-not-allowed" disabled={dl.source === 'excel'}><EditIcon className="w-5 h-5"/></button>
                                 <button 
                                     onClick={() => setListPendingDeletion(dl)}
-                                    className="p-2 text-slate-500 hover:text-red-600 hover:bg-slate-100 rounded-md"
+                                    className="p-2 text-slate-700 hover:text-red-600 hover:bg-slate-100 rounded-md"
                                 >
                                     <TrashIcon className="w-5 h-5"/>
                                 </button>
@@ -677,13 +677,13 @@ const App: React.FC = () => {
                     <div className="text-center py-12 border-2 border-dashed rounded-lg mt-6">
                          <SheetIcon className="mx-auto h-12 w-12 text-slate-400" />
                         <h3 className="mt-2 text-sm font-medium text-slate-900">Chưa có deal list nào</h3>
-                        <p className="mt-1 text-sm text-slate-500">Hãy bắt đầu bằng cách thêm một list mới hoặc nhập từ Excel.</p>
+                        <p className="mt-1 text-sm text-slate-700">Hãy bắt đầu bằng cách thêm một list mới hoặc nhập từ Excel.</p>
                          <div className="mt-6 flex justify-center gap-4">
                              <button onClick={handleAddNewList} className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                                 <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
                                 Thêm từ Google Sheet
                             </button>
-                             <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center px-4 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                             <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center px-4 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-md text-slate-800 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                                 Nhập từ Excel
                             </button>
                         </div>
@@ -695,7 +695,7 @@ const App: React.FC = () => {
                             <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
                             Thêm từ Google Sheet
                         </button>
-                        <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center px-4 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center px-4 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-md text-slate-800 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                             Nhập từ Excel
                         </button>
                     </div>
@@ -714,11 +714,11 @@ const App: React.FC = () => {
         <div className="bg-slate-100 min-h-screen">
             <div className="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8">
                 <div className="bg-white p-8 rounded-xl shadow-lg border">
-                    <h2 className="text-2xl font-bold text-slate-800 mb-2">{editingDealList?.id ? 'Chỉnh sửa Deal List' : 'Thêm Deal List Mới'}</h2>
-                    <p className="text-slate-600 mb-6">Cung cấp thông tin về Google Sheet bạn muốn kết nối.</p>
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">{editingDealList?.id ? 'Chỉnh sửa Deal List' : 'Thêm Deal List Mới'}</h2>
+                    <p className="text-slate-800 mb-6">Cung cấp thông tin về Google Sheet bạn muốn kết nối.</p>
                     <form onSubmit={handleConnectSheetSubmit} className="space-y-6">
                         <div>
-                            <label htmlFor="dealListName" className="block text-sm font-medium text-slate-700">Tên Deal List</label>
+                            <label htmlFor="dealListName" className="block text-sm font-medium text-slate-900">Tên Deal List</label>
                             <input
                                 type="text"
                                 id="dealListName"
@@ -730,9 +730,9 @@ const App: React.FC = () => {
                             />
                         </div>
                         <div>
-                            <label htmlFor="sheetUrl" className="block text-sm font-medium text-slate-700">URL Google Sheet</label>
+                            <label htmlFor="sheetUrl" className="block text-sm font-medium text-slate-900">URL Google Sheet</label>
                             <div className="mt-1 flex rounded-md shadow-sm">
-                                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-slate-300 bg-slate-50 text-slate-500 sm:text-sm">
+                                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-slate-300 bg-slate-50 text-slate-600 sm:text-sm">
                                     <LinkIcon className="w-5 h-5"/>
                                 </span>
                                  <input
@@ -745,11 +745,11 @@ const App: React.FC = () => {
                                     className="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-slate-300"
                                 />
                             </div>
-                            <p className="mt-2 text-xs text-slate-500">Lưu ý: Sheet phải được chia sẻ công khai ("Bất kỳ ai có đường liên kết").</p>
+                            <p className="mt-2 text-xs text-slate-700">Lưu ý: Sheet phải được chia sẻ công khai ("Bất kỳ ai có đường liên kết").</p>
                         </div>
                         {error && <p className="text-red-500 text-sm">{error}</p>}
                         <div className="flex justify-end gap-3">
-                            <button type="button" onClick={() => setAppState('MANAGE_LISTS')} className="px-4 py-2 border border-slate-300 rounded-md shadow-sm text-sm font-medium text-slate-700 bg-white hover:bg-slate-50">Hủy</button>
+                            <button type="button" onClick={() => setAppState('MANAGE_LISTS')} className="px-4 py-2 border border-slate-300 rounded-md shadow-sm text-sm font-medium text-slate-800 bg-white hover:bg-slate-50">Hủy</button>
                             <button type="submit" disabled={isLoading} className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">
                                 {isLoading ? 'Đang kiểm tra...' : 'Tiếp tục'}
                             </button>
@@ -763,8 +763,8 @@ const App: React.FC = () => {
     const renderMapColumns = () => (
        <div className="bg-slate-100 min-h-screen">
             <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-                <h2 className="text-3xl font-bold text-slate-800 mb-2">Ánh xạ Cột Dữ liệu</h2>
-                <p className="text-slate-600 mb-6">Hãy cho chúng tôi biết cột nào tương ứng với dữ liệu nào. Các cột có dấu (*) là bắt buộc.</p>
+                <h2 className="text-3xl font-bold text-slate-900 mb-2">Ánh xạ Cột Dữ liệu</h2>
+                <p className="text-slate-800 mb-6">Hãy cho chúng tôi biết cột nào tương ứng với dữ liệu nào. Các cột có dấu (*) là bắt buộc.</p>
 
                 {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
                 
@@ -776,8 +776,8 @@ const App: React.FC = () => {
                             <div className="space-y-3">
                                 {MAPPING_CONFIG.map(config => (
                                     <div key={config.key} onClick={() => setActiveMappingKey(config.key)} className={`p-3 rounded-md cursor-pointer border-2 transition-all ${activeMappingKey === config.key ? 'border-indigo-500 bg-indigo-50' : 'border-transparent hover:bg-slate-100'}`}>
-                                        <p className="font-medium text-slate-800">{config.label} {config.required && <span className="text-red-500">*</span>}</p>
-                                        <div className={`mt-1 text-sm px-3 py-1.5 rounded-md w-full text-left truncate ${tempMapping[config.key] ? 'bg-blue-100 text-blue-800' : 'bg-slate-200 text-slate-500'}`}>
+                                        <p className="font-medium text-slate-900">{config.label} {config.required && <span className="text-red-500">*</span>}</p>
+                                        <div className={`mt-1 text-sm px-3 py-1.5 rounded-md w-full text-left truncate ${tempMapping[config.key] ? 'bg-blue-100 text-blue-800' : 'bg-slate-200 text-slate-700'}`}>
                                             {tempMapping[config.key] || 'Chưa chọn'}
                                         </div>
                                     </div>
@@ -785,7 +785,7 @@ const App: React.FC = () => {
                             </div>
                             {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
                             <div className="mt-6 flex justify-end gap-3">
-                                <button onClick={() => setAppState('MANAGE_LISTS')} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50">Quay lại</button>
+                                <button onClick={() => setAppState('MANAGE_LISTS')} className="px-4 py-2 text-sm font-medium text-slate-800 bg-white border border-slate-300 rounded-md hover:bg-slate-50">Quay lại</button>
                                 <button onClick={handleMappingSave} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700">Lưu & Đồng bộ</button>
                             </div>
                         </div>
@@ -797,7 +797,7 @@ const App: React.FC = () => {
                             <thead className="bg-slate-50">
                                 <tr>
                                     {sheetHeaders.map((header, index) => (
-                                        <th key={index} scope="col" className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap ${Object.values(tempMapping).includes(header) ? 'text-indigo-600' : 'text-slate-500'}`}>
+                                        <th key={index} scope="col" className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap ${Object.values(tempMapping).includes(header) ? 'text-indigo-600' : 'text-slate-700'}`}>
                                             <button 
                                                 onClick={() => {
                                                     if (activeMappingKey) {
@@ -819,7 +819,7 @@ const App: React.FC = () => {
                                 {sheetPreview.map((row, rowIndex) => (
                                     <tr key={rowIndex}>
                                         {row.map((cell, cellIndex) => (
-                                            <td key={cellIndex} className="px-4 py-3 whitespace-nowrap text-sm text-slate-600 truncate max-w-[200px]">
+                                            <td key={cellIndex} className="px-4 py-3 whitespace-nowrap text-sm text-slate-800 truncate max-w-[200px]">
                                                 {cell}
                                             </td>
                                         ))}
@@ -839,12 +839,12 @@ const App: React.FC = () => {
             <header className="flex-shrink-0 bg-white rounded-xl shadow-lg p-4 border border-slate-200">
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-4">
-                        <button onClick={() => setAppState('MANAGE_LISTS')} className="text-slate-500 hover:text-indigo-600 p-2 rounded-full hover:bg-slate-100">
+                        <button onClick={() => setAppState('MANAGE_LISTS')} className="text-slate-700 hover:text-indigo-600 p-2 rounded-full hover:bg-slate-100">
                             <CogIcon className="w-6 h-6" />
                         </button>
                         <div>
-                            <h1 className="text-xl font-bold text-slate-800">{activeDealList?.name || 'Loading...'}</h1>
-                             <p className="text-xs text-slate-500">
+                            <h1 className="text-xl font-bold text-slate-900">{activeDealList?.name || 'Loading...'}</h1>
+                             <p className="text-xs text-slate-700">
                                 {activeDealList?.lastSynced ? `Lần cuối đồng bộ: ${new Date(activeDealList.lastSynced.toDate()).toLocaleString('vi-VN')}` : 'Chưa đồng bộ'}
                             </p>
                         </div>
@@ -859,8 +859,8 @@ const App: React.FC = () => {
                     </div>
                      {user && (
                         <div className="flex items-center gap-2">
-                            <span className="text-sm text-slate-600 hidden sm:inline">{user.displayName || user.email}</span>
-                            <button onClick={handleLogout} className="p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:text-red-600" aria-label="Đăng xuất">
+                            <span className="text-sm text-slate-800 hidden sm:inline">{user.displayName || user.email}</span>
+                            <button onClick={handleLogout} className="p-2 rounded-full text-slate-700 hover:bg-slate-200 hover:text-red-600" aria-label="Đăng xuất">
                                 <LogoutIcon className="w-5 h-5"/>
                             </button>
                         </div>

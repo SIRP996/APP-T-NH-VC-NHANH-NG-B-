@@ -21,7 +21,7 @@ interface InputFieldProps {
 const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
     ({ label, id, value, onChange, placeholder, type = "text", onKeyDown }, ref) => (
         <div>
-            <label htmlFor={id} className="block text-sm font-semibold text-slate-700">{label}</label>
+            <label htmlFor={id} className="block text-sm font-semibold text-slate-900">{label}</label>
             <div className="mt-1">
                 <input
                     ref={ref}
@@ -44,12 +44,12 @@ const SearchDisplayField: React.FC<{
     value: string;
 }> = ({ label, value }) => (
     <div>
-        <label className="block text-sm font-semibold text-slate-700">{label}</label>
+        <label className="block text-sm font-semibold text-slate-900">{label}</label>
         <textarea
             readOnly
             value={value}
             placeholder="Chọn một sản phẩm từ bảng..."
-            className="mt-1 w-full p-3 border border-slate-200 rounded-lg bg-slate-50 text-slate-800 sm:text-sm resize-y min-h-[60px] h-[60px] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 cursor-default font-medium"
+            className="mt-1 w-full p-3 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 sm:text-sm resize-y min-h-[60px] h-[60px] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 cursor-default font-medium"
         />
     </div>
 );
@@ -256,11 +256,11 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                 <div className="flex items-center gap-3">
                     <CalculatorIcon className="w-8 h-8 text-indigo-600 flex-shrink-0 mt-1" />
                      <div>
-                        <h2 className="text-2xl font-bold text-slate-800">Công cụ tính giá</h2>
+                        <h2 className="text-2xl font-bold text-slate-900">Công cụ tính giá</h2>
                         <p className="text-sm font-medium text-indigo-700 truncate" title={dealListName}>{dealListName}</p>
                     </div>
                 </div>
-                <div className="text-4xl font-bold text-slate-600 bg-slate-100 px-6 py-3 rounded-lg flex-shrink-0">
+                <div className="text-4xl font-bold text-slate-900 bg-slate-100 px-6 py-3 rounded-lg flex-shrink-0">
                      <span>{formattedTime}</span>
                 </div>
             </div>
@@ -272,7 +272,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
 
                 {productId && (
                     <div className="-mt-2">
-                        <label htmlFor="selectedProductId" className="block text-xs font-medium text-slate-600">ID Sản phẩm</label>
+                        <label htmlFor="selectedProductId" className="block text-xs font-medium text-slate-800">ID Sản phẩm</label>
                         <div className="mt-1 flex items-center gap-2">
                             <input
                                 id="selectedProductId"
@@ -280,11 +280,11 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                                 readOnly
                                 value={productId}
                                 title={productId}
-                                className="w-full px-3 py-1.5 border border-slate-200 rounded-lg bg-slate-100 text-slate-700 sm:text-sm focus:outline-none focus:ring-1 focus:ring-indigo-300 cursor-default"
+                                className="w-full px-3 py-1.5 border border-slate-200 rounded-lg bg-slate-100 text-slate-900 sm:text-sm focus:outline-none focus:ring-1 focus:ring-indigo-300 cursor-default"
                             />
                             <button
                                 onClick={handleIdCopy}
-                                className="p-2 rounded-md text-slate-500 hover:bg-indigo-100 hover:text-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex-shrink-0"
+                                className="p-2 rounded-md text-slate-700 hover:bg-indigo-100 hover:text-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex-shrink-0"
                                 aria-label="Sao chép ID sản phẩm"
                             >
                                 {isIdCopied ? <CheckIcon className="w-5 h-5 text-green-600" /> : <CopyIcon className="w-5 h-5" />}
@@ -304,9 +304,9 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                 />
                 <div>
                     <div className="flex items-center justify-between">
-                        <label htmlFor="desiredPrice" className="block text-sm font-semibold text-slate-700">Giá cuối cùng mong muốn</label>
+                        <label htmlFor="desiredPrice" className="block text-sm font-semibold text-slate-900">Giá cuối cùng mong muốn</label>
                         <label htmlFor="quick-price-toggle" className="flex items-center cursor-pointer">
-                            <span className="text-xs font-medium text-slate-600 mr-2">Nhập nhanh (x1000)</span>
+                            <span className="text-xs font-medium text-slate-800 mr-2">Nhập nhanh (x1000)</span>
                             <div className="relative">
                                 <input
                                     id="quick-price-toggle"
@@ -336,7 +336,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                     </div>
                 </div>
                 <div>
-                    <label className="block text-sm font-semibold text-slate-700">Loại Voucher</label>
+                    <label className="block text-sm font-semibold text-slate-900">Loại Voucher</label>
                     <div className="mt-2 flex gap-4">
                         <label className="flex items-center cursor-pointer">
                             <input type="radio" value={VoucherType.Percentage} checked={voucherType === VoucherType.Percentage} onChange={() => setVoucherType(VoucherType.Percentage)} className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-slate-300" />
@@ -362,17 +362,17 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                 {voucherType === VoucherType.Percentage && (
                     <div className="pt-2">
                          <div className="flex justify-between items-center mb-2">
-                            <p className="text-xs text-slate-500">Hoặc chọn nhanh voucher thường dùng:</p>
-                            <button onClick={toggleSettings} className="text-slate-500 hover:text-indigo-600 p-1 rounded-full hover:bg-slate-100" aria-label="Cài đặt voucher nhanh">
+                            <p className="text-xs text-slate-700">Hoặc chọn nhanh voucher thường dùng:</p>
+                            <button onClick={toggleSettings} className="text-slate-700 hover:text-indigo-600 p-1 rounded-full hover:bg-slate-100" aria-label="Cài đặt voucher nhanh">
                                 <CogIcon className="w-5 h-5" />
                             </button>
                         </div>
                          {isSettingsOpen && (
                             <div className="p-3 bg-slate-50 rounded-md border mb-3 transition-all duration-300 ease-in-out">
-                                <p className="text-sm font-medium text-slate-700 block mb-3">Chọn voucher để hiển thị:</p>
+                                <p className="text-sm font-medium text-slate-900 block mb-3">Chọn voucher để hiển thị:</p>
                                 <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mb-4">
                                     {ALL_POSSIBLE_VOUCHERS.map((val) => (
-                                        <label key={val} className="flex items-center justify-center gap-2 p-2 rounded-md hover:bg-slate-200 cursor-pointer text-sm text-slate-800">
+                                        <label key={val} className="flex items-center justify-center gap-2 p-2 rounded-md hover:bg-slate-200 cursor-pointer text-sm text-slate-900">
                                             <input
                                                 type="checkbox"
                                                 checked={tempSelectedPresets.includes(val)}
@@ -399,7 +399,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                                     className={`py-2 px-2 text-center rounded-md text-sm font-medium border transition-colors ${
                                         voucherValue === String(val)
                                             ? 'bg-indigo-600 text-white border-indigo-600'
-                                            : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'
+                                            : 'bg-white hover:bg-slate-100 text-slate-900 border-slate-300'
                                     }`}
                                 >
                                     {val}%
@@ -423,7 +423,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                             <p className="text-4xl font-bold text-indigo-600 tracking-tight">{formatCurrency(result)} VND</p>
                              <button
                                 onClick={handleCopy}
-                                className="p-2 rounded-full text-slate-500 hover:bg-indigo-100 hover:text-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                className="p-2 rounded-full text-slate-700 hover:bg-indigo-100 hover:text-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                 aria-label="Sao chép số tiền"
                             >
                                 {isCopied ? <CheckIcon className="w-5 h-5 text-green-600" /> : <CopyIcon className="w-5 h-5" />}
