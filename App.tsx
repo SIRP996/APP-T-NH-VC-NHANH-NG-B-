@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Product, ColumnMapping, DealList, FirebaseConfig } from './types';
 import { fetchProductsFromSheet, fetchSheetPreviewAndHeaders } from './services/googleSheetService';
@@ -683,7 +684,7 @@ const App: React.FC = () => {
                 <div className="lg:w-1/3 xl:w-1/4 flex-shrink-0">
                     <Calculator selectedProduct={selectedProduct} dealListName={activeDealList?.name || 'N/A'} />
                 </div>
-                <div className="flex-grow min-h-[400px]">
+                <div className="flex-grow min-h-[400px] min-w-0">
                     <ProductTable 
                         products={products}
                         onProductSelect={setSelectedProduct}
