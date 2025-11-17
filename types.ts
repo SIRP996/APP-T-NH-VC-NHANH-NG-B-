@@ -25,6 +25,8 @@ export interface DealList {
   name: string;
   sheetUrl: string;
   columnMapping: ColumnMapping;
+  // FIX: Added lastSynced property to align with its usage in App.tsx
+  lastSynced?: any;
 }
 
 export interface FirebaseConfig {

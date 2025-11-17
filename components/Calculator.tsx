@@ -40,53 +40,35 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
     )
 );
 
-// New component for the taller search field with text wrapping
-const SearchField: React.FC<{
+const SearchDisplayField: React.FC<{
     label: string;
-    id: string;
     value: string;
-    onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-    placeholder?: string;
-}> = ({ label, id, value, onChange, placeholder }) => (
+}> = ({ label, value }) => (
     <div>
-        <label htmlFor={id} className="block text-sm font-medium text-gray-700">{label}</label>
-        <div className="mt-1">
-            <textarea
-                id={id}
-                value={value}
-                onChange={onChange}
-                placeholder={placeholder}
-                rows={2}
-                autoComplete="off"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50 text-gray-900 placeholder-gray-500 font-medium resize-y"
-            />
+        <label className="block text-sm font-medium text-gray-700">{label}</label>
+        <div className="mt-1 p-3 h-[60px] border border-gray-300 rounded-md bg-gray-100 text-gray-800 sm:text-sm overflow-y-auto">
+            {value || <span className="text-gray-500">Chọn một sản phẩm từ bảng...</span>}
         </div>
     </div>
 );
 
-// Fix: Define CalculatorProps interface for the Calculator component.
 interface CalculatorProps {
-    products: Product[];
+    selectedProduct: Product | null;
     dealListName: string;
 }
 
 const ALL_POSSIBLE_VOUCHERS = Array.from({ length: 19 }, (_, i) => i + 7); // 7 to 25
 
-export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName }) => {
+export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealListName }) => {
     const [productId, setProductId] = useState('');
+    const [productName, setProductName] = useState('');
     const [currentPrice, setCurrentPrice] = useState('');
     const [desiredPrice, setDesiredPrice] = useState('');
     const [voucherType, setVoucherType] = useState<VoucherType>(VoucherType.Percentage);
     const [voucherValue, setVoucherValue] = useState('');
     const [result, setResult] = useState<number | null>(null);
 
-    // New states for enhanced features
-    const [searchTerm, setSearchTerm] = useState('');
-    const [suggestions, setSuggestions] = useState<Product[]>([]);
-    const [isSuggestionsVisible, setIsSuggestionsVisible] = useState(false);
-    const searchRef = useRef<HTMLDivElement>(null);
     const voucherInputRef = useRef<HTMLInputElement>(null);
-    const isSelectionInProgress = useRef(false); // Ref to prevent re-search after selection
     const [isCopied, setIsCopied] = useState(false);
     const [isIdCopied, setIsIdCopied] = useState(false);
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -105,7 +87,15 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName }
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [tempSelectedPresets, setTempSelectedPresets] = useState<number[]>([]);
     
-    // Clock effect
+    useEffect(() => {
+        if (selectedProduct) {
+            setProductId(selectedProduct.id);
+            setProductName(selectedProduct.name);
+            setCurrentPrice(String(selectedProduct.finalPrice));
+            setResult(null); // Reset result when a new product is selected
+        }
+    }, [selectedProduct]);
+
     useEffect(() => {
         const timerId = setInterval(() => {
             setCurrentTime(new Date());
@@ -121,66 +111,6 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName }
         timeZone: 'Asia/Ho_Chi_Minh'
     });
 
-
-    const handleProductSelect = useCallback((product: Product) => {
-        isSelectionInProgress.current = true; // Flag that a programmatic selection is happening
-        setProductId(product.id);
-        setCurrentPrice(product.finalPrice.toString());
-        setSearchTerm(product.name);
-        setIsSuggestionsVisible(false);
-    }, []);
-
-    // Optimized search logic
-    useEffect(() => {
-        // If a selection was just made, the searchTerm was updated programmatically.
-        // We reset the flag and skip this effect run to prevent the suggestion list from reappearing.
-        if (isSelectionInProgress.current) {
-            isSelectionInProgress.current = false;
-            return;
-        }
-
-        const trimmedSearchTerm = searchTerm.trim();
-        const selectedProduct = productId ? products.find(p => p.id === productId) : null;
-        
-        // Hide suggestions if search is empty or if it already matches the selected product's name
-        if (trimmedSearchTerm.length < 1 || (selectedProduct && trimmedSearchTerm === selectedProduct.name)) {
-            setIsSuggestionsVisible(false);
-            return;
-        }
-
-        // Check for an exact ID/Model ID match to auto-select
-        const exactMatch = products.find(p => p.id === trimmedSearchTerm || (p.modelId && p.modelId === trimmedSearchTerm));
-        if (exactMatch) {
-            handleProductSelect(exactMatch);
-            return;
-        }
-
-        // Otherwise, perform a fuzzy search for suggestions
-        const filtered = products.filter(p => 
-            p.name.toLowerCase().includes(trimmedSearchTerm.toLowerCase()) ||
-            p.id.includes(trimmedSearchTerm) ||
-            (p.modelId && p.modelId.includes(trimmedSearchTerm))
-        ).slice(0, 10);
-
-        setSuggestions(filtered);
-        setIsSuggestionsVisible(filtered.length > 0);
-
-    }, [searchTerm, products, productId, handleProductSelect]);
-    
-    // Close suggestions when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-                setIsSuggestionsVisible(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
-
-    // Separated calculation logic into a pure function
     const performCalculation = (
         currentPriceStr: string,
         desiredPriceStr: string,
@@ -208,21 +138,18 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName }
         return sellerVoucher;
     };
 
-    // Handler for the main "Calculate" button
     const handleCalculation = useCallback(() => {
         const calculationResult = performCalculation(currentPrice, desiredPrice, voucherValue, voucherType);
         setResult(calculationResult);
     }, [currentPrice, desiredPrice, voucherValue, voucherType]);
 
-    // Handler for the preset voucher buttons for immediate calculation
     const handlePresetClick = (val: number) => {
         const newVoucherStr = String(val);
-        setVoucherValue(newVoucherStr); // Update state to reflect selection
+        setVoucherValue(newVoucherStr); 
         const calculationResult = performCalculation(currentPrice, desiredPrice, newVoucherStr, VoucherType.Percentage);
         setResult(calculationResult);
     };
 
-    // Calculate on Enter key press
     const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Enter') {
             event.preventDefault();
@@ -230,13 +157,11 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName }
         }
     };
 
-     // Special handler for desiredPrice to override Tab behavior
     const handleDesiredPriceKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Enter') {
             event.preventDefault();
             handleCalculation();
         } else if (event.key === 'Tab' && !event.shiftKey) {
-            // Skip the radio buttons and focus directly on the voucher value input
             event.preventDefault();
             voucherInputRef.current?.focus();
         }
@@ -292,7 +217,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName }
         if (result !== null) {
             navigator.clipboard.writeText(String(Math.round(result))).then(() => {
                 setIsCopied(true);
-                setTimeout(() => setIsCopied(false), 2000); // Reset after 2 seconds
+                setTimeout(() => setIsCopied(false), 2000); 
             });
         }
     };
@@ -301,7 +226,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName }
         if (productId) {
             navigator.clipboard.writeText(productId).then(() => {
                 setIsIdCopied(true);
-                setTimeout(() => setIsIdCopied(false), 2000); // Reset after 2 seconds
+                setTimeout(() => setIsIdCopied(false), 2000);
             });
         }
     };
@@ -316,9 +241,9 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName }
     const handlePresetSelectionChange = (voucherValue: number) => {
         setTempSelectedPresets(prev => {
             if (prev.includes(voucherValue)) {
-                return prev.filter(v => v !== voucherValue); // Uncheck
+                return prev.filter(v => v !== voucherValue);
             } else {
-                return [...prev, voucherValue]; // Check
+                return [...prev, voucherValue]; 
             }
         });
     };
@@ -338,28 +263,10 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName }
                 </div>
             </div>
             <div className="space-y-4">
-                 <div className="relative" ref={searchRef}>
-                    <SearchField 
-                        label="Tìm kiếm sản phẩm (Tên, ID, Model)" 
-                        id="productSearch" 
-                        value={searchTerm} 
-                        onChange={(e) => setSearchTerm(e.target.value)} 
-                        placeholder="Nhập để tìm kiếm..." 
-                    />
-                    {isSuggestionsVisible && (
-                        <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-60 overflow-y-auto shadow-lg">
-                            {suggestions.map(product => (
-                                <li key={product.id} 
-                                    onClick={() => handleProductSelect(product)}
-                                    className="p-3 hover:bg-indigo-100 cursor-pointer"
-                                >
-                                    <p className="font-semibold text-gray-800 truncate">{product.name}</p>
-                                    <p className="text-sm text-gray-500">ID: {product.id} - {formatCurrency(product.finalPrice)}đ</p>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
+                <SearchDisplayField 
+                    label="Sản phẩm đang chọn" 
+                    value={productName} 
+                />
 
                 {productId && (
                     <div className="-mt-2">

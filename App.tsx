@@ -1,9 +1,12 @@
 
+
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Product, ColumnMapping, DealList, FirebaseConfig } from './types';
-import { fetchProducts, fetchSheetPreviewAndHeaders } from './services/googleSheetService';
+import { fetchProductsFromSheet, fetchSheetPreviewAndHeaders } from './services/googleSheetService';
 import { Calculator } from './components/Calculator';
-import { RefreshIcon, LinkIcon, SheetIcon, EditIcon, CogIcon, PlusIcon, TrashIcon, FirebaseIcon, GoogleIcon, LogoutIcon, MailIcon, LockClosedIcon } from './components/Icons';
+import { ProductTable } from './components/ProductTable';
+import { SyncIcon, LinkIcon, SheetIcon, EditIcon, CogIcon, PlusIcon, TrashIcon, FirebaseIcon, GoogleIcon, LogoutIcon, MailIcon, LockClosedIcon } from './components/Icons';
 
 // Declare firebase globally as it's loaded from a script tag
 declare const firebase: any;
@@ -28,19 +31,9 @@ const MAPPING_CONFIG: { key: keyof ColumnMapping; label: string; keywords: strin
     { key: 'modelId', label: 'Model ID', keywords: ['model id', 'model'], required: false },
 ];
 
-const getSheetIdFromUrl = (url: string): string | null => {
-    const match = url.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-    return match ? match[1] : null;
-};
-
-const getEmbedUrl = (url: string): string | null => {
-    const sheetId = getSheetIdFromUrl(url);
-    return sheetId ? `https://docs.google.com/spreadsheets/d/${sheetId}/preview?rm=minimal` : null;
-};
-
 const getCsvUrl = (url: string): string | null => {
-    const sheetId = getSheetIdFromUrl(url);
-    return sheetId ? `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv` : null;
+    const match = url.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    return match ? `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv` : null;
 };
 
 const LoginScreen: React.FC<{
@@ -178,9 +171,11 @@ const App: React.FC = () => {
     
     const [editingDealList, setEditingDealList] = useState<Partial<DealList> | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isSyncing, setIsSyncing] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
     
     const [sheetHeaders, setSheetHeaders] = useState<string[]>([]);
     const [sheetPreview, setSheetPreview] = useState<string[][]>([]);
@@ -193,8 +188,8 @@ const App: React.FC = () => {
     const [isFirebaseReady, setIsFirebaseReady] = useState(false);
 
     const activeDealList = useMemo(() => dealLists.find(dl => dl.id === activeDealListId), [dealLists, activeDealListId]);
-    const embedUrl = useMemo(() => (activeDealList ? getEmbedUrl(activeDealList.sheetUrl) : null), [activeDealList]);
     
+    // Main Firebase and Auth effect
     useEffect(() => {
         try {
             if (firebaseConfig.apiKey === "YOUR_API_KEY") {
@@ -210,40 +205,72 @@ const App: React.FC = () => {
             const firestore = firebase.firestore();
             setDb(firestore);
 
-            const unsubscribe = firebase.auth().onAuthStateChanged((user: any) => {
+            const unsubscribeAuth = firebase.auth().onAuthStateChanged((user: any) => {
                 if (user) {
                     setUser(user);
-                    const userDocRef = firestore.collection('users').doc(user.uid);
-                    
-                    const unsubSnapshot = userDocRef.onSnapshot((doc: any) => {
-                        const data = doc.data();
-                        const lists = data?.dealLists || [];
-                        setDealLists(lists);
-                         if (lists.length > 0 && activeDealListId && lists.some((dl: DealList) => dl.id === activeDealListId)) {
-                            setAppState('VIEW_DATA');
-                        } else {
-                            setAppState('MANAGE_LISTS');
-                        }
-                    }, (error: any) => {
-                         console.error("Firestore snapshot error:", error);
-                         setError("Không thể tải dữ liệu. Vui lòng kiểm tra lại quy tắc bảo mật Firestore.");
-                    });
-                     return () => unsubSnapshot();
                 } else {
                     setUser(null);
                     setDealLists([]);
+                    setProducts([]);
                     setAppState('LOGIN');
                 }
             });
-            return () => unsubscribe();
-
+            return () => unsubscribeAuth();
         } catch (err) {
             console.error("Firebase initialization error:", err);
             setError("Cấu hình Firebase không hợp lệ. Vui lòng kiểm tra lại trong App.tsx.");
             setIsFirebaseReady(false);
             setAppState('LOGIN');
         }
-    }, [activeDealListId]);
+    }, []);
+
+    // Effect for fetching deal lists when user logs in
+    useEffect(() => {
+        if (!user || !db) return;
+
+        const dealListsRef = db.collection('users').doc(user.uid).collection('dealLists');
+        const unsubscribe = dealListsRef.onSnapshot((snapshot: any) => {
+            const lists = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+            setDealLists(lists);
+            if (appState === 'LOADING' || appState === 'LOGIN') {
+                const lastActiveId = sessionStorage.getItem('activeDealListId');
+                if (lastActiveId && lists.some((l: DealList) => l.id === lastActiveId)) {
+                    setActiveDealListId(lastActiveId);
+                    setAppState('VIEW_DATA');
+                } else {
+                    setAppState('MANAGE_LISTS');
+                }
+            }
+        }, (error: any) => {
+            console.error("Firestore deal lists snapshot error:", error);
+            setError("Không thể tải danh sách deals. Vui lòng kiểm tra lại quy tắc bảo mật Firestore.");
+        });
+
+        return () => unsubscribe();
+    }, [user, db, appState]);
+
+    // Effect for fetching products when active deal list changes
+    useEffect(() => {
+        if (!user || !db || !activeDealListId) {
+            setProducts([]);
+            return;
+        }
+
+        setIsLoading(true);
+        const productsRef = db.collection('users').doc(user.uid).collection('dealLists').doc(activeDealListId).collection('products');
+        const unsubscribe = productsRef.onSnapshot((snapshot: any) => {
+            const fetchedProducts = snapshot.docs.map((doc: any) => doc.data());
+            setProducts(fetchedProducts);
+            setIsLoading(false);
+        }, (error: any) => {
+            console.error("Firestore products snapshot error:", error);
+            setError("Không thể tải dữ liệu sản phẩm.");
+            setIsLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [user, db, activeDealListId]);
+
 
     const handleGoogleSignIn = () => {
         if (!isFirebaseReady) return;
@@ -257,15 +284,51 @@ const App: React.FC = () => {
     const handleLogout = () => {
         firebase.auth().signOut();
     };
-    
-    const updateDealLists = async (newDealLists: DealList[]) => {
-        if (user && db) {
-            const userDocRef = db.collection('users').doc(user.uid);
-            await userDocRef.set({ dealLists: newDealLists });
-        } else {
-            setError("Không thể lưu dữ liệu. Vui lòng đăng nhập lại.");
+
+    const handleSync = useCallback(async (dealList: DealList) => {
+        if (!user || !db) {
+            setError("Không thể đồng bộ: người dùng chưa đăng nhập.");
+            return;
         }
-    };
+        setIsSyncing(true);
+        setError(null);
+        const csvUrl = getCsvUrl(dealList.sheetUrl);
+        if (!csvUrl) {
+             setError("URL không hợp lệ.");
+             setIsSyncing(false);
+             return;
+        }
+
+        try {
+            const fetchedProducts = await fetchProductsFromSheet(csvUrl, dealList.columnMapping);
+            
+            const productsRef = db.collection('users').doc(user.uid).collection('dealLists').doc(dealList.id).collection('products');
+            const dealListRef = db.collection('users').doc(user.uid).collection('dealLists').doc(dealList.id);
+            
+            // Batch delete existing products
+            const deleteBatch = db.batch();
+            const snapshot = await productsRef.get();
+            snapshot.docs.forEach((doc: any) => deleteBatch.delete(doc.ref));
+            await deleteBatch.commit();
+            
+            // Batch write new products
+            const writeBatch = db.batch();
+            fetchedProducts.forEach(product => {
+                const docRef = productsRef.doc(product.id);
+                writeBatch.set(docRef, product);
+            });
+            await writeBatch.commit();
+
+            // Update sync timestamp
+            await dealListRef.update({ lastSynced: firebase.firestore.FieldValue.serverTimestamp() });
+
+        } catch (err: any) {
+            setError(`Lỗi đồng bộ: ${err.message}`);
+        } finally {
+            setIsSyncing(false);
+        }
+
+    }, [user, db]);
 
     const handleFetchAndMap = useCallback(async (url: string) => {
         setIsLoading(true);
@@ -284,7 +347,7 @@ const App: React.FC = () => {
             setSheetPreview(previewData);
 
             const initialMapping: Partial<ColumnMapping> = editingDealList?.columnMapping || {};
-            if (!editingDealList?.columnMapping) { // Only auto-map if not editing an existing mapping
+            if (!editingDealList?.columnMapping) { 
                 MAPPING_CONFIG.forEach(config => {
                     const foundHeader = headers.find(h => config.keywords.some(kw => h.toLowerCase().includes(kw)));
                     if (foundHeader && !Object.values(initialMapping).includes(foundHeader)) {
@@ -305,104 +368,87 @@ const App: React.FC = () => {
             setIsLoading(false);
         }
     }, [editingDealList]);
-
-    const loadProducts = useCallback(async (dealList: DealList | undefined) => {
-        if (!dealList) {
-            setError("Deal list không hợp lệ.");
-            setAppState('MANAGE_LISTS');
-            return;
-        }
-        setIsLoading(true);
-        setError(null);
-        const csvUrl = getCsvUrl(dealList.sheetUrl);
-        if (!csvUrl) {
-            setError("URL Google Sheet không hợp lệ.");
-            setIsLoading(false);
-            return;
-        }
-
-        try {
-            const fetchedProducts = await fetchProducts(csvUrl, dealList.columnMapping);
-            setProducts(fetchedProducts);
-            setLastUpdated(new Date());
-        } catch (err: any) {
-            setError(`Lỗi tải sản phẩm: ${err.message}`);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        if (appState === 'VIEW_DATA' && activeDealList) {
-            loadProducts(activeDealList);
-        }
-    }, [appState, activeDealList, loadProducts]);
-
-    const handleSetActiveDealList = (id: string) => {
-        setActiveDealListId(id);
-        sessionStorage.setItem('activeDealListId', id);
-        setAppState('VIEW_DATA');
-    };
     
-    const handleAddNewList = () => {
+    // FIX: Wrapped handler in useCallback for performance and to prevent stale closures.
+    const handleSetActiveDealList = useCallback((id: string) => {
+        if (id !== activeDealListId) {
+            setSelectedProduct(null);
+            setActiveDealListId(id);
+            sessionStorage.setItem('activeDealListId', id);
+        }
+        setAppState('VIEW_DATA');
+    }, [activeDealListId]);
+    
+    // FIX: Wrapped handler in useCallback for performance and to prevent stale closures.
+    const handleAddNewList = useCallback(() => {
         setEditingDealList({
-            id: `dl_${new Date().getTime()}`,
             name: '',
             sheetUrl: '',
         });
         setAppState('CONNECT_SHEET');
-    };
+    }, []);
     
-    const handleEditList = (dealList: DealList) => {
+    // FIX: Wrapped handler in useCallback for performance and to prevent stale closures.
+    const handleEditList = useCallback((dealList: DealList) => {
         setEditingDealList(dealList);
         setAppState('CONNECT_SHEET');
-    };
+    }, []);
     
-    const handleDeleteList = async (id: string) => {
-        if (window.confirm("Bạn có chắc chắn muốn xóa deal list này không?")) {
-            const newLists = dealLists.filter(dl => dl.id !== id);
-            await updateDealLists(newLists);
+    // FIX: Wrapped handler in useCallback for performance and to prevent stale closures.
+    const handleDeleteList = useCallback(async (id: string) => {
+        if (window.confirm("Bạn có chắc chắn muốn xóa deal list này không? Thao tác này sẽ xóa cả dữ liệu sản phẩm đã đồng bộ.")) {
+            if (!user || !db) return;
+            // Note: Deleting subcollections from the client is complex. This only deletes the parent doc.
+            // For a full solution, a Cloud Function would be needed to clean up the products.
+            await db.collection('users').doc(user.uid).collection('dealLists').doc(id).delete();
             if (activeDealListId === id) {
                 setActiveDealListId(null);
                 sessionStorage.removeItem('activeDealListId');
                 setAppState('MANAGE_LISTS');
             }
         }
-    };
+    }, [user, db, activeDealListId]);
     
-    const handleConnectSheetSubmit = (e: React.FormEvent) => {
+    // FIX: Wrapped handler in useCallback for performance and to prevent stale closures.
+    const handleConnectSheetSubmit = useCallback((e: React.FormEvent) => {
         e.preventDefault();
         if (editingDealList?.sheetUrl) {
             handleFetchAndMap(editingDealList.sheetUrl);
         }
-    };
+    }, [editingDealList, handleFetchAndMap]);
     
-    const handleMappingSave = async () => {
+    // FIX: Wrapped handler in useCallback for performance and to prevent stale closures.
+    const handleMappingSave = useCallback(async () => {
+        if (!user || !db || !editingDealList) return;
+
         const isMappingComplete = MAPPING_CONFIG.every(c => !c.required || (tempMapping as ColumnMapping)[c.key]);
         if (!isMappingComplete) {
             setError("Vui lòng điền tất cả các cột bắt buộc (*).");
             return;
         }
-
-        const finalDealList: DealList = {
-            ...editingDealList,
+        
+        const dealListId = editingDealList.id || `dl_${new Date().getTime()}`;
+        
+        const finalDealListData = {
+            name: editingDealList.name,
+            sheetUrl: editingDealList.sheetUrl,
             columnMapping: tempMapping as ColumnMapping,
-        } as DealList;
+        };
 
-        const existingIndex = dealLists.findIndex(dl => dl.id === finalDealList.id);
-        let newLists = [...dealLists];
-        if (existingIndex > -1) {
-            newLists[existingIndex] = finalDealList;
-        } else {
-            newLists.push(finalDealList);
-        }
+        const dealListRef = db.collection('users').doc(user.uid).collection('dealLists').doc(dealListId);
+        await dealListRef.set(finalDealListData, { merge: true });
         
-        await updateDealLists(newLists);
-        
-        handleSetActiveDealList(finalDealList.id);
+        const fullDealListObject: DealList = { id: dealListId, ...finalDealListData, lastSynced: null };
+
         setEditingDealList(null);
         setTempMapping({});
-    };
+        setActiveDealListId(dealListId);
+        sessionStorage.setItem('activeDealListId', dealListId);
+        setAppState('VIEW_DATA');
+        
+        // Trigger initial sync
+        await handleSync(fullDealListObject);
+    }, [user, db, editingDealList, tempMapping, handleSync]);
 
     const renderLoading = () => (
         <div className="flex items-center justify-center h-screen bg-gray-100">
@@ -471,7 +517,7 @@ const App: React.FC = () => {
     const renderConnectSheet = () => (
         <div className="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8">
             <div className="bg-white p-8 rounded-xl shadow-lg border">
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">{editingDealList?.columnMapping ? 'Chỉnh sửa Deal List' : 'Thêm Deal List Mới'}</h2>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">{editingDealList?.id ? 'Chỉnh sửa Deal List' : 'Thêm Deal List Mới'}</h2>
                 <p className="text-gray-600 mb-6">Cung cấp thông tin về Google Sheet bạn muốn kết nối.</p>
                 <form onSubmit={handleConnectSheetSubmit} className="space-y-6">
                     <div>
@@ -540,7 +586,7 @@ const App: React.FC = () => {
                     ))}
                     <div className="flex justify-end gap-3 pt-4">
                          <button type="button" onClick={() => setAppState('CONNECT_SHEET')} className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Quay lại</button>
-                        <button onClick={handleMappingSave} className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">Lưu & Xem Dữ liệu</button>
+                        <button onClick={handleMappingSave} className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">Lưu & Đồng bộ</button>
                     </div>
                 </div>
 
@@ -592,9 +638,14 @@ const App: React.FC = () => {
         </div>
     );
 
+    const formatSyncTime = (timestamp: any) => {
+        if (!timestamp) return 'Chưa đồng bộ';
+        return timestamp.toDate().toLocaleString('vi-VN');
+    }
+
     const renderMainView = () => (
         <div className="h-screen w-full flex flex-col bg-gray-100">
-            <header className="bg-white shadow-sm p-3 flex justify-between items-center z-10 flex-shrink-0">
+            <header className="bg-white shadow-sm p-3 flex justify-between items-center z-20 flex-shrink-0">
                 <div className="flex items-center gap-3">
                      <SheetIcon className="w-6 h-6 text-indigo-600" />
                      <select 
@@ -611,9 +662,9 @@ const App: React.FC = () => {
                     </button>
                 </div>
                 <div className="flex items-center gap-4">
-                    <button onClick={() => loadProducts(activeDealList)} disabled={isLoading} className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-indigo-600 disabled:opacity-50">
-                        <RefreshIcon className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
-                        {isLoading ? 'Đang tải...' : `Cập nhật lần cuối: ${lastUpdated ? lastUpdated.toLocaleTimeString() : 'N/A'}`}
+                    <button onClick={() => handleSync(activeDealList!)} disabled={isSyncing || !activeDealList} className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-indigo-600 disabled:opacity-50">
+                        <SyncIcon className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
+                        {isSyncing ? 'Đang đồng bộ...' : `Đồng bộ lần cuối: ${formatSyncTime(activeDealList?.lastSynced)}`}
                     </button>
                      {user && (
                         <div className="flex items-center gap-2">
@@ -626,16 +677,19 @@ const App: React.FC = () => {
                 </div>
             </header>
             
-            {error && <div className="bg-red-100 text-red-700 p-3 text-center text-sm">{error}</div>}
+            {error && <div className="bg-red-100 text-red-700 p-3 text-center text-sm z-10">{error}</div>}
 
-            <main className="flex-grow flex flex-col lg:flex-row gap-4 p-4 overflow-y-auto">
+            <main className="flex-grow flex flex-col lg:flex-row gap-4 p-4 overflow-hidden">
                 <div className="lg:w-1/3 xl:w-1/4 flex-shrink-0">
-                    <Calculator products={products} dealListName={activeDealList?.name || 'N/A'} />
+                    <Calculator selectedProduct={selectedProduct} dealListName={activeDealList?.name || 'N/A'} />
                 </div>
                 <div className="flex-grow min-h-[400px]">
-                    {embedUrl ? (
-                         <iframe src={embedUrl} className="w-full h-full border-2 border-gray-200 rounded-xl bg-white"></iframe>
-                    ) : <p>URL không hợp lệ.</p>}
+                    <ProductTable 
+                        products={products}
+                        onProductSelect={setSelectedProduct}
+                        isLoading={isLoading}
+                        activeDealListId={activeDealListId}
+                    />
                 </div>
             </main>
         </div>

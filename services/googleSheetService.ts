@@ -182,7 +182,7 @@ const normalizeSheetId = (id: string): string => {
 };
 
 
-export const fetchProducts = async (sheetUrl: string, mapping: ColumnMapping): Promise<Product[]> => {
+export const fetchProductsFromSheet = async (sheetUrl: string, mapping: ColumnMapping): Promise<Product[]> => {
   try {
     const url = `${sheetUrl}&v=${new Date().getTime()}`; // Append cache-buster
     const response = await fetch(url);
