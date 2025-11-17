@@ -202,11 +202,12 @@ export const fetchProductsFromSheet = async (sheetUrl: string, mapping: ColumnMa
       id: normalizeSheetId(row[mapping.id]),
       modelId: normalizeSheetId(row[mapping.modelId]),
       name: row[mapping.name] || '',
-      finalPrice: parsePrice(row[mapping.finalPrice]),
+      displayPrice: parsePrice(row[mapping.displayPrice]),
+      finalPrice: mapping.finalPrice ? row[mapping.finalPrice] || '' : '',
+      gift: mapping.gift ? row[mapping.gift] || '' : '',
       // Set unused prices to 0 or derive if needed in future
       originalPrice: 0, 
-      setPrice: 0,
-    })).filter(p => p.id && p.name && p.finalPrice > 0); // Filter out rows without essential data
+    })).filter(p => p.id && p.name && p.displayPrice > 0); // Filter out rows without essential data
   } catch (error) {
     console.error("Failed to fetch or parse Google Sheet data:", error);
     throw error;

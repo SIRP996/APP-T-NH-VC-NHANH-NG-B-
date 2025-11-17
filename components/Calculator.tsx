@@ -96,7 +96,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
         if (selectedProduct) {
             setProductId(selectedProduct.id);
             setProductName(selectedProduct.name);
-            setCurrentPrice(String(selectedProduct.finalPrice));
+            setCurrentPrice(String(selectedProduct.displayPrice));
             setResult(null); // Reset result when a new product is selected
         }
     }, [selectedProduct]);

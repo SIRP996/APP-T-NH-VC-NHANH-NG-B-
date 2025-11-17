@@ -5,21 +5,25 @@ import { SearchIcon, CogIcon, Bars3Icon } from './Icons';
 const SortAscIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4 ml-1 opacity-60" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9M3 12h9m-9 4h6m4-11l4-4m0 0l4 4m-4-4v12" /></svg>;
 const SortDescIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4 ml-1 opacity-60" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9M3 12h9m-9 4h6m4 5l4-4m0 0l-4-4m4 4V3" /></svg>;
 
-type ColumnKey = keyof Pick<Product, 'name' | 'id' | 'finalPrice'>;
+type ColumnKey = keyof Pick<Product, 'name' | 'id' | 'displayPrice' | 'finalPrice' | 'gift'>;
 type SortKey = ColumnKey;
 type SortDirection = 'asc' | 'desc';
 
 const COLUMN_DEFINITIONS: { key: ColumnKey; label: string }[] = [
     { key: 'name', label: 'Tên Sản phẩm' },
     { key: 'id', label: 'ID' },
-    { key: 'finalPrice', label: 'Giá' },
+    { key: 'displayPrice', label: 'Giá hiển thị' },
+    { key: 'finalPrice', label: 'Giá cuối' },
+    { key: 'gift', label: 'Quà Tặng' },
 ];
 
 const DEFAULT_COLUMN_ORDER = COLUMN_DEFINITIONS.map(c => c.key);
 const DEFAULT_COLUMN_WIDTHS: Record<ColumnKey, number> = {
     name: 400,
     id: 180,
+    displayPrice: 120,
     finalPrice: 120,
+    gift: 250,
 };
 
 
@@ -184,7 +188,8 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
         return products.filter(product => {
             return (
                 product.name.toLowerCase().includes(lowercasedFilter) ||
-                product.id.toLowerCase().includes(lowercasedFilter)
+                product.id.toLowerCase().includes(lowercasedFilter) ||
+                (product.gift && product.gift.toLowerCase().includes(lowercasedFilter))
             );
         });
     }, [products, searchTerm]);
@@ -273,7 +278,9 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
     const cellClassMap: Record<ColumnKey, string> = {
         name: 'font-medium text-gray-900',
         id: 'text-gray-500 font-mono',
-        finalPrice: 'text-gray-600'
+        displayPrice: 'text-gray-600',
+        finalPrice: 'text-gray-500',
+        gift: 'text-gray-500',
     };
     
     return (
@@ -285,7 +292,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
                     </span>
                     <input
                         type="text"
-                        placeholder="Tìm theo tên hoặc ID sản phẩm..."
+                        placeholder="Tìm theo tên, ID hoặc quà tặng..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-900 focus:ring-indigo-500 focus:border-indigo-500"
@@ -335,19 +342,19 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                         {isLoading ? (
-                            <tr><td colSpan={3} className="text-center py-10 text-gray-500">Đang tải dữ liệu sản phẩm...</td></tr>
+                            <tr><td colSpan={orderedTableHeaders.length} className="text-center py-10 text-gray-500">Đang tải dữ liệu sản phẩm...</td></tr>
                         ) : sortedProducts.length > 0 ? (
                             sortedProducts.map((product, index) => (
                                 <tr key={`${product.id}-${index}`} onClick={() => onProductSelect(product)} className="hover:bg-indigo-50 cursor-pointer transition-colors">
                                     {orderedTableHeaders.map(({ key }) => (
                                         <td key={key} className={`px-6 py-4 whitespace-nowrap text-sm ${cellClassMap[key]} overflow-hidden text-ellipsis`}>
-                                            {key === 'finalPrice' ? formatCurrency(product.finalPrice) : product[key]}
+                                            {key === 'displayPrice' ? formatCurrency(product[key] as number) : product[key]}
                                         </td>
                                     ))}
                                 </tr>
                             ))
                         ) : (
-                             <tr><td colSpan={3} className="text-center py-10 text-gray-500">Không tìm thấy sản phẩm nào.</td></tr>
+                             <tr><td colSpan={orderedTableHeaders.length} className="text-center py-10 text-gray-500">Không tìm thấy sản phẩm nào.</td></tr>
                         )}
                     </tbody>
                 </table>

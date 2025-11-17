@@ -4,8 +4,9 @@ export interface Product {
   modelId: string;
   name: string;
   originalPrice: number;
-  setPrice: number;
-  finalPrice: number;
+  displayPrice: number;
+  finalPrice: string;
+  gift?: string;
 }
 
 export enum VoucherType {
@@ -16,17 +17,19 @@ export enum VoucherType {
 export interface ColumnMapping {
   id: string;
   modelId: string;
-  name: string;
+  name:string;
+  displayPrice: string;
   finalPrice: string;
+  gift?: string;
 }
 
 export interface DealList {
   id: string;
   name: string;
-  sheetUrl: string;
+  sheetUrl?: string; // Made optional for Excel imports
   columnMapping: ColumnMapping;
-  // FIX: Added lastSynced property to align with its usage in App.tsx
   lastSynced?: any;
+  source?: 'google-sheet' | 'excel'; // To distinguish the data source
 }
 
 export interface FirebaseConfig {

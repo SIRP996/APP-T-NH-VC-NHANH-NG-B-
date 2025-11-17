@@ -1,16 +1,15 @@
 
 
-
-
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Product, ColumnMapping, DealList, FirebaseConfig } from './types';
 import { fetchProductsFromSheet, fetchSheetPreviewAndHeaders } from './services/googleSheetService';
 import { Calculator } from './components/Calculator';
 import { ProductTable } from './components/ProductTable';
 import { SyncIcon, LinkIcon, SheetIcon, EditIcon, CogIcon, PlusIcon, TrashIcon, FirebaseIcon, GoogleIcon, LogoutIcon, MailIcon, LockClosedIcon } from './components/Icons';
 
-// Declare firebase globally as it's loaded from a script tag
+// Declare firebase and XLSX globally as they're loaded from script tags
 declare const firebase: any;
+declare const XLSX: any;
 
 // Firebase configuration provided by the user.
 const firebaseConfig: FirebaseConfig = {
@@ -28,8 +27,10 @@ type AppState = 'LOADING' | 'LOGIN' | 'MANAGE_LISTS' | 'CONNECT_SHEET' | 'MAP_CO
 const MAPPING_CONFIG: { key: keyof ColumnMapping; label: string; keywords: string[], required: boolean }[] = [
     { key: 'id', label: 'ID Sản phẩm', keywords: ['id happyskinvn', 'id', 'sku', 'mã sản phẩm'], required: true },
     { key: 'name', label: 'Tên Sản phẩm', keywords: ['tên sản phẩm', 'tên', 'name'], required: true },
-    { key: 'finalPrice', label: 'Giá hiển thị', keywords: ['giá live (trước voucher)', 'giá live', 'giá trước voucher', 'giá', 'price', 'giá cài'], required: true },
+    { key: 'displayPrice', label: 'Giá hiển thị', keywords: ['giá hiển thị hiện tại', 'giá live (trước voucher)', 'giá live', 'giá trước voucher', 'giá', 'price', 'giá cài'], required: true },
+    { key: 'finalPrice', label: 'Giá cuối', keywords: ['giá cuối'], required: false },
     { key: 'modelId', label: 'Model ID', keywords: ['model id', 'model'], required: false },
+    { key: 'gift', label: 'Quà Tặng', keywords: ['quà', 'gift', 'quà tặng'], required: false },
 ];
 
 const getCsvUrl = (url: string): string | null => {
@@ -182,6 +183,8 @@ const App: React.FC = () => {
     const [sheetPreview, setSheetPreview] = useState<string[][]>([]);
     const [tempMapping, setTempMapping] = useState<Partial<ColumnMapping>>({});
     const [activeMappingKey, setActiveMappingKey] = useState<keyof ColumnMapping | null>(null);
+    const [tempExcelData, setTempExcelData] = useState<any[] | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Firebase state
     const [db, setDb] = useState<any | null>(null);
@@ -285,10 +288,36 @@ const App: React.FC = () => {
     const handleLogout = () => {
         firebase.auth().signOut();
     };
+    
+    const syncProductsToFirestore = useCallback(async (dealListId: string, productsToSync: Product[]) => {
+        if (!user || !db) throw new Error("Người dùng chưa đăng nhập.");
+
+        const productsRef = db.collection('users').doc(user.uid).collection('dealLists').doc(dealListId).collection('products');
+        const dealListRef = db.collection('users').doc(user.uid).collection('dealLists').doc(dealListId);
+
+        // Batch delete existing products
+        const deleteBatch = db.batch();
+        const snapshot = await productsRef.get();
+        snapshot.docs.forEach((doc: any) => deleteBatch.delete(doc.ref));
+        await deleteBatch.commit();
+
+        // Batch write new products with auto-generated IDs
+        const writeBatch = db.batch();
+        productsToSync.forEach(product => {
+            const docRef = productsRef.doc(); // Let Firestore generate a unique ID
+            writeBatch.set(docRef, product);
+        });
+        await writeBatch.commit();
+        
+        // Update sync timestamp
+        await dealListRef.update({ lastSynced: firebase.firestore.FieldValue.serverTimestamp() });
+
+    }, [user, db]);
+
 
     const handleSync = useCallback(async (dealList: DealList) => {
-        if (!user || !db) {
-            setError("Không thể đồng bộ: người dùng chưa đăng nhập.");
+        if (!user || !db || !dealList.sheetUrl) {
+            setError("Không thể đồng bộ: URL sheet không tồn tại hoặc người dùng chưa đăng nhập.");
             return;
         }
         setIsSyncing(true);
@@ -302,34 +331,13 @@ const App: React.FC = () => {
 
         try {
             const fetchedProducts = await fetchProductsFromSheet(csvUrl, dealList.columnMapping);
-            
-            const productsRef = db.collection('users').doc(user.uid).collection('dealLists').doc(dealList.id).collection('products');
-            const dealListRef = db.collection('users').doc(user.uid).collection('dealLists').doc(dealList.id);
-            
-            // Batch delete existing products
-            const deleteBatch = db.batch();
-            const snapshot = await productsRef.get();
-            snapshot.docs.forEach((doc: any) => deleteBatch.delete(doc.ref));
-            await deleteBatch.commit();
-            
-            // Batch write new products
-            const writeBatch = db.batch();
-            fetchedProducts.forEach(product => {
-                const docRef = productsRef.doc(product.id);
-                writeBatch.set(docRef, product);
-            });
-            await writeBatch.commit();
-
-            // Update sync timestamp
-            await dealListRef.update({ lastSynced: firebase.firestore.FieldValue.serverTimestamp() });
-
+            await syncProductsToFirestore(dealList.id, fetchedProducts);
         } catch (err: any) {
             setError(`Lỗi đồng bộ: ${err.message}`);
         } finally {
             setIsSyncing(false);
         }
-
-    }, [user, db]);
+    }, [user, db, syncProductsToFirestore]);
 
     const handleFetchAndMap = useCallback(async (url: string) => {
         setIsLoading(true);
@@ -345,7 +353,7 @@ const App: React.FC = () => {
             if (headers.length === 0) throw new Error("Không tìm thấy cột nào trong Sheet. File có trống không?");
             
             setSheetHeaders(headers);
-            setSheetPreview(previewData);
+            setSheetPreview(previewData.map(row => row.map(cell => String(cell))));
 
             const initialMapping: Partial<ColumnMapping> = editingDealList?.columnMapping || {};
             if (!editingDealList?.columnMapping) { 
@@ -370,7 +378,60 @@ const App: React.FC = () => {
         }
     }, [editingDealList]);
     
-    // FIX: Wrapped handler in useCallback for performance and to prevent stale closures.
+    const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setIsLoading(true);
+        setError(null);
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target?.result as ArrayBuffer);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+                if (json.length === 0) {
+                    throw new Error("File Excel không có dữ liệu hoặc sheet đầu tiên trống.");
+                }
+
+                const headers = Object.keys(json[0]);
+                const previewData = json.slice(0, 15).map(row => headers.map(header => String(row[header] ?? "")));
+                
+                setSheetHeaders(headers);
+                setSheetPreview(previewData);
+                setTempExcelData(json);
+                
+                const listName = file.name.replace(/\.(xlsx|xls|csv)$/i, '');
+                setEditingDealList({ name: listName, source: 'excel' });
+
+                const initialMapping: Partial<ColumnMapping> = {};
+                MAPPING_CONFIG.forEach(config => {
+                    const foundHeader = headers.find(h => config.keywords.some(kw => h.toLowerCase().includes(kw)));
+                    if (foundHeader && !Object.values(initialMapping).includes(foundHeader)) {
+                       initialMapping[config.key] = foundHeader;
+                    }
+                });
+                setTempMapping(initialMapping);
+                setAppState('MAP_COLUMNS');
+
+            } catch (err: any) {
+                setError(`Lỗi đọc file: ${err.message}`);
+            } finally {
+                setIsLoading(false);
+                if (fileInputRef.current) fileInputRef.current.value = ""; // Reset file input
+            }
+        };
+        reader.onerror = () => {
+            setError("Không thể đọc file đã chọn.");
+            setIsLoading(false);
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
     const handleSetActiveDealList = useCallback((id: string) => {
         if (id !== activeDealListId) {
             setSelectedProduct(null);
@@ -380,22 +441,24 @@ const App: React.FC = () => {
         setAppState('VIEW_DATA');
     }, [activeDealListId]);
     
-    // FIX: Wrapped handler in useCallback for performance and to prevent stale closures.
     const handleAddNewList = useCallback(() => {
         setEditingDealList({
             name: '',
             sheetUrl: '',
+            source: 'google-sheet',
         });
         setAppState('CONNECT_SHEET');
     }, []);
     
-    // FIX: Wrapped handler in useCallback for performance and to prevent stale closures.
     const handleEditList = useCallback((dealList: DealList) => {
+        if (dealList.source === 'excel') {
+            alert("Không thể chỉnh sửa nguồn dữ liệu của deal list nhập từ Excel. Vui lòng nhập lại file mới nếu cần cập nhật.");
+            return;
+        }
         setEditingDealList(dealList);
         setAppState('CONNECT_SHEET');
     }, []);
     
-    // FIX: Wrapped handler in useCallback for performance and to prevent stale closures.
     const handleDeleteList = useCallback(async (id: string) => {
         if (window.confirm("Bạn có chắc chắn muốn xóa deal list này không? Thao tác này sẽ xóa cả dữ liệu sản phẩm đã đồng bộ.")) {
             if (!user || !db) return;
@@ -410,7 +473,6 @@ const App: React.FC = () => {
         }
     }, [user, db, activeDealListId]);
     
-    // FIX: Wrapped handler in useCallback for performance and to prevent stale closures.
     const handleConnectSheetSubmit = useCallback((e: React.FormEvent) => {
         e.preventDefault();
         if (editingDealList?.sheetUrl) {
@@ -418,7 +480,6 @@ const App: React.FC = () => {
         }
     }, [editingDealList, handleFetchAndMap]);
     
-    // FIX: Wrapped handler in useCallback for performance and to prevent stale closures.
     const handleMappingSave = useCallback(async () => {
         if (!user || !db || !editingDealList) return;
 
@@ -429,17 +490,17 @@ const App: React.FC = () => {
         }
         
         const dealListId = editingDealList.id || `dl_${new Date().getTime()}`;
-        
-        const finalDealListData = {
-            name: editingDealList.name,
-            sheetUrl: editingDealList.sheetUrl,
-            columnMapping: tempMapping as ColumnMapping,
+        const finalMapping = tempMapping as ColumnMapping;
+
+        const finalDealListData: Omit<DealList, 'id' | 'lastSynced'> = {
+            name: editingDealList.name || 'Unnamed List',
+            source: editingDealList.source || 'google-sheet',
+            sheetUrl: editingDealList.sheetUrl || '',
+            columnMapping: finalMapping,
         };
 
         const dealListRef = db.collection('users').doc(user.uid).collection('dealLists').doc(dealListId);
         await dealListRef.set(finalDealListData, { merge: true });
-        
-        const fullDealListObject: DealList = { id: dealListId, ...finalDealListData, lastSynced: null };
 
         setEditingDealList(null);
         setTempMapping({});
@@ -447,9 +508,40 @@ const App: React.FC = () => {
         sessionStorage.setItem('activeDealListId', dealListId);
         setAppState('VIEW_DATA');
         
-        // Trigger initial sync
-        await handleSync(fullDealListObject);
-    }, [user, db, editingDealList, tempMapping, handleSync]);
+        // Trigger initial sync based on source
+        if (finalDealListData.source === 'excel' && tempExcelData) {
+            const parsePrice = (priceValue: any): number => {
+                if (priceValue === null || priceValue === undefined || priceValue === '') {
+                    return 0;
+                }
+                // If the value from Excel is already a number (like a float), round it.
+                if (typeof priceValue === 'number') {
+                    return Math.round(priceValue);
+                }
+                // If it's a string, clean it by removing common thousands separators for VND.
+                const cleanedString = String(priceValue).replace(/[.,]/g, '');
+                const number = parseInt(cleanedString, 10);
+                return isNaN(number) ? 0 : number;
+            };
+            const normalizeSheetId = (id: any): string => id ? String(id).trim() : '';
+
+            const productsToSync: Product[] = tempExcelData.map(row => ({
+                id: normalizeSheetId(row[finalMapping.id]),
+                modelId: normalizeSheetId(row[finalMapping.modelId]),
+                name: String(row[finalMapping.name] || ''),
+                displayPrice: parsePrice(row[finalMapping.displayPrice]),
+                finalPrice: finalMapping.finalPrice ? String(row[finalMapping.finalPrice] || '') : '',
+                gift: finalMapping.gift ? String(row[finalMapping.gift] || '') : '',
+                originalPrice: 0,
+            })).filter(p => p.id && p.name && p.displayPrice > 0);
+            
+            await syncProductsToFirestore(dealListId, productsToSync);
+            setTempExcelData(null);
+        } else if (finalDealListData.source === 'google-sheet') {
+            const fullDealListObject: DealList = { id: dealListId, ...finalDealListData, lastSynced: null };
+            await handleSync(fullDealListObject);
+        }
+    }, [user, db, editingDealList, tempMapping, handleSync, tempExcelData, syncProductsToFirestore]);
 
     const renderLoading = () => (
         <div className="flex items-center justify-center h-screen bg-gray-100">
@@ -464,6 +556,7 @@ const App: React.FC = () => {
 
     const renderManageLists = () => (
         <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+            <input type="file" ref={fileInputRef} onChange={handleFileImport} className="hidden" accept=".xlsx, .xls, .csv" />
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-gray-800">Quản lý Deal Lists</h1>
                 {user && (
@@ -480,12 +573,15 @@ const App: React.FC = () => {
                 {dealLists.map(dl => (
                     <div key={dl.id} className="bg-white p-4 rounded-lg shadow-sm border flex items-center justify-between">
                         <div>
-                            <p className="font-semibold text-gray-900">{dl.name}</p>
-                            <a href={dl.sheetUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline truncate">{dl.sheetUrl}</a>
+                            <p className="font-semibold text-gray-900 flex items-center gap-2">
+                                {dl.name}
+                                {dl.source === 'excel' && <span className="text-xs font-medium bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Excel</span>}
+                            </p>
+                            <a href={dl.sheetUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline truncate">{dl.sheetUrl || 'Dữ liệu từ file đã nhập'}</a>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                             <button onClick={() => handleSetActiveDealList(dl.id)} className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700">Vào xem</button>
-                            <button onClick={() => handleEditList(dl)} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-gray-100 rounded-md"><EditIcon className="w-5 h-5"/></button>
+                            <button onClick={() => handleEditList(dl)} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-gray-100 rounded-md disabled:opacity-40 disabled:cursor-not-allowed" disabled={dl.source === 'excel'}><EditIcon className="w-5 h-5"/></button>
                             <button onClick={() => handleDeleteList(dl.id)} className="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-100 rounded-md"><TrashIcon className="w-5 h-5"/></button>
                         </div>
                     </div>
@@ -495,20 +591,26 @@ const App: React.FC = () => {
                 <div className="text-center py-12 border-2 border-dashed rounded-lg">
                      <SheetIcon className="mx-auto h-12 w-12 text-gray-400" />
                     <h3 className="mt-2 text-sm font-medium text-gray-900">Chưa có deal list nào</h3>
-                    <p className="mt-1 text-sm text-gray-500">Hãy bắt đầu bằng cách thêm một list mới.</p>
-                     <div className="mt-6">
+                    <p className="mt-1 text-sm text-gray-500">Hãy bắt đầu bằng cách thêm một list mới hoặc nhập từ Excel.</p>
+                     <div className="mt-6 flex justify-center gap-4">
                          <button onClick={handleAddNewList} className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                             <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-                            Thêm Deal List
+                            Thêm từ Google Sheet
+                        </button>
+                         <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Nhập từ Excel
                         </button>
                     </div>
                 </div>
             )}
              {dealLists.length > 0 && (
-                <div className="mt-6 text-center">
+                <div className="mt-6 text-center flex justify-center gap-4">
                     <button onClick={handleAddNewList} className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                         <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-                        Thêm Deal List Mới
+                        Thêm từ Google Sheet
+                    </button>
+                    <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Nhập từ Excel
                     </button>
                 </div>
             )}
@@ -571,64 +673,59 @@ const App: React.FC = () => {
             {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
             
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                <div className="lg:col-span-2 space-y-4">
-                    {MAPPING_CONFIG.map(config => (
-                        <div key={config.key}>
-                            <button
-                                onClick={() => setActiveMappingKey(config.key)}
-                                className={`w-full text-left p-4 border rounded-lg transition-colors ${activeMappingKey === config.key ? 'bg-indigo-100 border-indigo-500 ring-2 ring-indigo-300' : 'bg-white hover:bg-gray-50 border-gray-300'}`}
-                            >
-                                <p className="font-semibold text-gray-800">{config.label} {config.required && <span className="text-red-500">*</span>}</p>
-                                <p className={`mt-1 text-sm truncate ${tempMapping[config.key] ? 'text-indigo-700' : 'text-gray-500'}`}>
-                                    {tempMapping[config.key] || 'Chưa chọn'}
-                                </p>
-                            </button>
+                {/* FIX: Replaced malformed div containing an error list with the correct JSX for the column mapping UI. */}
+                <div className="lg:col-span-2">
+                    <div className="bg-white p-6 rounded-lg shadow-md border sticky top-6">
+                        <h3 className="font-semibold text-lg mb-4">Cột cần ánh xạ</h3>
+                        <div className="space-y-3">
+                            {MAPPING_CONFIG.map(config => (
+                                <div key={config.key} onClick={() => setActiveMappingKey(config.key)} className={`p-3 rounded-md cursor-pointer border-2 transition-all ${activeMappingKey === config.key ? 'border-indigo-500 bg-indigo-50' : 'border-transparent hover:bg-gray-100'}`}>
+                                    <p className="font-medium text-gray-800">{config.label} {config.required && <span className="text-red-500">*</span>}</p>
+                                    <div className={`mt-1 text-sm px-3 py-1.5 rounded-md w-full text-left truncate ${tempMapping[config.key] ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-500'}`}>
+                                        {tempMapping[config.key] || 'Chưa chọn'}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                    ))}
-                    <div className="flex justify-end gap-3 pt-4">
-                         <button type="button" onClick={() => setAppState('CONNECT_SHEET')} className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Quay lại</button>
-                        <button onClick={handleMappingSave} className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">Lưu & Đồng bộ</button>
+                        {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button onClick={() => setAppState('MANAGE_LISTS')} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Quay lại</button>
+                            <button onClick={handleMappingSave} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700">Lưu & Đồng bộ</button>
+                        </div>
                     </div>
                 </div>
-
                 <div className="lg:col-span-3">
-                     <div className="bg-white p-4 rounded-lg shadow-sm border h-full">
-                        <p className="font-medium mb-2">Chọn cột từ Google Sheet cho: <span className="text-indigo-600 font-bold">{MAPPING_CONFIG.find(c => c.key === activeMappingKey)?.label}</span></p>
-                        <div className="max-h-[60vh] overflow-y-auto">
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                                {sheetHeaders.map((header, index) => (
-                                     header && <button
-                                        key={index}
-                                        onClick={() => setTempMapping(prev => ({...prev, [activeMappingKey!]: header}))}
-                                        className={`p-3 rounded-md text-sm text-left truncate transition-colors ${tempMapping[activeMappingKey!] === header ? 'bg-indigo-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
-                                     >
-                                        {header}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="mt-8">
-                <h3 className="text-xl font-bold text-gray-800 mb-4">Xem trước Dữ liệu</h3>
-                <div className="overflow-x-auto bg-white rounded-lg shadow border">
-                     <table className="min-w-full divide-y divide-gray-200 text-sm">
+                 <h3 className="font-semibold text-lg mb-4">Xem trước dữ liệu (15 hàng đầu tiên)</h3>
+                <div className="overflow-x-auto bg-white rounded-lg shadow-md border">
+                    <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
                                 {sheetHeaders.map((header, index) => (
-                                    <th key={index} scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                                        {header}
+                                    <th key={index} scope="col" className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap ${Object.values(tempMapping).includes(header) ? 'text-indigo-600' : 'text-gray-500'}`}>
+                                        <button 
+                                            onClick={() => {
+                                                if (activeMappingKey) {
+                                                    setTempMapping(prev => ({ ...prev, [activeMappingKey]: header }));
+                                                    const currentMappingIndex = MAPPING_CONFIG.findIndex(c => c.key === activeMappingKey);
+                                                    const nextUnmapped = MAPPING_CONFIG.find((c, idx) => idx > currentMappingIndex && c.required && !tempMapping[c.key]);
+                                                    setActiveMappingKey(nextUnmapped ? nextUnmapped.key : null);
+                                                }
+                                            }}
+                                            className="w-full text-left"
+                                        >
+                                            {header}
+                                        </button>
                                     </th>
                                 ))}
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                             {sheetPreview.map((row, rowIndex) => (
+                            {sheetPreview.map((row, rowIndex) => (
                                 <tr key={rowIndex}>
                                     {row.map((cell, cellIndex) => (
-                                        <td key={cellIndex} className="px-4 py-3 whitespace-nowrap text-gray-700">{cell}</td>
+                                        <td key={cellIndex} className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 truncate max-w-[200px]">
+                                            {cell}
+                                        </td>
                                     ))}
                                 </tr>
                             ))}
@@ -637,60 +734,49 @@ const App: React.FC = () => {
                 </div>
             </div>
         </div>
+    </div>
     );
 
-    const formatSyncTime = (timestamp: any) => {
-        if (!timestamp) return 'Chưa đồng bộ';
-        return timestamp.toDate().toLocaleString('vi-VN');
-    }
-
-    const renderMainView = () => (
-        <div className="h-screen w-full flex flex-col bg-gray-100">
-            <header className="bg-white shadow-sm p-3 flex justify-between items-center z-20 flex-shrink-0">
-                <div className="flex items-center gap-3">
-                     <SheetIcon className="w-6 h-6 text-indigo-600" />
-                     <select 
-                        value={activeDealListId || ''} 
-                        onChange={(e) => handleSetActiveDealList(e.target.value)}
-                        className="font-semibold text-gray-800 bg-transparent border-0 focus:ring-0"
-                    >
-                         {dealLists.map(dl => (
-                            <option key={dl.id} value={dl.id}>{dl.name}</option>
-                        ))}
-                    </select>
-                     <button onClick={() => setAppState('MANAGE_LISTS')} className="p-1 text-gray-500 hover:text-indigo-600 rounded-full hover:bg-gray-100">
-                        <CogIcon className="w-5 h-5"/>
-                    </button>
-                </div>
-                <div className="flex items-center gap-4">
-                    <button onClick={() => handleSync(activeDealList!)} disabled={isSyncing || !activeDealList} className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-indigo-600 disabled:opacity-50">
-                        <SyncIcon className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
-                        {isSyncing ? 'Đang đồng bộ...' : `Đồng bộ lần cuối: ${formatSyncTime(activeDealList?.lastSynced)}`}
-                    </button>
+    const renderViewData = () => (
+        <div className="h-screen w-screen flex flex-col bg-gray-100 p-4 gap-4">
+            <header className="flex-shrink-0 bg-white rounded-xl shadow-md p-4 border border-gray-200">
+                <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setAppState('MANAGE_LISTS')} className="text-gray-500 hover:text-indigo-600 p-2 rounded-full hover:bg-gray-100">
+                            <CogIcon className="w-6 h-6" />
+                        </button>
+                        <div>
+                            <h1 className="text-xl font-bold text-gray-800">{activeDealList?.name || 'Loading...'}</h1>
+                             <p className="text-xs text-gray-500">
+                                {activeDealList?.lastSynced ? `Lần cuối đồng bộ: ${new Date(activeDealList.lastSynced.toDate()).toLocaleString('vi-VN')}` : 'Chưa đồng bộ'}
+                            </p>
+                        </div>
+                        <button 
+                            onClick={() => activeDealList && handleSync(activeDealList)} 
+                            disabled={isSyncing}
+                            className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-md text-sm font-medium hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-wait"
+                        >
+                            <SyncIcon className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
+                            {isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ'}
+                        </button>
+                    </div>
                      {user && (
                         <div className="flex items-center gap-2">
-                             <span className="text-sm text-gray-600 hidden sm:inline">{user.displayName || user.email}</span>
+                            <span className="text-sm text-gray-600 hidden sm:inline">{user.displayName || user.email}</span>
                             <button onClick={handleLogout} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-red-600" aria-label="Đăng xuất">
                                 <LogoutIcon className="w-5 h-5"/>
                             </button>
                         </div>
                     )}
                 </div>
+                {error && <p className="text-red-500 text-sm mt-2 text-center bg-red-50 p-2 rounded-md">{error}</p>}
             </header>
-            
-            {error && <div className="bg-red-100 text-red-700 p-3 text-center text-sm z-10">{error}</div>}
-
-            <main className="flex-grow flex flex-col lg:flex-row gap-4 p-4 overflow-hidden">
-                <div className="lg:w-1/3 xl:w-1/4 flex-shrink-0">
-                    <Calculator selectedProduct={selectedProduct} dealListName={activeDealList?.name || 'N/A'} />
+            <main className="flex-grow flex gap-4 min-h-0">
+                <div className="w-1/3 h-full">
+                    <Calculator selectedProduct={selectedProduct} dealListName={activeDealList?.name || ''} />
                 </div>
-                <div className="flex-grow min-h-[400px] min-w-0">
-                    <ProductTable 
-                        products={products}
-                        onProductSelect={setSelectedProduct}
-                        isLoading={isLoading}
-                        activeDealListId={activeDealListId}
-                    />
+                <div className="w-2/3 h-full">
+                    <ProductTable products={products} onProductSelect={setSelectedProduct} isLoading={isLoading} activeDealListId={activeDealListId} />
                 </div>
             </main>
         </div>
@@ -700,7 +786,7 @@ const App: React.FC = () => {
         case 'LOADING':
             return renderLoading();
         case 'LOGIN':
-            return <LoginScreen onGoogleSignIn={handleGoogleSignIn} isFirebaseReady={isFirebaseReady} isConfigPlaceholder={isConfigPlaceholder} />;
+            return <LoginScreen onGoogleSignIn={handleGoogleSignIn} isFirebaseReady={isFirebaseReady} isConfigPlaceholder={isConfigPlaceholder}/>;
         case 'MANAGE_LISTS':
             return renderManageLists();
         case 'CONNECT_SHEET':
@@ -708,11 +794,9 @@ const App: React.FC = () => {
         case 'MAP_COLUMNS':
             return renderMapColumns();
         case 'VIEW_DATA':
-            if (activeDealList) return renderMainView();
-            setAppState('MANAGE_LISTS'); // Fallback if no active list
-            return renderManageLists();
+            return renderViewData();
         default:
-            return <LoginScreen onGoogleSignIn={handleGoogleSignIn} isFirebaseReady={isFirebaseReady} isConfigPlaceholder={isConfigPlaceholder} />;
+            return renderManageLists();
     }
 };
 
