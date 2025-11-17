@@ -1,6 +1,6 @@
 
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Product, VoucherType } from '../types';
 import { CalculatorIcon, CogIcon, CopyIcon, CheckIcon } from './Icons';
 
@@ -88,7 +88,10 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName }
     const voucherInputRef = useRef<HTMLInputElement>(null);
     const isSelectionInProgress = useRef(false); // Ref to prevent re-search after selection
     const [isCopied, setIsCopied] = useState(false);
+    const [isIdCopied, setIsIdCopied] = useState(false);
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [isQuickPriceInput, setIsQuickPriceInput] = useState(true);
+    const [isDesiredPriceFocused, setIsDesiredPriceFocused] = useState(false);
 
 
     const [presetVouchers, setPresetVouchers] = useState<number[]>(() => {
@@ -177,31 +180,47 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName }
         };
     }, []);
 
-    const handleCalculation = useCallback(() => {
-        const current = parseFloat(currentPrice);
-        const desired = parseFloat(desiredPrice);
-        const voucher = parseFloat(voucherValue);
+    // Separated calculation logic into a pure function
+    const performCalculation = (
+        currentPriceStr: string,
+        desiredPriceStr: string,
+        voucherValueStr: string,
+        vType: VoucherType
+    ): number | null => {
+        const current = parseFloat(currentPriceStr);
+        const desired = parseFloat(desiredPriceStr);
+        const voucher = parseFloat(voucherValueStr);
 
         if (isNaN(current) || isNaN(desired)) {
-            setResult(null);
-            return;
+            return null;
         }
 
         let sellerVoucher = 0;
-        if (voucherType === VoucherType.Percentage) {
+        if (vType === VoucherType.Percentage) {
             if (isNaN(voucher) || voucher >= 100) {
-                 setResult(null);
-                 return;
+                return null;
             }
             sellerVoucher = current - (desired / (1 - voucher / 100));
         } else {
             const platformVoucher = isNaN(voucher) ? 0 : voucher;
             sellerVoucher = current - desired - platformVoucher;
         }
+        return sellerVoucher;
+    };
 
-        setResult(sellerVoucher);
+    // Handler for the main "Calculate" button
+    const handleCalculation = useCallback(() => {
+        const calculationResult = performCalculation(currentPrice, desiredPrice, voucherValue, voucherType);
+        setResult(calculationResult);
+    }, [currentPrice, desiredPrice, voucherValue, voucherType]);
 
-    }, [currentPrice, desiredPrice, voucherType, voucherValue]);
+    // Handler for the preset voucher buttons for immediate calculation
+    const handlePresetClick = (val: number) => {
+        const newVoucherStr = String(val);
+        setVoucherValue(newVoucherStr); // Update state to reflect selection
+        const calculationResult = performCalculation(currentPrice, desiredPrice, newVoucherStr, VoucherType.Percentage);
+        setResult(calculationResult);
+    };
 
     // Calculate on Enter key press
     const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -226,14 +245,42 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName }
 
     const formatCurrencyForInput = (value: string): string => {
         if (!value) return '';
-        const number = parseInt(value, 10);
+        const number = parseInt(value.replace(/[^0-9]/g, ''), 10);
         return isNaN(number) ? '' : new Intl.NumberFormat('en-US').format(number);
     };
 
     const parseInput = (value: string): string => {
         return value.replace(/[^0-9]/g, '');
     };
+
+    const desiredPriceValue = useMemo(() => {
+        if (!desiredPrice) return '';
+        const numericValue = parseInt(desiredPrice, 10);
+        if (isNaN(numericValue)) return '';
     
+        if (isQuickPriceInput && isDesiredPriceFocused) {
+            return String(Math.round(numericValue / 1000));
+        } else {
+            return formatCurrencyForInput(desiredPrice);
+        }
+    }, [desiredPrice, isQuickPriceInput, isDesiredPriceFocused]);
+    
+    const handleDesiredPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const rawValue = e.target.value;
+        const numericString = parseInput(rawValue);
+
+        if (isQuickPriceInput) {
+            const numericValue = parseInt(numericString, 10);
+            if (isNaN(numericValue)) {
+                setDesiredPrice('');
+            } else {
+                setDesiredPrice(String(numericValue * 1000));
+            }
+        } else {
+            setDesiredPrice(numericString);
+        }
+    };
+
     const handleSavePresets = () => {
         const sortedPresets = [...tempSelectedPresets].sort((a, b) => a - b);
         setPresetVouchers(sortedPresets);
@@ -246,6 +293,15 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName }
             navigator.clipboard.writeText(String(Math.round(result))).then(() => {
                 setIsCopied(true);
                 setTimeout(() => setIsCopied(false), 2000); // Reset after 2 seconds
+            });
+        }
+    };
+    
+    const handleIdCopy = () => {
+        if (productId) {
+            navigator.clipboard.writeText(productId).then(() => {
+                setIsIdCopied(true);
+                setTimeout(() => setIsIdCopied(false), 2000); // Reset after 2 seconds
             });
         }
     };
@@ -304,6 +360,30 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName }
                         </ul>
                     )}
                 </div>
+
+                {productId && (
+                    <div className="-mt-2">
+                        <label htmlFor="selectedProductId" className="block text-xs font-medium text-gray-600">ID Sản phẩm</label>
+                        <div className="mt-1 flex items-center gap-2">
+                            <input
+                                id="selectedProductId"
+                                type="text"
+                                readOnly
+                                value={productId}
+                                title={productId}
+                                className="w-full px-3 py-1.5 border border-gray-300 rounded-md bg-gray-100 text-gray-700 sm:text-sm focus:ring-0 focus:border-gray-300 cursor-default"
+                            />
+                            <button
+                                onClick={handleIdCopy}
+                                className="p-2 rounded-md text-gray-500 hover:bg-indigo-100 hover:text-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex-shrink-0"
+                                aria-label="Sao chép ID sản phẩm"
+                            >
+                                {isIdCopied ? <CheckIcon className="w-5 h-5 text-green-600" /> : <CopyIcon className="w-5 h-5" />}
+                            </button>
+                        </div>
+                    </div>
+                )}
+                
                 <InputField 
                     label="Giá hiển thị hiện tại" 
                     id="currentPrice" 
@@ -313,15 +393,39 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName }
                     type="text" 
                     onKeyDown={handleKeyDown}
                 />
-                <InputField 
-                    label="Giá cuối cùng mong muốn" 
-                    id="desiredPrice" 
-                    value={formatCurrencyForInput(desiredPrice)} 
-                    onChange={(e) => setDesiredPrice(parseInput(e.target.value))} 
-                    placeholder="ví dụ: 99,000" 
-                    type="text"
-                    onKeyDown={handleDesiredPriceKeyDown}
-                />
+                <div>
+                    <div className="flex items-center justify-between">
+                        <label htmlFor="desiredPrice" className="block text-sm font-medium text-gray-700">Giá cuối cùng mong muốn</label>
+                        <label htmlFor="quick-price-toggle" className="flex items-center cursor-pointer">
+                            <span className="text-xs font-medium text-gray-600 mr-2">Nhập nhanh (x1000)</span>
+                            <div className="relative">
+                                <input
+                                    id="quick-price-toggle"
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={isQuickPriceInput}
+                                    onChange={() => setIsQuickPriceInput(!isQuickPriceInput)}
+                                />
+                                <div className="w-10 h-6 bg-gray-300 rounded-full peer-checked:bg-indigo-600 transition-colors"></div>
+                                <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-4"></div>
+                            </div>
+                        </label>
+                    </div>
+                    <div className="mt-1">
+                        <input
+                            type="text"
+                            id="desiredPrice"
+                            value={desiredPriceValue}
+                            onChange={handleDesiredPriceChange}
+                            onFocus={() => setIsDesiredPriceFocused(true)}
+                            onBlur={() => setIsDesiredPriceFocused(false)}
+                            onKeyDown={handleDesiredPriceKeyDown}
+                            placeholder={isQuickPriceInput ? "ví dụ: 99" : "ví dụ: 99,000"}
+                            autoComplete="off"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50 text-gray-900 placeholder-gray-500 font-medium"
+                        />
+                    </div>
+                </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Loại Voucher</label>
                     <div className="mt-2 flex gap-4">
@@ -381,7 +485,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName }
                             {presetVouchers.map((val) => (
                                 <button
                                     key={val}
-                                    onClick={() => setVoucherValue(String(val))}
+                                    onClick={() => handlePresetClick(val)}
                                     type="button"
                                     className={`py-2 px-2 text-center rounded-md text-sm font-medium border transition-colors ${
                                         voucherValue === String(val)
