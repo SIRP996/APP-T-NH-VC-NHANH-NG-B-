@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Product, VoucherType } from '../types';
 import { CalculatorIcon, CogIcon, CopyIcon, CheckIcon } from './Icons';
@@ -46,9 +47,12 @@ const SearchDisplayField: React.FC<{
 }> = ({ label, value }) => (
     <div>
         <label className="block text-sm font-medium text-gray-700">{label}</label>
-        <div className="mt-1 p-3 h-[60px] border border-gray-300 rounded-md bg-gray-100 text-gray-800 sm:text-sm overflow-y-auto">
-            {value || <span className="text-gray-500">Chọn một sản phẩm từ bảng...</span>}
-        </div>
+        <textarea
+            readOnly
+            value={value}
+            placeholder="Chọn một sản phẩm từ bảng..."
+            className="mt-1 w-full p-3 border border-gray-300 rounded-md bg-gray-100 text-gray-800 sm:text-sm resize-y min-h-[60px] h-[60px] placeholder-gray-500 focus:ring-indigo-500 focus:border-indigo-500"
+        />
     </div>
 );
 

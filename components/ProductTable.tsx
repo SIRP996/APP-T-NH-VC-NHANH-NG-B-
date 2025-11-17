@@ -1,17 +1,9 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Product } from '../types';
-import { SearchIcon, Bars3Icon } from './Icons';
+import { SearchIcon, CogIcon, Bars3Icon } from './Icons';
 
 const SortAscIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4 ml-1 opacity-60" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9M3 12h9m-9 4h6m4-11l4-4m0 0l4 4m-4-4v12" /></svg>;
 const SortDescIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4 ml-1 opacity-60" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9M3 12h9m-9 4h6m4 5l4-4m0 0l-4-4m4 4V3" /></svg>;
-
-
-interface ProductTableProps {
-    products: Product[];
-    onProductSelect: (product: Product) => void;
-    isLoading: boolean;
-    activeDealListId: string | null;
-}
 
 type ColumnKey = keyof Pick<Product, 'name' | 'id' | 'finalPrice'>;
 type SortKey = ColumnKey;
@@ -23,15 +15,117 @@ const COLUMN_DEFINITIONS: { key: ColumnKey; label: string }[] = [
     { key: 'finalPrice', label: 'Giá' },
 ];
 
+const DEFAULT_COLUMN_ORDER = COLUMN_DEFINITIONS.map(c => c.key);
+const DEFAULT_COLUMN_WIDTHS: Record<ColumnKey, number> = {
+    name: 400,
+    id: 180,
+    finalPrice: 120,
+};
+
+
+interface ColumnSettingsModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    currentOrder: ColumnKey[];
+    onOrderSave: (newOrder: ColumnKey[]) => void;
+}
+
+const ColumnSettingsModal: React.FC<ColumnSettingsModalProps> = ({ isOpen, onClose, currentOrder, onOrderSave }) => {
+    const [tempOrder, setTempOrder] = useState(currentOrder);
+    const dragItem = useRef<number | null>(null);
+    const dragOverItem = useRef<number | null>(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            setTempOrder(currentOrder);
+        }
+    }, [isOpen, currentOrder]);
+
+    const handleDragStart = (_e: React.DragEvent<HTMLLIElement>, index: number) => {
+        dragItem.current = index;
+    };
+    const handleDragEnter = (_e: React.DragEvent<HTMLLIElement>, index: number) => {
+        dragOverItem.current = index;
+    };
+    const handleDrop = () => {
+        if (dragItem.current !== null && dragOverItem.current !== null) {
+            const newOrder = [...tempOrder];
+            const draggedItem = newOrder.splice(dragItem.current, 1)[0];
+            newOrder.splice(dragOverItem.current, 0, draggedItem);
+            setTempOrder(newOrder);
+        }
+        dragItem.current = null;
+        dragOverItem.current = null;
+    };
+
+    if (!isOpen) return null;
+    
+    const orderedColumnLabels = tempOrder.map(key => COLUMN_DEFINITIONS.find(c => c.key === key)!);
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={onClose}>
+            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+                <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Tùy chỉnh thứ tự cột</h3>
+                <p className="text-sm text-gray-500 mb-4">Kéo và thả để sắp xếp lại các cột.</p>
+                <ul className="space-y-2">
+                    {orderedColumnLabels.map(({ key, label }, index) => (
+                        <li 
+                            key={key}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, index)}
+                            onDragEnter={(e) => handleDragEnter(e, index)}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={handleDrop}
+                            onDragEnd={() => { dragItem.current = null; dragOverItem.current = null; }}
+                            className="flex items-center p-3 bg-gray-100 rounded-md cursor-grab active:cursor-grabbing"
+                        >
+                            <Bars3Icon className="w-5 h-5 text-gray-400 mr-3"/>
+                            <span className="text-sm font-medium text-gray-800">{label}</span>
+                        </li>
+                    ))}
+                </ul>
+                <div className="mt-6 flex justify-between items-center">
+                     <button
+                        onClick={() => setTempOrder(DEFAULT_COLUMN_ORDER)}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                    >
+                        Đặt lại mặc định
+                    </button>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={onClose}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                        >
+                            Hủy
+                        </button>
+                        <button
+                            onClick={() => onOrderSave(tempOrder)}
+                            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700"
+                        >
+                            Lưu
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// FIX: Added missing ProductTableProps interface definition.
+interface ProductTableProps {
+    products: Product[];
+    onProductSelect: (product: Product | null) => void;
+    isLoading: boolean;
+    activeDealListId: string | null;
+}
+
 export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductSelect, isLoading, activeDealListId }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection } | null>({ key: 'name', direction: 'asc' });
 
-    const [columnOrder, setColumnOrder] = useState<ColumnKey[]>(() => COLUMN_DEFINITIONS.map(c => c.key));
-    const [columnWidths, setColumnWidths] = useState<Record<ColumnKey, number>>({});
-
-    const dragItem = useRef<number | null>(null);
-    const dragOverItem = useRef<number | null>(null);
+    const [columnOrder, setColumnOrder] = useState<ColumnKey[]>(DEFAULT_COLUMN_ORDER);
+    const [columnWidths, setColumnWidths] = useState<Record<ColumnKey, number>>(DEFAULT_COLUMN_WIDTHS);
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
     useEffect(() => {
         if (activeDealListId) {
@@ -44,26 +138,30 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
                     if (parsedOrder.length === validKeys.size && parsedOrder.every(key => validKeys.has(key))) {
                          setColumnOrder(parsedOrder);
                     } else {
-                         setColumnOrder(COLUMN_DEFINITIONS.map(c => c.key));
+                         setColumnOrder(DEFAULT_COLUMN_ORDER);
                     }
                 } catch (e) {
-                    setColumnOrder(COLUMN_DEFINITIONS.map(c => c.key));
+                    setColumnOrder(DEFAULT_COLUMN_ORDER);
                 }
             } else {
-                setColumnOrder(COLUMN_DEFINITIONS.map(c => c.key));
+                setColumnOrder(DEFAULT_COLUMN_ORDER);
             }
 
             // Load column widths
             const savedWidths = localStorage.getItem(`column-widths-${activeDealListId}`);
+            let initialWidths = DEFAULT_COLUMN_WIDTHS;
             if (savedWidths) {
                 try {
-                    setColumnWidths(JSON.parse(savedWidths));
+                    const parsedWidths = JSON.parse(savedWidths);
+                    initialWidths = { ...DEFAULT_COLUMN_WIDTHS, ...parsedWidths };
                 } catch (e) {
-                    setColumnWidths({});
+                    // Keep defaults on parse error
                 }
-            } else {
-                 setColumnWidths({});
             }
+            setColumnWidths(initialWidths);
+        } else {
+            setColumnOrder(DEFAULT_COLUMN_ORDER);
+            setColumnWidths(DEFAULT_COLUMN_WIDTHS);
         }
     }, [activeDealListId]);
 
@@ -74,7 +172,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
     }, [columnOrder, activeDealListId]);
 
     useEffect(() => {
-        if (activeDealListId && Object.keys(columnWidths).length > 0) {
+        if (activeDealListId) {
             localStorage.setItem(`column-widths-${activeDealListId}`, JSON.stringify(columnWidths));
         }
     }, [columnWidths, activeDealListId]);
@@ -133,30 +231,6 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
     };
 
-    const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
-        dragItem.current = index;
-        e.currentTarget.closest('th')?.classList.add('opacity-50', 'bg-indigo-100');
-    };
-
-    const handleDragEnter = (_e: React.DragEvent<HTMLDivElement>, index: number) => {
-        dragOverItem.current = index;
-    };
-
-    const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
-        e.currentTarget.closest('th')?.classList.remove('opacity-50', 'bg-indigo-100');
-        dragItem.current = null;
-        dragOverItem.current = null;
-    };
-    
-    const handleDrop = () => {
-        if (dragItem.current !== null && dragOverItem.current !== null) {
-            const newColumnOrder = [...columnOrder];
-            const draggedItemContent = newColumnOrder.splice(dragItem.current, 1)[0];
-            newColumnOrder.splice(dragOverItem.current, 0, draggedItemContent);
-            setColumnOrder(newColumnOrder);
-        }
-    };
-
     const handleResizeMouseDown = useCallback((key: ColumnKey) => (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation(); // Prevents sorting when clicking resizer
@@ -190,7 +264,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
 
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('mouseup', handleMouseUp);
-    }, []); // No dependencies needed, setColumnWidths is stable.
+    }, []);
     
     const orderedTableHeaders = useMemo(() => {
         return columnOrder.map(key => COLUMN_DEFINITIONS.find(c => c.key === key)!);
@@ -204,8 +278,8 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
     
     return (
         <div className="bg-white shadow-lg rounded-xl border border-gray-200 w-full h-full flex flex-col">
-            <div className="p-4 border-b border-gray-200">
-                <div className="relative">
+            <div className="p-4 border-b border-gray-200 flex items-center gap-4">
+                <div className="relative flex-grow">
                     <span className="absolute inset-y-0 left-0 flex items-center pl-3">
                         <SearchIcon className="w-5 h-5 text-gray-400" />
                     </span>
@@ -217,37 +291,44 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-900 focus:ring-indigo-500 focus:border-indigo-500"
                     />
                 </div>
+                <button 
+                    onClick={() => setIsSettingsModalOpen(true)} 
+                    className="p-2 text-gray-500 hover:text-indigo-600 rounded-md hover:bg-gray-100 transition-colors flex-shrink-0" 
+                    aria-label="Tùy chỉnh cột"
+                >
+                    <CogIcon className="w-5 h-5" />
+                </button>
             </div>
+             <ColumnSettingsModal
+                isOpen={isSettingsModalOpen}
+                onClose={() => setIsSettingsModalOpen(false)}
+                currentOrder={columnOrder}
+                onOrderSave={(newOrder) => {
+                    setColumnOrder(newOrder);
+                    setIsSettingsModalOpen(false);
+                }}
+            />
 
             <div className="flex-grow overflow-auto">
-                <table className="min-w-full divide-y divide-gray-200 table-fixed">
+                <table className="divide-y divide-gray-200 table-fixed">
                     <thead className="bg-gray-50 sticky top-0 z-10">
                         <tr>
-                            {orderedTableHeaders.map(({ key, label }, index) => (
+                            {orderedTableHeaders.map(({ key, label }) => (
                                  <th 
                                      key={key} 
                                      scope="col" 
                                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider group relative select-none"
                                      style={{ width: columnWidths[key] ? `${columnWidths[key]}px` : 'auto' }}
                                  >
-                                    <div 
-                                        className="flex items-center"
-                                        draggable
-                                        onDragStart={(e) => handleDragStart(e, index)}
-                                        onDragEnter={(e) => handleDragEnter(e, index)}
-                                        onDragEnd={handleDragEnd}
-                                        onDragOver={(e) => e.preventDefault()}
-                                        onDrop={handleDrop}
-                                    >
-                                        <Bars3Icon className="w-4 h-4 text-gray-400 cursor-grab group-hover:opacity-100 opacity-0 transition-opacity" />
-                                        <button onClick={() => requestSort(key)} className="flex items-center gap-1 transition-colors hover:text-gray-900 ml-2">
-                                            {label} {getSortIcon(key)}
-                                        </button>
-                                    </div>
+                                    <button onClick={() => requestSort(key)} className="flex items-center gap-1 transition-colors hover:text-gray-900">
+                                        {label} {getSortIcon(key)}
+                                    </button>
                                     <div
                                         onMouseDown={handleResizeMouseDown(key)}
-                                        className="absolute top-0 -right-2 w-4 h-full cursor-col-resize select-none z-20"
-                                    />
+                                        className="absolute top-0 -right-2 w-4 h-full cursor-col-resize select-none z-20 flex items-center justify-center"
+                                    >
+                                        <div className="w-px h-1/2 bg-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                                    </div>
                                 </th>
                             ))}
                         </tr>
