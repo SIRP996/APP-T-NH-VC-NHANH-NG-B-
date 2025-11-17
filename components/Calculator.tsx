@@ -22,7 +22,7 @@ interface InputFieldProps {
 const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
     ({ label, id, value, onChange, placeholder, type = "text", onKeyDown }, ref) => (
         <div>
-            <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
+            <label htmlFor={id} className="block text-sm font-medium text-gray-700">{label}</label>
             <div className="mt-1">
                 <input
                     ref={ref}
@@ -33,13 +33,14 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                     onKeyDown={onKeyDown}
                     placeholder={placeholder}
                     autoComplete="off"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50 text-gray-900 placeholder-gray-500 font-medium"
                 />
             </div>
         </div>
     )
 );
 
+// New component for the taller search field with text wrapping
 const SearchField: React.FC<{
     label: string;
     id: string;
@@ -48,7 +49,7 @@ const SearchField: React.FC<{
     placeholder?: string;
 }> = ({ label, id, value, onChange, placeholder }) => (
     <div>
-        <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
+        <label htmlFor={id} className="block text-sm font-medium text-gray-700">{label}</label>
         <div className="mt-1">
             <textarea
                 id={id}
@@ -57,21 +58,21 @@ const SearchField: React.FC<{
                 placeholder={placeholder}
                 rows={2}
                 autoComplete="off"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium resize-y"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50 text-gray-900 placeholder-gray-500 font-medium resize-y"
             />
         </div>
     </div>
 );
 
+// Fix: Define CalculatorProps interface for the Calculator component.
 interface CalculatorProps {
     products: Product[];
     dealListName: string;
-    selectedProduct?: Product | null;
 }
 
 const ALL_POSSIBLE_VOUCHERS = Array.from({ length: 19 }, (_, i) => i + 7); // 7 to 25
 
-export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName, selectedProduct }) => {
+export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName }) => {
     const [productId, setProductId] = useState('');
     const [currentPrice, setCurrentPrice] = useState('');
     const [desiredPrice, setDesiredPrice] = useState('');
@@ -79,14 +80,19 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName, 
     const [voucherValue, setVoucherValue] = useState('');
     const [result, setResult] = useState<number | null>(null);
 
+    // New states for enhanced features
     const [searchTerm, setSearchTerm] = useState('');
+    const [suggestions, setSuggestions] = useState<Product[]>([]);
+    const [isSuggestionsVisible, setIsSuggestionsVisible] = useState(false);
+    const searchRef = useRef<HTMLDivElement>(null);
     const voucherInputRef = useRef<HTMLInputElement>(null);
+    const isSelectionInProgress = useRef(false); // Ref to prevent re-search after selection
+    const [isCopied, setIsCopied] = useState(false);
     const [isIdCopied, setIsIdCopied] = useState(false);
-    const [isResultCopied, setIsResultCopied] = useState(false);
-
     const [currentTime, setCurrentTime] = useState(new Date());
     const [isQuickPriceInput, setIsQuickPriceInput] = useState(true);
     const [isDesiredPriceFocused, setIsDesiredPriceFocused] = useState(false);
+
 
     const [presetVouchers, setPresetVouchers] = useState<number[]>(() => {
         try {
@@ -98,58 +104,125 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName, 
     });
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [tempSelectedPresets, setTempSelectedPresets] = useState<number[]>([]);
-
+    
+    // Clock effect
     useEffect(() => {
-        const timerId = setInterval(() => setCurrentTime(new Date()), 1000);
+        const timerId = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 1000);
         return () => clearInterval(timerId);
     }, []);
 
     const formattedTime = currentTime.toLocaleTimeString('vi-VN', {
-        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh'
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZone: 'Asia/Ho_Chi_Minh'
     });
-    
-    // Auto-populate form when a product is selected from the table
-    useEffect(() => {
-        if (selectedProduct) {
-            setProductId(selectedProduct.id);
-            setCurrentPrice(selectedProduct.finalPrice.toString());
-            setSearchTerm(selectedProduct.name);
-            setResult(null); // Clear previous result
-            setIsIdCopied(false);
-            setIsResultCopied(false);
-        }
-    }, [selectedProduct]);
 
-    const performCalculation = useCallback((currentPriceStr: string, desiredPriceStr: string, voucherValueStr: string, vType: VoucherType): number | null => {
+
+    const handleProductSelect = useCallback((product: Product) => {
+        isSelectionInProgress.current = true; // Flag that a programmatic selection is happening
+        setProductId(product.id);
+        setCurrentPrice(product.finalPrice.toString());
+        setSearchTerm(product.name);
+        setIsSuggestionsVisible(false);
+    }, []);
+
+    // Optimized search logic
+    useEffect(() => {
+        // If a selection was just made, the searchTerm was updated programmatically.
+        // We reset the flag and skip this effect run to prevent the suggestion list from reappearing.
+        if (isSelectionInProgress.current) {
+            isSelectionInProgress.current = false;
+            return;
+        }
+
+        const trimmedSearchTerm = searchTerm.trim();
+        const selectedProduct = productId ? products.find(p => p.id === productId) : null;
+        
+        // Hide suggestions if search is empty or if it already matches the selected product's name
+        if (trimmedSearchTerm.length < 1 || (selectedProduct && trimmedSearchTerm === selectedProduct.name)) {
+            setIsSuggestionsVisible(false);
+            return;
+        }
+
+        // Check for an exact ID/Model ID match to auto-select
+        const exactMatch = products.find(p => p.id === trimmedSearchTerm || (p.modelId && p.modelId === trimmedSearchTerm));
+        if (exactMatch) {
+            handleProductSelect(exactMatch);
+            return;
+        }
+
+        // Otherwise, perform a fuzzy search for suggestions
+        const filtered = products.filter(p => 
+            p.name.toLowerCase().includes(trimmedSearchTerm.toLowerCase()) ||
+            p.id.includes(trimmedSearchTerm) ||
+            (p.modelId && p.modelId.includes(trimmedSearchTerm))
+        ).slice(0, 10);
+
+        setSuggestions(filtered);
+        setIsSuggestionsVisible(filtered.length > 0);
+
+    }, [searchTerm, products, productId, handleProductSelect]);
+    
+    // Close suggestions when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+                setIsSuggestionsVisible(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
+    // Separated calculation logic into a pure function
+    const performCalculation = (
+        currentPriceStr: string,
+        desiredPriceStr: string,
+        voucherValueStr: string,
+        vType: VoucherType
+    ): number | null => {
         const current = parseFloat(currentPriceStr);
         const desired = parseFloat(desiredPriceStr);
         const voucher = parseFloat(voucherValueStr);
 
-        if (isNaN(current) || isNaN(desired)) return null;
+        if (isNaN(current) || isNaN(desired)) {
+            return null;
+        }
 
         let sellerVoucher = 0;
         if (vType === VoucherType.Percentage) {
-            if (isNaN(voucher) || voucher >= 100) return null;
+            if (isNaN(voucher) || voucher >= 100) {
+                return null;
+            }
             sellerVoucher = current - (desired / (1 - voucher / 100));
         } else {
             const platformVoucher = isNaN(voucher) ? 0 : voucher;
             sellerVoucher = current - desired - platformVoucher;
         }
         return sellerVoucher;
-    }, []);
+    };
 
+    // Handler for the main "Calculate" button
     const handleCalculation = useCallback(() => {
         const calculationResult = performCalculation(currentPrice, desiredPrice, voucherValue, voucherType);
         setResult(calculationResult);
-    }, [currentPrice, desiredPrice, voucherValue, voucherType, performCalculation]);
+    }, [currentPrice, desiredPrice, voucherValue, voucherType]);
 
+    // Handler for the preset voucher buttons for immediate calculation
     const handlePresetClick = (val: number) => {
         const newVoucherStr = String(val);
-        setVoucherValue(newVoucherStr);
+        setVoucherValue(newVoucherStr); // Update state to reflect selection
         const calculationResult = performCalculation(currentPrice, desiredPrice, newVoucherStr, VoucherType.Percentage);
         setResult(calculationResult);
     };
 
+    // Calculate on Enter key press
     const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Enter') {
             event.preventDefault();
@@ -157,15 +230,18 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName, 
         }
     };
 
+     // Special handler for desiredPrice to override Tab behavior
     const handleDesiredPriceKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Enter') {
             event.preventDefault();
             handleCalculation();
         } else if (event.key === 'Tab' && !event.shiftKey) {
+            // Skip the radio buttons and focus directly on the voucher value input
             event.preventDefault();
             voucherInputRef.current?.focus();
         }
     };
+
 
     const formatCurrencyForInput = (value: string): string => {
         if (!value) return '';
@@ -173,30 +249,36 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName, 
         return isNaN(number) ? '' : new Intl.NumberFormat('en-US').format(number);
     };
 
-    const parseInput = (value: string): string => value.replace(/[^0-9]/g, '');
+    const parseInput = (value: string): string => {
+        return value.replace(/[^0-9]/g, '');
+    };
 
     const desiredPriceValue = useMemo(() => {
         if (!desiredPrice) return '';
         const numericValue = parseInt(desiredPrice, 10);
         if (isNaN(numericValue)) return '';
-
+    
         if (isQuickPriceInput && isDesiredPriceFocused) {
             return String(Math.round(numericValue / 1000));
+        } else {
+            return formatCurrencyForInput(desiredPrice);
         }
-        return formatCurrencyForInput(desiredPrice);
     }, [desiredPrice, isQuickPriceInput, isDesiredPriceFocused]);
-
+    
     const handleDesiredPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const rawValue = e.target.value;
         const numericString = parseInput(rawValue);
-        const numericValue = parseInt(numericString, 10);
 
-        if (isNaN(numericValue)) {
-            setDesiredPrice('');
-            return;
+        if (isQuickPriceInput) {
+            const numericValue = parseInt(numericString, 10);
+            if (isNaN(numericValue)) {
+                setDesiredPrice('');
+            } else {
+                setDesiredPrice(String(numericValue * 1000));
+            }
+        } else {
+            setDesiredPrice(numericString);
         }
-
-        setDesiredPrice(isQuickPriceInput ? String(numericValue * 1000) : numericString);
     };
 
     const handleSavePresets = () => {
@@ -206,59 +288,82 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName, 
         setIsSettingsOpen(false);
     };
 
-    const handleResultCopy = () => {
+    const handleCopy = () => {
         if (result !== null) {
             navigator.clipboard.writeText(String(Math.round(result))).then(() => {
-                setIsResultCopied(true);
-                setTimeout(() => setIsResultCopied(false), 2000);
+                setIsCopied(true);
+                setTimeout(() => setIsCopied(false), 2000); // Reset after 2 seconds
             });
         }
     };
-
+    
     const handleIdCopy = () => {
         if (productId) {
             navigator.clipboard.writeText(productId).then(() => {
                 setIsIdCopied(true);
-                setTimeout(() => setIsIdCopied(false), 2000);
+                setTimeout(() => setIsIdCopied(false), 2000); // Reset after 2 seconds
             });
         }
     };
 
     const toggleSettings = () => {
-        if (!isSettingsOpen) setTempSelectedPresets(presetVouchers);
+        if (!isSettingsOpen) {
+            setTempSelectedPresets(presetVouchers);
+        }
         setIsSettingsOpen(!isSettingsOpen);
     };
 
     const handlePresetSelectionChange = (voucherValue: number) => {
-        setTempSelectedPresets(prev => prev.includes(voucherValue) ? prev.filter(v => v !== voucherValue) : [...prev, voucherValue]);
+        setTempSelectedPresets(prev => {
+            if (prev.includes(voucherValue)) {
+                return prev.filter(v => v !== voucherValue); // Uncheck
+            } else {
+                return [...prev, voucherValue]; // Check
+            }
+        });
     };
 
     return (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 w-full h-full">
+        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 w-full h-full">
             <div className="flex items-start justify-between gap-3 mb-6">
                 <div className="flex items-center gap-3">
-                    <CalculatorIcon className="w-8 h-8 text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-1" />
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Công cụ tính giá</h2>
-                        <p className="text-sm font-medium text-indigo-700 dark:text-indigo-400 truncate" title={dealListName}>{dealListName}</p>
+                    <CalculatorIcon className="w-8 h-8 text-indigo-600 flex-shrink-0 mt-1" />
+                     <div>
+                        <h2 className="text-2xl font-bold text-gray-800">Công cụ tính giá</h2>
+                        <p className="text-sm font-medium text-indigo-700 truncate" title={dealListName}>{dealListName}</p>
                     </div>
                 </div>
-                <div className="text-4xl font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-6 py-3 rounded-lg flex-shrink-0">
-                    <span>{formattedTime}</span>
+                <div className="text-4xl font-bold text-gray-600 bg-gray-100 px-6 py-3 rounded-lg flex-shrink-0">
+                     <span>{formattedTime}</span>
                 </div>
             </div>
             <div className="space-y-4">
-                <SearchField
-                    label="Tên sản phẩm đã chọn"
-                    id="productSearch"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Chọn một sản phẩm từ bảng"
-                />
+                 <div className="relative" ref={searchRef}>
+                    <SearchField 
+                        label="Tìm kiếm sản phẩm (Tên, ID, Model)" 
+                        id="productSearch" 
+                        value={searchTerm} 
+                        onChange={(e) => setSearchTerm(e.target.value)} 
+                        placeholder="Nhập để tìm kiếm..." 
+                    />
+                    {isSuggestionsVisible && (
+                        <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-md mt-1 max-h-60 overflow-y-auto shadow-lg">
+                            {suggestions.map(product => (
+                                <li key={product.id} 
+                                    onClick={() => handleProductSelect(product)}
+                                    className="p-3 hover:bg-indigo-100 cursor-pointer"
+                                >
+                                    <p className="font-semibold text-gray-800 truncate">{product.name}</p>
+                                    <p className="text-sm text-gray-500">ID: {product.id} - {formatCurrency(product.finalPrice)}đ</p>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
 
                 {productId && (
                     <div className="-mt-2">
-                        <label htmlFor="selectedProductId" className="block text-xs font-medium text-gray-600 dark:text-gray-400">ID Sản phẩm</label>
+                        <label htmlFor="selectedProductId" className="block text-xs font-medium text-gray-600">ID Sản phẩm</label>
                         <div className="mt-1 flex items-center gap-2">
                             <input
                                 id="selectedProductId"
@@ -266,33 +371,33 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName, 
                                 readOnly
                                 value={productId}
                                 title={productId}
-                                className="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 sm:text-sm focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 cursor-default"
+                                className="w-full px-3 py-1.5 border border-gray-300 rounded-md bg-gray-100 text-gray-700 sm:text-sm focus:ring-0 focus:border-gray-300 cursor-default"
                             />
                             <button
                                 onClick={handleIdCopy}
-                                className="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-indigo-100 dark:hover:bg-gray-600 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex-shrink-0"
+                                className="p-2 rounded-md text-gray-500 hover:bg-indigo-100 hover:text-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex-shrink-0"
                                 aria-label="Sao chép ID sản phẩm"
                             >
-                                {isIdCopied ? <CheckIcon className="w-5 h-5 text-green-600 dark:text-green-400" /> : <CopyIcon className="w-5 h-5" />}
+                                {isIdCopied ? <CheckIcon className="w-5 h-5 text-green-600" /> : <CopyIcon className="w-5 h-5" />}
                             </button>
                         </div>
                     </div>
                 )}
-
-                <InputField
-                    label="Giá hiển thị hiện tại"
-                    id="currentPrice"
-                    value={formatCurrencyForInput(currentPrice)}
-                    onChange={(e) => setCurrentPrice(parseInput(e.target.value))}
+                
+                <InputField 
+                    label="Giá hiển thị hiện tại" 
+                    id="currentPrice" 
+                    value={formatCurrencyForInput(currentPrice)} 
+                    onChange={(e) => setCurrentPrice(parseInput(e.target.value))} 
                     placeholder="ví dụ: 139,000"
-                    type="text"
+                    type="text" 
                     onKeyDown={handleKeyDown}
                 />
                 <div>
                     <div className="flex items-center justify-between">
-                        <label htmlFor="desiredPrice" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Giá cuối cùng mong muốn</label>
+                        <label htmlFor="desiredPrice" className="block text-sm font-medium text-gray-700">Giá cuối cùng mong muốn</label>
                         <label htmlFor="quick-price-toggle" className="flex items-center cursor-pointer">
-                            <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mr-2">Nhập nhanh (x1000)</span>
+                            <span className="text-xs font-medium text-gray-600 mr-2">Nhập nhanh (x1000)</span>
                             <div className="relative">
                                 <input
                                     id="quick-price-toggle"
@@ -301,7 +406,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName, 
                                     checked={isQuickPriceInput}
                                     onChange={() => setIsQuickPriceInput(!isQuickPriceInput)}
                                 />
-                                <div className="w-10 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer-checked:bg-indigo-600 dark:peer-checked:bg-indigo-500 transition-colors"></div>
+                                <div className="w-10 h-6 bg-gray-300 rounded-full peer-checked:bg-indigo-600 transition-colors"></div>
                                 <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-4"></div>
                             </div>
                         </label>
@@ -317,53 +422,53 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName, 
                             onKeyDown={handleDesiredPriceKeyDown}
                             placeholder={isQuickPriceInput ? "ví dụ: 99" : "ví dụ: 99,000"}
                             autoComplete="off"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50 text-gray-900 placeholder-gray-500 font-medium"
                         />
                     </div>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Loại Voucher</label>
+                    <label className="block text-sm font-medium text-gray-700">Loại Voucher</label>
                     <div className="mt-2 flex gap-4">
                         <label className="flex items-center cursor-pointer">
-                            <input type="radio" value={VoucherType.Percentage} checked={voucherType === VoucherType.Percentage} onChange={() => setVoucherType(VoucherType.Percentage)} className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 dark:text-indigo-400 border-gray-300 dark:border-gray-500 bg-gray-100 dark:bg-gray-600" />
-                            <span className="ml-2 text-sm text-gray-900 dark:text-gray-200">Phần trăm (%)</span>
+                            <input type="radio" value={VoucherType.Percentage} checked={voucherType === VoucherType.Percentage} onChange={() => setVoucherType(VoucherType.Percentage)} className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300" />
+                            <span className="ml-2 text-sm text-gray-900">Phần trăm (%)</span>
                         </label>
                         <label className="flex items-center cursor-pointer">
-                            <input type="radio" value={VoucherType.Fixed} checked={voucherType === VoucherType.Fixed} onChange={() => setVoucherType(VoucherType.Fixed)} className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 dark:text-indigo-400 border-gray-300 dark:border-gray-500 bg-gray-100 dark:bg-gray-600" />
-                            <span className="ml-2 text-sm text-gray-900 dark:text-gray-200">Số tiền cố định</span>
+                            <input type="radio" value={VoucherType.Fixed} checked={voucherType === VoucherType.Fixed} onChange={() => setVoucherType(VoucherType.Fixed)} className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300" />
+                            <span className="ml-2 text-sm text-gray-900">Số tiền cố định</span>
                         </label>
                     </div>
                 </div>
-                <InputField
+                 <InputField 
                     ref={voucherInputRef}
                     label={voucherType === VoucherType.Percentage ? "Voucher Sàn (%)" : "Số tiền Voucher Sàn"}
-                    id="voucherValue"
-                    value={voucherType === VoucherType.Fixed ? formatCurrencyForInput(voucherValue) : voucherValue}
-                    onChange={(e) => setVoucherValue(parseInput(e.target.value))}
-                    placeholder={voucherType === VoucherType.Percentage ? "ví dụ: 10" : "ví dụ: 10,000"}
+                    id="voucherValue" 
+                    value={voucherType === VoucherType.Fixed ? formatCurrencyForInput(voucherValue) : voucherValue} 
+                    onChange={(e) => setVoucherValue(parseInput(e.target.value))} 
+                    placeholder={voucherType === VoucherType.Percentage ? "ví dụ: 10" : "ví dụ: 10,000"} 
                     type="text"
                     onKeyDown={handleKeyDown}
                 />
 
                 {voucherType === VoucherType.Percentage && (
                     <div className="pt-2">
-                        <div className="flex justify-between items-center mb-2">
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Hoặc chọn nhanh voucher thường dùng:</p>
-                            <button onClick={toggleSettings} className="text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-300 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Cài đặt voucher nhanh">
+                         <div className="flex justify-between items-center mb-2">
+                            <p className="text-xs text-gray-500">Hoặc chọn nhanh voucher thường dùng:</p>
+                            <button onClick={toggleSettings} className="text-gray-500 hover:text-indigo-600 p-1 rounded-full hover:bg-gray-100" aria-label="Cài đặt voucher nhanh">
                                 <CogIcon className="w-5 h-5" />
                             </button>
                         </div>
-                        {isSettingsOpen && (
-                            <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-md border dark:border-gray-600 mb-3 transition-all duration-300 ease-in-out">
-                                <p className="text-sm font-medium text-gray-700 dark:text-gray-200 block mb-3">Chọn voucher để hiển thị:</p>
+                         {isSettingsOpen && (
+                            <div className="p-3 bg-gray-50 rounded-md border mb-3 transition-all duration-300 ease-in-out">
+                                <p className="text-sm font-medium text-gray-700 block mb-3">Chọn voucher để hiển thị:</p>
                                 <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mb-4">
                                     {ALL_POSSIBLE_VOUCHERS.map((val) => (
-                                        <label key={val} className="flex items-center justify-center gap-2 p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer text-sm text-gray-800 dark:text-gray-200">
+                                        <label key={val} className="flex items-center justify-center gap-2 p-2 rounded-md hover:bg-gray-200 cursor-pointer text-sm text-gray-800">
                                             <input
                                                 type="checkbox"
                                                 checked={tempSelectedPresets.includes(val)}
                                                 onChange={() => handlePresetSelectionChange(val)}
-                                                className="h-4 w-4 rounded border-gray-300 dark:border-gray-500 text-indigo-600 dark:text-indigo-400 focus:ring-indigo-500"
+                                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                                             />
                                             {val}%
                                         </label>
@@ -384,8 +489,8 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName, 
                                     type="button"
                                     className={`py-2 px-2 text-center rounded-md text-sm font-medium border transition-colors ${
                                         voucherValue === String(val)
-                                            ? 'bg-indigo-600 text-white border-indigo-600 dark:bg-indigo-500 dark:border-indigo-500'
-                                            : 'bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600'
+                                            ? 'bg-indigo-600 text-white border-indigo-600'
+                                            : 'bg-white hover:bg-gray-100 text-gray-700 border-gray-300'
                                     }`}
                                 >
                                     {val}%
@@ -403,19 +508,19 @@ export const Calculator: React.FC<CalculatorProps> = ({ products, dealListName, 
                 </button>
 
                 {result !== null && (
-                    <div className="mt-6 p-4 rounded-lg bg-indigo-50 dark:bg-gray-700 border border-indigo-200 dark:border-indigo-500/50">
-                        <p className="text-sm font-medium text-indigo-800 dark:text-indigo-200 text-center">Voucher người bán cần có:</p>
+                    <div className="mt-6 p-4 rounded-lg bg-indigo-50 border border-indigo-200">
+                        <p className="text-sm font-medium text-indigo-800 text-center">Voucher người bán cần có:</p>
                         <div className="flex items-center justify-center gap-2 mt-1">
-                            <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-300 tracking-tight">{formatCurrency(result)} VND</p>
-                            <button
-                                onClick={handleResultCopy}
-                                className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-indigo-100 dark:hover:bg-gray-600 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            <p className="text-3xl font-bold text-indigo-600 tracking-tight">{formatCurrency(result)} VND</p>
+                             <button
+                                onClick={handleCopy}
+                                className="p-2 rounded-full text-gray-500 hover:bg-indigo-100 hover:text-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                 aria-label="Sao chép số tiền"
                             >
-                                {isResultCopied ? <CheckIcon className="w-5 h-5 text-green-600 dark:text-green-400" /> : <CopyIcon className="w-5 h-5" />}
+                                {isCopied ? <CheckIcon className="w-5 h-5 text-green-600" /> : <CopyIcon className="w-5 h-5" />}
                             </button>
                         </div>
-                        {result < 0 && <p className="text-center text-sm text-red-600 dark:text-red-400 mt-2">Lưu ý: Giá trị âm có nghĩa là giá có thể giảm mà không cần thêm voucher của người bán.</p>}
+                         {result < 0 && <p className="text-center text-sm text-red-600 mt-2">Lưu ý: Giá trị âm có nghĩa là giá có thể giảm mà không cần thêm voucher của người bán.</p>}
                     </div>
                 )}
             </div>
