@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Product, ColumnMapping, DealList, FirebaseConfig, Creator } from './types';
 import { fetchProductsFromSheet, fetchSheetPreviewAndHeaders } from './services/googleSheetService';
@@ -89,8 +83,7 @@ const DeleteConfirmationModal: React.FC<{
 const LoginScreen: React.FC<{
     onGoogleSignIn: () => void;
     isFirebaseReady: boolean;
-    isConfigPlaceholder: boolean;
-}> = ({ onGoogleSignIn, isFirebaseReady, isConfigPlaceholder }) => {
+}> = ({ onGoogleSignIn, isFirebaseReady }) => {
     const [mode, setMode] = useState<'login' | 'register' | 'reset'>('login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -167,7 +160,7 @@ const LoginScreen: React.FC<{
 
                     <button
                         type="submit"
-                        disabled={isLoading || !isFirebaseReady || isConfigPlaceholder}
+                        disabled={isLoading || !isFirebaseReady}
                         className="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
                         {isLoading ? 'Đang xử lý...' : buttonText}
@@ -199,15 +192,12 @@ const LoginScreen: React.FC<{
 
                 <button
                     onClick={onGoogleSignIn}
-                    disabled={!isFirebaseReady || isConfigPlaceholder}
+                    disabled={!isFirebaseReady}
                     className="w-full inline-flex justify-center items-center gap-3 py-3 px-4 border border-slate-300 rounded-md shadow-sm bg-white text-sm font-medium text-slate-800 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
                 >
                     <GoogleIcon className="w-5 h-5" />
                     Tiếp tục với Google
                 </button>
-                {isConfigPlaceholder && (
-                    <p className="text-red-500 text-xs mt-4">Lỗi: Cấu hình Firebase chưa được cập nhật. Vui lòng liên hệ quản trị viên.</p>
-                )}
             </div>
         </div>
     );
@@ -218,6 +208,7 @@ const App: React.FC = () => {
     const [appState, setAppState] = useState<AppState>('LOADING');
     const [dealLists, setDealLists] = useState<DealList[]>([]);
     const [activeDealListId, setActiveDealListId] = useState<string | null>(() => sessionStorage.getItem('activeDealListId'));
+    const [selectedCreatorId, setSelectedCreatorId] = useState<string | null>(null);
     
     const [editingDealList, setEditingDealList] = useState<Partial<DealList> | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
@@ -252,12 +243,6 @@ const App: React.FC = () => {
     // Main Firebase and Auth effect
     useEffect(() => {
         try {
-            if (firebaseConfig.apiKey === "YOUR_API_KEY") {
-                setError("Vui lòng cấu hình Firebase trong file App.tsx.");
-                setIsFirebaseReady(false);
-                setAppState('LOGIN');
-                return;
-            }
             if (!firebase.apps.length) {
                 firebase.initializeApp(firebaseConfig);
             }
@@ -277,7 +262,7 @@ const App: React.FC = () => {
                 }
             });
             return () => unsubscribeAuth();
-        } catch (err) {
+        } catch (err: any) {
             console.error("Firebase initialization error:", err);
             setError("Cấu hình Firebase không hợp lệ. Vui lòng kiểm tra lại trong App.tsx.");
             setIsFirebaseReady(false);
@@ -665,14 +650,14 @@ const App: React.FC = () => {
         }
     }, [user, db, editingDealList, tempMapping, handleSync, tempExcelData, syncProductsToFirestore]);
 
-    const handleAddCreator = async (name: string, tiktokId: string) => {
+    const handleAddCreator = async (name: string, tiktokId: string, assignedDealListIds: string[]) => {
         if (!user || !db) throw new Error("Người dùng chưa đăng nhập.");
-        await db.collection('users').doc(user.uid).collection('creators').add({ name, tiktokId });
+        await db.collection('users').doc(user.uid).collection('creators').add({ name, tiktokId, assignedDealListIds });
     };
 
-    const handleUpdateCreator = async (id: string, name: string, tiktokId: string) => {
+    const handleUpdateCreator = async (id: string, name: string, tiktokId: string, assignedDealListIds: string[]) => {
         if (!user || !db) throw new Error("Người dùng chưa đăng nhập.");
-        await db.collection('users').doc(user.uid).collection('creators').doc(id).update({ name, tiktokId });
+        await db.collection('users').doc(user.uid).collection('creators').doc(id).update({ name, tiktokId, assignedDealListIds });
     };
 
     const handleDeleteCreator = async (id: string) => {
@@ -689,7 +674,6 @@ const App: React.FC = () => {
         </div>
     );
     
-    const isConfigPlaceholder = firebaseConfig.apiKey === "YOUR_API_KEY";
 
     const renderManageLists = () => (
         <div className="bg-slate-100 min-h-screen">
@@ -893,100 +877,173 @@ const App: React.FC = () => {
        </div>
     );
 
-    const renderViewData = () => (
-        <div className="h-screen w-screen flex flex-col bg-slate-100 p-4 gap-4">
-            <header className="flex-shrink-0 bg-white rounded-xl shadow-lg p-4 border border-slate-200">
-                <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                        <button onClick={() => setAppState('MANAGE_LISTS')} className="text-slate-700 hover:text-indigo-600 p-2 rounded-full hover:bg-slate-100">
-                            <CogIcon className="w-6 h-6" />
-                        </button>
-                        <div>
-                            <h1 className="text-xl font-bold text-slate-900">{activeDealList?.name || 'Loading...'}</h1>
-                             <p className="text-xs text-slate-700">
-                                {activeDealList?.lastSynced ? `Lần cuối đồng bộ: ${new Date(activeDealList.lastSynced.toDate()).toLocaleString('vi-VN')}` : 'Chưa đồng bộ'}
-                            </p>
-                        </div>
-                        <button 
-                            onClick={() => activeDealList && handleSync(activeDealList)} 
-                            disabled={isSyncing || activeDealList?.source === 'excel'}
-                            className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-md text-sm font-medium hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <SyncIcon className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
-                            {isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ'}
-                        </button>
-                    </div>
-                     {user && (
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm text-slate-800 hidden sm:inline">{user.displayName || user.email}</span>
-                            <button onClick={handleLogout} className="p-2 rounded-full text-slate-700 hover:bg-slate-200 hover:text-red-600" aria-label="Đăng xuất">
-                                <LogoutIcon className="w-5 h-5"/>
+    const ViewData = () => {
+        const selectedCreator = useMemo(() => creators.find(c => c.id === selectedCreatorId), [creators, selectedCreatorId]);
+
+        const creatorDealLists = useMemo(() => {
+            if (!selectedCreator || !selectedCreator.assignedDealListIds) return [];
+            return dealLists.filter(list => selectedCreator.assignedDealListIds?.includes(list.id));
+        }, [selectedCreator, dealLists]);
+
+        useEffect(() => {
+            if (activeDealListId && selectedCreator) {
+                if (!creatorDealLists.some(l => l.id === activeDealListId)) {
+                    setActiveDealListId(null);
+                    sessionStorage.removeItem('activeDealListId');
+                }
+            }
+        }, [selectedCreatorId, creatorDealLists, activeDealListId]);
+
+        useEffect(() => {
+            if (activeDealListId && creators.length > 0 && !selectedCreatorId) {
+                const ownerCreator = creators.find(c => c.assignedDealListIds?.includes(activeDealListId));
+                if (ownerCreator) {
+                    setSelectedCreatorId(ownerCreator.id);
+                }
+            }
+        }, [activeDealListId, creators, selectedCreatorId]);
+
+        return (
+            <div className="h-screen w-screen flex flex-col bg-slate-100 p-4 gap-4">
+                <header className="flex-shrink-0 bg-white rounded-xl shadow-lg p-4 border border-slate-200">
+                    <div className="flex justify-between items-center gap-4">
+                        <div className="flex items-center gap-4 flex-grow">
+                            <button onClick={() => setAppState('MANAGE_LISTS')} className="text-slate-700 hover:text-indigo-600 p-2 rounded-full hover:bg-slate-100 flex-shrink-0">
+                                <CogIcon className="w-6 h-6" />
                             </button>
+                            
+                            <div className="w-64">
+                                <label htmlFor="creator-select" className="sr-only">Chọn Creator</label>
+                                <select
+                                    id="creator-select"
+                                    value={selectedCreatorId || ''}
+                                    onChange={e => {
+                                        const newCreatorId = e.target.value;
+                                        setSelectedCreatorId(newCreatorId || null);
+                                        if (activeDealListId) {
+                                            setActiveDealListId(null);
+                                            sessionStorage.removeItem('activeDealListId');
+                                        }
+                                    }}
+                                    className={`block w-full pl-3 pr-10 py-2 text-base border-slate-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md ${!selectedCreatorId ? 'text-slate-500' : 'text-slate-900'}`}
+                                >
+                                    <option value="">-- Chọn KOC/KOL --</option>
+                                    {creators.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </div>
+
+                            <div className="w-64">
+                                <label htmlFor="deallist-select" className="sr-only">Chọn Deal List</label>
+                                <select
+                                    id="deallist-select"
+                                    value={activeDealListId || ''}
+                                    onChange={e => handleSetActiveDealList(e.target.value)}
+                                    disabled={!selectedCreatorId}
+                                    className={`block w-full pl-3 pr-10 py-2 text-base border-slate-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md disabled:bg-slate-100 ${!activeDealListId ? 'text-slate-500' : 'text-slate-900'}`}
+                                >
+                                    <option value="">-- Chọn Deal List --</option>
+                                    {creatorDealLists.map(dl => <option key={dl.id} value={dl.id}>{dl.name}</option>)}
+                                </select>
+                            </div>
+
+                            {activeDealList && (
+                                <button 
+                                    onClick={() => activeDealList && handleSync(activeDealList)} 
+                                    disabled={isSyncing || activeDealList?.source === 'excel'}
+                                    className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-md text-sm font-medium hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <SyncIcon className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
+                                    {isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ'}
+                                </button>
+                            )}
+                            <div className="flex-grow"></div>
+                        </div>
+
+                         {user && (
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className="text-sm text-slate-800 hidden sm:inline">{user.displayName || user.email}</span>
+                                <button onClick={handleLogout} className="p-2 rounded-full text-slate-700 hover:bg-slate-200 hover:text-red-600" aria-label="Đăng xuất">
+                                    <LogoutIcon className="w-5 h-5"/>
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                    {error && <p className="text-red-500 text-sm mt-2 text-center bg-red-50 p-2 rounded-md">{error}</p>}
+                </header>
+                <main className="flex-grow flex gap-4 min-h-0">
+                    {activeDealListId ? (
+                        <>
+                            <div className="w-1/3 h-full">
+                                <Calculator 
+                                    selectedProduct={selectedProduct} 
+                                    dealListName={activeDealList?.name || ''} 
+                                    products={products}
+                                    onProductSelect={setSelectedProduct}
+                                />
+                            </div>
+                            <div className="w-2/3 h-full flex flex-col">
+                                <div className="flex-shrink-0 border-b border-slate-200 bg-white rounded-t-xl px-4 pt-2">
+                                    <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+                                        <button
+                                            onClick={() => setActiveViewDataTab('products')}
+                                            className={`flex items-center gap-2 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                                                activeViewDataTab === 'products'
+                                                    ? 'border-indigo-500 text-indigo-600'
+                                                    : 'border-transparent text-slate-700 hover:text-slate-900 hover:border-slate-300'
+                                            }`}
+                                        >
+                                            <SheetIcon className="w-5 h-5" />
+                                            Sản phẩm
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveViewDataTab('creators')}
+                                            className={`flex items-center gap-2 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                                                activeViewDataTab === 'creators'
+                                                    ? 'border-indigo-500 text-indigo-600'
+                                                    : 'border-transparent text-slate-700 hover:text-slate-900 hover:border-slate-300'
+                                            }`}
+                                        >
+                                            <IdentificationIcon className="w-5 h-5" />
+                                            Creator IDs
+                                        </button>
+                                    </nav>
+                                </div>
+                                <div className="flex-grow min-h-0">
+                                    {activeViewDataTab === 'products' && (
+                                        <ProductTable products={products} onProductSelect={setSelectedProduct} isLoading={isLoading} activeDealListId={activeDealListId} />
+                                    )}
+                                    {activeViewDataTab === 'creators' && (
+                                        <CreatorList
+                                            creators={creators}
+                                            isLoading={isCreatorLoading}
+                                            onAdd={handleAddCreator}
+                                            onUpdate={handleUpdateCreator}
+                                            onDelete={handleDeleteCreator}
+                                            dealLists={dealLists}
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="w-full flex items-center justify-center bg-white rounded-xl shadow-lg border">
+                            <div className="text-center text-slate-700">
+                                <IdentificationIcon className="w-16 h-16 mx-auto text-slate-400 mb-4" />
+                                <h2 className="text-xl font-semibold">Vui lòng chọn một KOC/KOL</h2>
+                                <p className="mt-1">Sau đó, chọn một deal list đã được gán để bắt đầu làm việc.</p>
+                            </div>
                         </div>
                     )}
-                </div>
-                {error && <p className="text-red-500 text-sm mt-2 text-center bg-red-50 p-2 rounded-md">{error}</p>}
-            </header>
-            <main className="flex-grow flex gap-4 min-h-0">
-                <div className="w-1/3 h-full">
-                     <Calculator 
-                        selectedProduct={selectedProduct} 
-                        dealListName={activeDealList?.name || ''} 
-                        products={products}
-                        onProductSelect={setSelectedProduct}
-                    />
-                </div>
-                <div className="w-2/3 h-full flex flex-col">
-                    <div className="flex-shrink-0 border-b border-slate-200 bg-white rounded-t-xl px-4 pt-2">
-                        <nav className="-mb-px flex space-x-6" aria-label="Tabs">
-                            <button
-                                onClick={() => setActiveViewDataTab('products')}
-                                className={`flex items-center gap-2 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-                                    activeViewDataTab === 'products'
-                                        ? 'border-indigo-500 text-indigo-600'
-                                        : 'border-transparent text-slate-700 hover:text-slate-900 hover:border-slate-300'
-                                }`}
-                            >
-                                <SheetIcon className="w-5 h-5" />
-                                Sản phẩm
-                            </button>
-                             <button
-                                onClick={() => setActiveViewDataTab('creators')}
-                                className={`flex items-center gap-2 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-                                    activeViewDataTab === 'creators'
-                                        ? 'border-indigo-500 text-indigo-600'
-                                        : 'border-transparent text-slate-700 hover:text-slate-900 hover:border-slate-300'
-                                }`}
-                            >
-                                <IdentificationIcon className="w-5 h-5" />
-                                Creator IDs
-                            </button>
-                        </nav>
-                    </div>
-                    <div className="flex-grow min-h-0">
-                        {activeViewDataTab === 'products' && (
-                            <ProductTable products={products} onProductSelect={setSelectedProduct} isLoading={isLoading} activeDealListId={activeDealListId} />
-                        )}
-                        {activeViewDataTab === 'creators' && (
-                             <CreatorList
-                                creators={creators}
-                                isLoading={isCreatorLoading}
-                                onAdd={handleAddCreator}
-                                onUpdate={handleUpdateCreator}
-                                onDelete={handleDeleteCreator}
-                            />
-                        )}
-                    </div>
-                </div>
-            </main>
-        </div>
-    );
+                </main>
+            </div>
+        );
+    }
     
     switch (appState) {
         case 'LOADING':
             return renderLoading();
         case 'LOGIN':
-            return <LoginScreen onGoogleSignIn={handleGoogleSignIn} isFirebaseReady={isFirebaseReady} isConfigPlaceholder={isConfigPlaceholder}/>;
+            return <LoginScreen onGoogleSignIn={handleGoogleSignIn} isFirebaseReady={isFirebaseReady} />;
         case 'MANAGE_LISTS':
             return renderManageLists();
         case 'CONNECT_SHEET':
@@ -994,7 +1051,7 @@ const App: React.FC = () => {
         case 'MAP_COLUMNS':
             return renderMapColumns();
         case 'VIEW_DATA':
-            return renderViewData();
+            return <ViewData />;
         default:
             return renderManageLists();
     }

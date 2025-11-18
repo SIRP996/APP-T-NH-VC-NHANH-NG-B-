@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Creator } from '../types';
+import { Creator, DealList } from '../types';
 import { SearchIcon, CopyIcon, CheckIcon, PlusIcon, EditIcon, TrashIcon, SpinnerIcon } from './Icons';
 
 // Reusable Input Component for Modals
@@ -10,7 +10,7 @@ const ModalInput: React.FC<{ label: string; value: string; onChange: (e: React.C
         <input
             type="text"
             value={value}
-            onChange={onChange}
+            onChange={e => onChange(e)}
             placeholder={placeholder}
             required={required}
             className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
@@ -22,28 +22,40 @@ const ModalInput: React.FC<{ label: string; value: string; onChange: (e: React.C
 const CreatorModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
-    onSave: (name: string, tiktokId: string) => void;
+    onSave: (name: string, tiktokId: string, assignedDealListIds: string[]) => void;
     creator: Creator | null;
     isSaving: boolean;
-}> = ({ isOpen, onClose, onSave, creator, isSaving }) => {
+    dealLists: DealList[];
+}> = ({ isOpen, onClose, onSave, creator, isSaving, dealLists }) => {
     const [name, setName] = useState('');
     const [tiktokId, setTiktokId] = useState('');
+    const [assignedIds, setAssignedIds] = useState<string[]>([]);
 
     useEffect(() => {
-        if (creator) {
-            setName(creator.name);
-            setTiktokId(creator.tiktokId);
-        } else {
-            setName('');
-            setTiktokId('');
+        if (isOpen) {
+            if (creator) {
+                setName(creator.name);
+                setTiktokId(creator.tiktokId);
+                setAssignedIds(creator.assignedDealListIds || []);
+            } else {
+                setName('');
+                setTiktokId('');
+                setAssignedIds([]);
+            }
         }
     }, [creator, isOpen]);
     
     if (!isOpen) return null;
 
+    const handleDealListToggle = (listId: string) => {
+        setAssignedIds(prev =>
+            prev.includes(listId) ? prev.filter(id => id !== listId) : [...prev, listId]
+        );
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(name, tiktokId);
+        onSave(name, tiktokId, assignedIds);
     };
 
     return (
@@ -53,6 +65,28 @@ const CreatorModal: React.FC<{
                 <form onSubmit={handleSubmit} className="mt-4 space-y-4">
                     <ModalInput label="Tên KOL" value={name} onChange={e => setName(e.target.value)} placeholder="Nhập tên KOL..." required />
                     <ModalInput label="ID Kênh TikTok" value={tiktokId} onChange={e => setTiktokId(e.target.value)} placeholder="Nhập ID kênh..." required />
+                    
+                    <div className="mt-4">
+                        <label className="block text-sm font-medium text-slate-900">Gán Deal Lists</label>
+                        <div className="mt-2 max-h-40 overflow-y-auto space-y-2 rounded-md border p-3 bg-slate-50">
+                            {dealLists.length > 0 ? (
+                                dealLists.map(list => (
+                                    <label key={list.id} className="flex items-center gap-3 cursor-pointer p-2 rounded hover:bg-slate-100">
+                                        <input
+                                            type="checkbox"
+                                            checked={assignedIds.includes(list.id)}
+                                            onChange={() => handleDealListToggle(list.id)}
+                                            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                        <span className="text-sm text-slate-800">{list.name}</span>
+                                    </label>
+                                ))
+                            ) : (
+                                <p className="text-sm text-slate-500 text-center py-2">Không có deal list nào để gán.</p>
+                            )}
+                        </div>
+                    </div>
+
                     <div className="mt-6 flex justify-end gap-3">
                         <button type="button" onClick={onClose} disabled={isSaving} className="px-4 py-2 text-sm font-medium text-slate-800 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50">Hủy</button>
                         <button type="submit" disabled={isSaving} className="px-4 py-2 w-28 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center">
@@ -94,10 +128,11 @@ const DeleteCreatorModal: React.FC<{
 export const CreatorList: React.FC<{
     creators: Creator[];
     isLoading: boolean;
-    onAdd: (name: string, tiktokId: string) => Promise<void>;
-    onUpdate: (id: string, name: string, tiktokId: string) => Promise<void>;
+    onAdd: (name: string, tiktokId: string, assignedDealListIds: string[]) => Promise<void>;
+    onUpdate: (id: string, name: string, tiktokId: string, assignedDealListIds: string[]) => Promise<void>;
     onDelete: (id: string) => Promise<void>;
-}> = ({ creators, isLoading, onAdd, onUpdate, onDelete }) => {
+    dealLists: DealList[];
+}> = ({ creators, isLoading, onAdd, onUpdate, onDelete, dealLists }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -124,13 +159,13 @@ export const CreatorList: React.FC<{
         setIsModalOpen(true);
     };
 
-    const handleSave = async (name: string, tiktokId: string) => {
+    const handleSave = async (name: string, tiktokId: string, assignedDealListIds: string[]) => {
         setIsSaving(true);
         try {
             if (editingCreator) {
-                await onUpdate(editingCreator.id, name, tiktokId);
+                await onUpdate(editingCreator.id, name, tiktokId, assignedDealListIds);
             } else {
-                await onAdd(name, tiktokId);
+                await onAdd(name, tiktokId, assignedDealListIds);
             }
             setIsModalOpen(false);
         } catch (e) {
@@ -214,7 +249,7 @@ export const CreatorList: React.FC<{
                     </tbody>
                 </table>
             </div>
-            <CreatorModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} creator={editingCreator} isSaving={isSaving} />
+            <CreatorModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} creator={editingCreator} isSaving={isSaving} dealLists={dealLists} />
             <DeleteCreatorModal isOpen={!!deletingCreator} onClose={() => setDeletingCreator(null)} onConfirm={handleDelete} creator={deletingCreator} isDeleting={isDeleting} />
         </div>
     );

@@ -48,4 +48,5 @@ export interface Creator {
   id: string;
   name: string;
   tiktokId: string;
+  assignedDealListIds?: string[];
 }
