@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Product, VoucherType } from '../types';
 import { CalculatorIcon, CogIcon, CopyIcon, CheckIcon } from './Icons';
@@ -39,30 +40,18 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
     )
 );
 
-const SearchDisplayField: React.FC<{
-    label: string;
-    value: string;
-}> = ({ label, value }) => (
-    <div>
-        <label className="block text-sm font-semibold text-slate-900">{label}</label>
-        <textarea
-            readOnly
-            value={value}
-            placeholder="Chọn một sản phẩm từ bảng..."
-            className="mt-1 w-full p-3 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 sm:text-sm resize-y min-h-[60px] h-[60px] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 cursor-default font-medium"
-        />
-    </div>
-);
-
 interface CalculatorProps {
     selectedProduct: Product | null;
     dealListName: string;
+    products: Product[];
+    onProductSelect: (product: Product | null) => void;
 }
 
 const ALL_POSSIBLE_VOUCHERS = Array.from({ length: 19 }, (_, i) => i + 7); // 7 to 25
 
-export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealListName }) => {
+export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealListName, products, onProductSelect }) => {
     const [productId, setProductId] = useState('');
+    const [exclusiveId, setExclusiveId] = useState('');
     const [productName, setProductName] = useState('');
     const [currentPrice, setCurrentPrice] = useState('');
     const [desiredPrice, setDesiredPrice] = useState('');
@@ -73,6 +62,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
     const voucherInputRef = useRef<HTMLInputElement>(null);
     const [isCopied, setIsCopied] = useState(false);
     const [isIdCopied, setIsIdCopied] = useState(false);
+    const [isExclusiveIdCopied, setIsExclusiveIdCopied] = useState(false);
     const [currentTime, setCurrentTime] = useState(new Date());
     const [isQuickPriceInput, setIsQuickPriceInput] = useState(true);
     const [isDesiredPriceFocused, setIsDesiredPriceFocused] = useState(false);
@@ -92,9 +82,18 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
     useEffect(() => {
         if (selectedProduct) {
             setProductId(selectedProduct.id);
+            setExclusiveId(selectedProduct.exclusiveId || '');
             setProductName(selectedProduct.name);
             setCurrentPrice(String(selectedProduct.displayPrice));
             setResult(null); // Reset result when a new product is selected
+        } else {
+             setProductId('');
+             setExclusiveId('');
+             setProductName('');
+             setCurrentPrice('');
+             setDesiredPrice('');
+             setVoucherValue('');
+             setResult(null);
         }
     }, [selectedProduct]);
 
@@ -104,6 +103,28 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
         }, 1000);
         return () => clearInterval(timerId);
     }, []);
+    
+    const handleProductNameChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const value = e.target.value;
+        setProductName(value);
+
+        if (!value.trim()) {
+            if (selectedProduct) {
+                onProductSelect(null);
+            }
+            return;
+        }
+
+        const searchTerm = value.trim();
+        const foundProduct = products.find(p => p.id === searchTerm || (p.exclusiveId && p.exclusiveId === searchTerm));
+        
+        if (foundProduct) {
+            if (selectedProduct?.id !== foundProduct.id) {
+                 onProductSelect(foundProduct);
+            }
+        }
+    };
+
 
     const formattedTime = currentTime.toLocaleTimeString('vi-VN', {
         hour: '2-digit',
@@ -233,6 +254,15 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
         }
     };
 
+    const handleExclusiveIdCopy = () => {
+        if (exclusiveId) {
+            navigator.clipboard.writeText(exclusiveId).then(() => {
+                setIsExclusiveIdCopied(true);
+                setTimeout(() => setIsExclusiveIdCopied(false), 2000);
+            });
+        }
+    };
+
     const toggleSettings = () => {
         if (!isSettingsOpen) {
             setTempSelectedPresets(presetVouchers);
@@ -265,33 +295,63 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                 </div>
             </div>
             <div className="space-y-4">
-                <SearchDisplayField 
-                    label="Sản phẩm đang chọn" 
-                    value={productName} 
-                />
+                 <div>
+                    <label htmlFor="productSearch" className="block text-sm font-semibold text-slate-900">Sản phẩm đang chọn</label>
+                    <textarea
+                        id="productSearch"
+                        value={productName}
+                        onChange={handleProductNameChange}
+                        placeholder="Chọn một sản phẩm từ bảng hoặc dán ID vào đây..."
+                        className="mt-1 w-full p-3 border border-slate-300 rounded-lg shadow-sm bg-white text-slate-900 sm:text-sm resize-y min-h-[60px] h-[60px] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium transition-all duration-200"
+                    />
+                </div>
 
-                {productId && (
-                    <div className="-mt-2">
-                        <label htmlFor="selectedProductId" className="block text-xs font-medium text-slate-800">ID Sản phẩm</label>
-                        <div className="mt-1 flex items-center gap-2">
-                            <input
-                                id="selectedProductId"
-                                type="text"
-                                readOnly
-                                value={productId}
-                                title={productId}
-                                className="w-full px-3 py-1.5 border border-slate-200 rounded-lg bg-slate-100 text-slate-900 sm:text-sm focus:outline-none focus:ring-1 focus:ring-indigo-300 cursor-default"
-                            />
-                            <button
-                                onClick={handleIdCopy}
-                                className="p-2 rounded-md text-slate-700 hover:bg-indigo-100 hover:text-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex-shrink-0"
-                                aria-label="Sao chép ID sản phẩm"
-                            >
-                                {isIdCopied ? <CheckIcon className="w-5 h-5 text-green-600" /> : <CopyIcon className="w-5 h-5" />}
-                            </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 -mt-2">
+                    {productId && (
+                        <div>
+                            <label htmlFor="selectedProductId" className="block text-xs font-medium text-slate-800">ID Sản phẩm</label>
+                            <div className="mt-1 flex items-center gap-2">
+                                <input
+                                    id="selectedProductId"
+                                    type="text"
+                                    readOnly
+                                    value={productId}
+                                    title={productId}
+                                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg bg-slate-100 text-slate-900 sm:text-sm focus:outline-none focus:ring-1 focus:ring-indigo-300 cursor-default"
+                                />
+                                <button
+                                    onClick={handleIdCopy}
+                                    className="p-2 rounded-md text-slate-700 hover:bg-indigo-100 hover:text-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex-shrink-0"
+                                    aria-label="Sao chép ID sản phẩm"
+                                >
+                                    {isIdCopied ? <CheckIcon className="w-5 h-5 text-green-600" /> : <CopyIcon className="w-5 h-5" />}
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
+                    {exclusiveId && (
+                         <div>
+                            <label htmlFor="selectedExclusiveId" className="block text-xs font-medium text-purple-800">ID Độc quyền</label>
+                            <div className="mt-1 flex items-center gap-2">
+                                <input
+                                    id="selectedExclusiveId"
+                                    type="text"
+                                    readOnly
+                                    value={exclusiveId}
+                                    title={exclusiveId}
+                                    className="w-full px-3 py-1.5 border border-purple-200 rounded-lg bg-purple-50 text-purple-900 sm:text-sm focus:outline-none focus:ring-1 focus:ring-purple-300 cursor-default"
+                                />
+                                <button
+                                    onClick={handleExclusiveIdCopy}
+                                    className="p-2 rounded-md text-purple-700 hover:bg-purple-100 hover:text-purple-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 flex-shrink-0"
+                                    aria-label="Sao chép ID độc quyền"
+                                >
+                                    {isExclusiveIdCopied ? <CheckIcon className="w-5 h-5 text-green-600" /> : <CopyIcon className="w-5 h-5" />}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
                 
                 <InputField 
                     label="Giá hiển thị hiện tại" 

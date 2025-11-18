@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Product, ColumnMapping, DealList, FirebaseConfig } from './types';
 import { fetchProductsFromSheet, fetchSheetPreviewAndHeaders } from './services/googleSheetService';
@@ -26,6 +28,7 @@ type AppState = 'LOADING' | 'LOGIN' | 'MANAGE_LISTS' | 'CONNECT_SHEET' | 'MAP_CO
 
 const MAPPING_CONFIG: { key: keyof ColumnMapping; label: string; keywords: string[], required: boolean }[] = [
     { key: 'id', label: 'ID Sản phẩm', keywords: ['id happyskinvn', 'id', 'sku', 'mã sản phẩm'], required: true },
+    { key: 'exclusiveId', label: 'ID Độc quyền', keywords: ['id độc quyền'], required: false },
     { key: 'name', label: 'Tên Sản phẩm', keywords: ['tên sản phẩm', 'tên', 'name'], required: true },
     { key: 'displayPrice', label: 'Giá hiển thị', keywords: ['giá hiển thị hiện tại', 'giá live (trước voucher)', 'giá live', 'giá trước voucher', 'giá', 'price', 'giá cài'], required: true },
     { key: 'finalPrice', label: 'Giá cuối', keywords: ['giá cuối'], required: false },
@@ -605,6 +608,7 @@ const App: React.FC = () => {
 
             const productsToSync: Product[] = tempExcelData.map(row => ({
                 id: normalizeSheetId(row[finalMapping.id]),
+                exclusiveId: finalMapping.exclusiveId ? normalizeSheetId(row[finalMapping.exclusiveId]) : undefined,
                 modelId: normalizeSheetId(row[finalMapping.modelId]),
                 name: String(row[finalMapping.name] || ''),
                 displayPrice: parsePrice(row[finalMapping.displayPrice]),
@@ -870,7 +874,12 @@ const App: React.FC = () => {
             </header>
             <main className="flex-grow flex gap-4 min-h-0">
                 <div className="w-1/3 h-full">
-                     <Calculator selectedProduct={selectedProduct} dealListName={activeDealList?.name || ''} />
+                     <Calculator 
+                        selectedProduct={selectedProduct} 
+                        dealListName={activeDealList?.name || ''} 
+                        products={products}
+                        onProductSelect={setSelectedProduct}
+                    />
                 </div>
                 <div className="w-2/3 h-full">
                     <ProductTable products={products} onProductSelect={setSelectedProduct} isLoading={isLoading} activeDealListId={activeDealListId} />

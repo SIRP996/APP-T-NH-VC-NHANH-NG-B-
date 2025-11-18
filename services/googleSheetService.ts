@@ -200,6 +200,7 @@ export const fetchProductsFromSheet = async (sheetUrl: string, mapping: ColumnMa
 
     return data.map(row => ({
       id: normalizeSheetId(row[mapping.id]),
+      exclusiveId: mapping.exclusiveId ? normalizeSheetId(row[mapping.exclusiveId]) : undefined,
       modelId: normalizeSheetId(row[mapping.modelId]),
       name: row[mapping.name] || '',
       displayPrice: parsePrice(row[mapping.displayPrice]),

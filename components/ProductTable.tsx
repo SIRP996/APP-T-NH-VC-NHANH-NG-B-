@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Product } from '../types';
 import { SearchIcon, CogIcon, Bars3Icon } from './Icons';
@@ -7,13 +8,14 @@ import { SearchIcon, CogIcon, Bars3Icon } from './Icons';
 const SortAscIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4 ml-1 opacity-60" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9M3 12h9m-9 4h6m4-11l4-4m0 0l4 4m-4-4v12" /></svg>;
 const SortDescIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4 ml-1 opacity-60" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9M3 12h9m-9 4h6m4 5l4-4m0 0l-4-4m4 4V3" /></svg>;
 
-type ColumnKey = keyof Pick<Product, 'name' | 'id' | 'displayPrice' | 'finalPrice' | 'gift'>;
+type ColumnKey = keyof Pick<Product, 'name' | 'id' | 'exclusiveId' | 'displayPrice' | 'finalPrice' | 'gift'>;
 type SortKey = ColumnKey;
 type SortDirection = 'asc' | 'desc';
 
 const COLUMN_DEFINITIONS: { key: ColumnKey; label: string }[] = [
     { key: 'name', label: 'Tên Sản phẩm' },
     { key: 'id', label: 'ID' },
+    { key: 'exclusiveId', label: 'ID Độc quyền' },
     { key: 'displayPrice', label: 'Giá hiển thị' },
     { key: 'finalPrice', label: 'Giá cuối' },
     { key: 'gift', label: 'Quà Tặng' },
@@ -23,6 +25,7 @@ const DEFAULT_COLUMN_ORDER = COLUMN_DEFINITIONS.map(c => c.key);
 const DEFAULT_COLUMN_WIDTHS: Record<ColumnKey, number> = {
     name: 400,
     id: 180,
+    exclusiveId: 180,
     displayPrice: 120,
     finalPrice: 120,
     gift: 250,
@@ -194,6 +197,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
             return (
                 product.name.toLowerCase().includes(lowercasedFilter) ||
                 product.id.toLowerCase().includes(lowercasedFilter) ||
+                (product.exclusiveId && product.exclusiveId.toLowerCase().includes(lowercasedFilter)) ||
                 (product.gift && product.gift.toLowerCase().includes(lowercasedFilter))
             );
         });
@@ -283,6 +287,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
     const cellClassMap: Record<ColumnKey, string> = {
         name: 'font-medium text-slate-900',
         id: 'text-slate-700 font-mono',
+        exclusiveId: 'text-purple-800 font-mono',
         displayPrice: 'text-slate-900 font-medium',
         finalPrice: 'text-slate-700',
         gift: 'text-slate-700',
@@ -314,13 +319,13 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-4">
-                    <div className="bg-slate-50 p-4 rounded-lg text-center">
-                        <div className="text-sm font-medium text-slate-700">Tổng SKU</div>
-                        <div className="mt-1 text-2xl font-bold text-slate-900">{isLoading ? '...' : new Intl.NumberFormat('vi-VN').format(totalSKUs)}</div>
+                    <div className="bg-indigo-50 p-4 rounded-lg text-center">
+                        <div className="text-sm font-medium text-indigo-700">Tổng SKU</div>
+                        <div className="mt-1 text-2xl font-bold text-indigo-900">{isLoading ? '...' : new Intl.NumberFormat('vi-VN').format(totalSKUs)}</div>
                     </div>
-                    <div className="bg-slate-50 p-4 rounded-lg text-center">
-                        <div className="text-sm font-medium text-slate-700">Tổng ID (sản phẩm)</div>
-                        <div className="mt-1 text-2xl font-bold text-slate-900">{isLoading ? '...' : new Intl.NumberFormat('vi-VN').format(totalProducts)}</div>
+                    <div className="bg-indigo-100 p-4 rounded-lg text-center">
+                        <div className="text-sm font-medium text-indigo-800">Tổng ID (sản phẩm)</div>
+                        <div className="mt-1 text-2xl font-bold text-indigo-900">{isLoading ? '...' : new Intl.NumberFormat('vi-VN').format(totalProducts)}</div>
                     </div>
                 </div>
 

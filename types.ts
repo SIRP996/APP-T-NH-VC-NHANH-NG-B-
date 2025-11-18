@@ -1,6 +1,8 @@
 
+
 export interface Product {
   id: string;
+  exclusiveId?: string;
   modelId: string;
   name: string;
   originalPrice: number;
@@ -16,6 +18,7 @@ export enum VoucherType {
 
 export interface ColumnMapping {
   id: string;
+  exclusiveId?: string;
   modelId: string;
   name:string;
   displayPrice: string;
