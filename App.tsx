@@ -505,10 +505,10 @@ const App: React.FC = () => {
         reader.readAsArrayBuffer(file);
     };
 
-    const handleSetActiveDealList = useCallback((id: string) => {
+    const handleSetActiveDealList = useCallback((id: string | null) => {
         if (id !== activeDealListId) {
             setSelectedProduct(null);
-            setActiveDealListId(id || null);
+            setActiveDealListId(id);
             if (id) {
                 sessionStorage.setItem('activeDealListId', id);
             } else {
@@ -883,33 +883,8 @@ const App: React.FC = () => {
     );
 
     const ViewData = () => {
-        const selectedCreator = useMemo(() => creators.find(c => c.id === selectedCreatorId), [creators, selectedCreatorId]);
-
-        const creatorDealLists = useMemo(() => {
-            if (!selectedCreator || !selectedCreator.assignedDealListIds) return [];
-            return dealLists.filter(list => selectedCreator.assignedDealListIds?.includes(list.id));
-        }, [selectedCreator, dealLists]);
-
         const creatorOptions = useMemo(() => creators.map(c => ({ value: c.id, label: c.name })), [creators]);
-        const dealListOptions = useMemo(() => creatorDealLists.map(dl => ({ value: dl.id, label: dl.name })), [creatorDealLists]);
-
-        useEffect(() => {
-            if (activeDealListId && selectedCreator) {
-                if (!creatorDealLists.some(l => l.id === activeDealListId)) {
-                    setActiveDealListId(null);
-                    sessionStorage.removeItem('activeDealListId');
-                }
-            }
-        }, [selectedCreatorId, creatorDealLists, activeDealListId]);
-
-        useEffect(() => {
-            if (activeDealListId && creators.length > 0 && !selectedCreatorId) {
-                const ownerCreator = creators.find(c => c.assignedDealListIds?.includes(activeDealListId));
-                if (ownerCreator) {
-                    setSelectedCreatorId(ownerCreator.id);
-                }
-            }
-        }, [activeDealListId, creators, selectedCreatorId]);
+        const dealListOptions = useMemo(() => dealLists.map(dl => ({ value: dl.id, label: dl.name })), [dealLists]);
 
         return (
             <div className="h-screen w-screen flex flex-col bg-slate-100 p-4 gap-4">
@@ -923,22 +898,15 @@ const App: React.FC = () => {
                             <CustomDropdown
                                 options={creatorOptions}
                                 selectedValue={selectedCreatorId}
-                                onSelect={(value) => {
-                                    setSelectedCreatorId(value);
-                                    if (activeDealListId) {
-                                        setActiveDealListId(null);
-                                        sessionStorage.removeItem('activeDealListId');
-                                    }
-                                }}
+                                onSelect={(value) => setSelectedCreatorId(value)}
                                 placeholder="-- Chọn KOC/KOL --"
                             />
 
                             <CustomDropdown
                                 options={dealListOptions}
                                 selectedValue={activeDealListId}
-                                onSelect={(value) => handleSetActiveDealList(value || '')}
+                                onSelect={(value) => handleSetActiveDealList(value)}
                                 placeholder="-- Chọn Deal List --"
-                                disabled={!selectedCreatorId}
                             />
 
                             {activeDealList && (
@@ -1023,9 +991,9 @@ const App: React.FC = () => {
                     ) : (
                         <div className="w-full flex items-center justify-center bg-white rounded-xl shadow-lg border">
                             <div className="text-center text-slate-700">
-                                <IdentificationIcon className="w-16 h-16 mx-auto text-slate-400 mb-4" />
-                                <h2 className="text-xl font-semibold">Vui lòng chọn một KOC/KOL</h2>
-                                <p className="mt-1">Sau đó, chọn một deal list đã được gán để bắt đầu làm việc.</p>
+                                <SheetIcon className="w-16 h-16 mx-auto text-slate-400 mb-4" />
+                                <h2 className="text-xl font-semibold">Vui lòng chọn một Deal List</h2>
+                                <p className="mt-1">Chọn một deal list từ dropdown bên trên để bắt đầu làm việc.</p>
                             </div>
                         </div>
                     )}

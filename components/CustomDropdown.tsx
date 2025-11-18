@@ -42,7 +42,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ options, selectedValue,
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={disabled}
-        className="block w-full pl-4 pr-10 py-2 text-base border border-slate-600 bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 sm:text-sm rounded-md text-left flex justify-between items-center disabled:bg-slate-500 disabled:cursor-not-allowed"
+        className="block w-full pl-4 pr-10 py-2 text-base border-2 border-indigo-600 bg-slate-800 text-white sm:text-sm rounded-lg text-left flex justify-between items-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-indigo-400 disabled:bg-slate-600 disabled:border-slate-700 disabled:cursor-not-allowed"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
@@ -59,7 +59,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ options, selectedValue,
         >
           <li
             onClick={() => handleSelect(null)}
-            className="text-slate-400 cursor-pointer select-none relative py-2 pl-4 pr-9 hover:bg-slate-700"
+            className="text-slate-300 cursor-pointer select-none relative py-2 pl-4 pr-9 hover:bg-slate-700"
             role="option"
           >
             {placeholder}
@@ -69,7 +69,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ options, selectedValue,
               key={option.value}
               onClick={() => handleSelect(option.value)}
               className={`cursor-pointer select-none relative py-2 pl-4 pr-9 ${
-                selectedValue === option.value ? 'bg-blue-500 text-white' : 'text-white hover:bg-slate-700'
+                selectedValue === option.value ? 'bg-blue-600 text-white' : 'text-white hover:bg-slate-700'
               }`}
               role="option"
               aria-selected={selectedValue === option.value}
