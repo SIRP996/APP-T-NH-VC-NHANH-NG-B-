@@ -198,17 +198,27 @@ export const fetchProductsFromSheet = async (sheetUrl: string, mapping: ColumnMa
     const csvText = await response.text();
     const { data } = parseCSV(csvText);
 
-    return data.map(row => ({
-      id: normalizeSheetId(row[mapping.id]),
-      exclusiveId: mapping.exclusiveId ? normalizeSheetId(row[mapping.exclusiveId]) : undefined,
-      modelId: normalizeSheetId(row[mapping.modelId]),
-      name: row[mapping.name] || '',
-      displayPrice: parsePrice(row[mapping.displayPrice]),
-      finalPrice: mapping.finalPrice ? row[mapping.finalPrice] || '' : '',
-      gift: mapping.gift ? row[mapping.gift] || '' : '',
-      // Set unused prices to 0 or derive if needed in future
-      originalPrice: 0, 
-    })).filter(p => p.id && p.name && p.displayPrice > 0); // Filter out rows without essential data
+    return data.map(row => {
+        const product: Product = {
+            id: normalizeSheetId(row[mapping.id]),
+            name: row[mapping.name] || '',
+            displayPrice: parsePrice(row[mapping.displayPrice]),
+            finalPrice: mapping.finalPrice ? row[mapping.finalPrice] || '' : '',
+            originalPrice: 0,
+        };
+
+        if (mapping.exclusiveId) {
+            product.exclusiveId = normalizeSheetId(row[mapping.exclusiveId]);
+        }
+        if (mapping.modelId) {
+            product.modelId = normalizeSheetId(row[mapping.modelId]);
+        }
+        if (mapping.gift) {
+            product.gift = row[mapping.gift] || '';
+        }
+        
+        return product;
+    }).filter(p => p.id && p.name && p.displayPrice > 0); // Filter out rows without essential data
   } catch (error) {
     console.error("Failed to fetch or parse Google Sheet data:", error);
     throw error;

@@ -606,16 +606,25 @@ const App: React.FC = () => {
             };
             const normalizeSheetId = (id: any): string => id ? String(id).trim() : '';
 
-            const productsToSync: Product[] = tempExcelData.map(row => ({
-                id: normalizeSheetId(row[finalMapping.id]),
-                exclusiveId: finalMapping.exclusiveId ? normalizeSheetId(row[finalMapping.exclusiveId]) : undefined,
-                modelId: normalizeSheetId(row[finalMapping.modelId]),
-                name: String(row[finalMapping.name] || ''),
-                displayPrice: parsePrice(row[finalMapping.displayPrice]),
-                finalPrice: finalMapping.finalPrice ? String(row[finalMapping.finalPrice] || '') : '',
-                gift: finalMapping.gift ? String(row[finalMapping.gift] || '') : '',
-                originalPrice: 0,
-            })).filter(p => p.id && p.name && p.displayPrice > 0);
+            const productsToSync: Product[] = tempExcelData.map(row => {
+                const product: Product = {
+                    id: normalizeSheetId(row[finalMapping.id]),
+                    name: String(row[finalMapping.name] || ''),
+                    displayPrice: parsePrice(row[finalMapping.displayPrice]),
+                    finalPrice: finalMapping.finalPrice ? String(row[finalMapping.finalPrice] || '') : '',
+                    originalPrice: 0,
+                };
+                if (finalMapping.exclusiveId) {
+                    product.exclusiveId = normalizeSheetId(row[finalMapping.exclusiveId]);
+                }
+                if (finalMapping.modelId) {
+                    product.modelId = normalizeSheetId(row[finalMapping.modelId]);
+                }
+                if (finalMapping.gift) {
+                    product.gift = String(row[finalMapping.gift] || '');
+                }
+                return product;
+            }).filter(p => p.id && p.name && p.displayPrice > 0);
             
             await syncProductsToFirestore(dealListId, productsToSync);
             setTempExcelData(null);
