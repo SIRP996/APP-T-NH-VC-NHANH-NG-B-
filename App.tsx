@@ -2,12 +2,15 @@
 
 
 
+
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Product, ColumnMapping, DealList, FirebaseConfig } from './types';
+import { Product, ColumnMapping, DealList, FirebaseConfig, Creator } from './types';
 import { fetchProductsFromSheet, fetchSheetPreviewAndHeaders } from './services/googleSheetService';
 import { Calculator } from './components/Calculator';
 import { ProductTable } from './components/ProductTable';
-import { SyncIcon, LinkIcon, SheetIcon, EditIcon, CogIcon, PlusIcon, TrashIcon, FirebaseIcon, GoogleIcon, LogoutIcon, MailIcon, LockClosedIcon, SpinnerIcon } from './components/Icons';
+import { CreatorList } from './components/CreatorList';
+import { SyncIcon, LinkIcon, SheetIcon, EditIcon, CogIcon, PlusIcon, TrashIcon, FirebaseIcon, GoogleIcon, LogoutIcon, MailIcon, LockClosedIcon, SpinnerIcon, IdentificationIcon } from './components/Icons';
 
 // Declare firebase and XLSX globally as they're loaded from script tags
 declare const firebase: any;
@@ -25,6 +28,8 @@ const firebaseConfig: FirebaseConfig = {
 
 
 type AppState = 'LOADING' | 'LOGIN' | 'MANAGE_LISTS' | 'CONNECT_SHEET' | 'MAP_COLUMNS' | 'VIEW_DATA';
+type ViewDataTab = 'products' | 'creators';
+
 
 const MAPPING_CONFIG: { key: keyof ColumnMapping; label: string; keywords: string[], required: boolean }[] = [
     { key: 'id', label: 'ID Sản phẩm', keywords: ['id happyskinvn', 'id', 'sku', 'mã sản phẩm'], required: true },
@@ -217,6 +222,9 @@ const App: React.FC = () => {
     const [editingDealList, setEditingDealList] = useState<Partial<DealList> | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const [creators, setCreators] = useState<Creator[]>([]);
+    const [isCreatorLoading, setIsCreatorLoading] = useState<boolean>(false);
+    const [activeViewDataTab, setActiveViewDataTab] = useState<ViewDataTab>('products');
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isSyncing, setIsSyncing] = useState<boolean>(false);
@@ -264,6 +272,7 @@ const App: React.FC = () => {
                     setUser(null);
                     setDealLists([]);
                     setProducts([]);
+                    setCreators([]);
                     setAppState('LOGIN');
                 }
             });
@@ -307,7 +316,7 @@ const App: React.FC = () => {
         });
     
         return () => unsubscribe();
-    }, [user, db]); // This effect now correctly depends only on user and db
+    }, [user, db]);
 
     // Effect for fetching products when active deal list changes
     useEffect(() => {
@@ -330,6 +339,28 @@ const App: React.FC = () => {
 
         return () => unsubscribe();
     }, [user, db, activeDealListId]);
+    
+    // Effect for fetching creators
+    useEffect(() => {
+        if (!user || !db) {
+            setCreators([]);
+            return;
+        }
+
+        setIsCreatorLoading(true);
+        const creatorsRef = db.collection('users').doc(user.uid).collection('creators');
+        const unsubscribe = creatorsRef.orderBy('name').onSnapshot((snapshot: any) => {
+            const fetchedCreators = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+            setCreators(fetchedCreators);
+            setIsCreatorLoading(false);
+        }, (error: any) => {
+            console.error("Firestore creators snapshot error:", error);
+            setError("Không thể tải danh sách creator.");
+            setIsCreatorLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [user, db]);
 
 
     const handleGoogleSignIn = () => {
@@ -634,6 +665,21 @@ const App: React.FC = () => {
         }
     }, [user, db, editingDealList, tempMapping, handleSync, tempExcelData, syncProductsToFirestore]);
 
+    const handleAddCreator = async (name: string, tiktokId: string) => {
+        if (!user || !db) throw new Error("Người dùng chưa đăng nhập.");
+        await db.collection('users').doc(user.uid).collection('creators').add({ name, tiktokId });
+    };
+
+    const handleUpdateCreator = async (id: string, name: string, tiktokId: string) => {
+        if (!user || !db) throw new Error("Người dùng chưa đăng nhập.");
+        await db.collection('users').doc(user.uid).collection('creators').doc(id).update({ name, tiktokId });
+    };
+
+    const handleDeleteCreator = async (id: string) => {
+        if (!user || !db) throw new Error("Người dùng chưa đăng nhập.");
+        await db.collection('users').doc(user.uid).collection('creators').doc(id).delete();
+    };
+
     const renderLoading = () => (
         <div className="flex items-center justify-center h-screen bg-slate-100">
             <div className="text-center">
@@ -890,8 +936,47 @@ const App: React.FC = () => {
                         onProductSelect={setSelectedProduct}
                     />
                 </div>
-                <div className="w-2/3 h-full">
-                    <ProductTable products={products} onProductSelect={setSelectedProduct} isLoading={isLoading} activeDealListId={activeDealListId} />
+                <div className="w-2/3 h-full flex flex-col">
+                    <div className="flex-shrink-0 border-b border-slate-200 bg-white rounded-t-xl px-4 pt-2">
+                        <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+                            <button
+                                onClick={() => setActiveViewDataTab('products')}
+                                className={`flex items-center gap-2 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                                    activeViewDataTab === 'products'
+                                        ? 'border-indigo-500 text-indigo-600'
+                                        : 'border-transparent text-slate-700 hover:text-slate-900 hover:border-slate-300'
+                                }`}
+                            >
+                                <SheetIcon className="w-5 h-5" />
+                                Sản phẩm
+                            </button>
+                             <button
+                                onClick={() => setActiveViewDataTab('creators')}
+                                className={`flex items-center gap-2 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                                    activeViewDataTab === 'creators'
+                                        ? 'border-indigo-500 text-indigo-600'
+                                        : 'border-transparent text-slate-700 hover:text-slate-900 hover:border-slate-300'
+                                }`}
+                            >
+                                <IdentificationIcon className="w-5 h-5" />
+                                Creator IDs
+                            </button>
+                        </nav>
+                    </div>
+                    <div className="flex-grow min-h-0">
+                        {activeViewDataTab === 'products' && (
+                            <ProductTable products={products} onProductSelect={setSelectedProduct} isLoading={isLoading} activeDealListId={activeDealListId} />
+                        )}
+                        {activeViewDataTab === 'creators' && (
+                             <CreatorList
+                                creators={creators}
+                                isLoading={isCreatorLoading}
+                                onAdd={handleAddCreator}
+                                onUpdate={handleUpdateCreator}
+                                onDelete={handleDeleteCreator}
+                            />
+                        )}
+                    </div>
                 </div>
             </main>
         </div>

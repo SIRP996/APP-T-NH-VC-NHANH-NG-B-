@@ -43,3 +43,9 @@ export interface FirebaseConfig {
   messagingSenderId: string;
   appId: string;
 }
+
+export interface Creator {
+  id: string;
+  name: string;
+  tiktokId: string;
+}
