@@ -5,6 +5,7 @@ import { Calculator } from './components/Calculator';
 import { ProductTable } from './components/ProductTable';
 import { CreatorList } from './components/CreatorList';
 import { SyncIcon, LinkIcon, SheetIcon, EditIcon, CogIcon, PlusIcon, TrashIcon, FirebaseIcon, GoogleIcon, LogoutIcon, MailIcon, LockClosedIcon, SpinnerIcon, IdentificationIcon } from './components/Icons';
+import CustomDropdown from './components/CustomDropdown';
 
 // Declare firebase and XLSX globally as they're loaded from script tags
 declare const firebase: any;
@@ -507,8 +508,12 @@ const App: React.FC = () => {
     const handleSetActiveDealList = useCallback((id: string) => {
         if (id !== activeDealListId) {
             setSelectedProduct(null);
-            setActiveDealListId(id);
-            sessionStorage.setItem('activeDealListId', id);
+            setActiveDealListId(id || null);
+            if (id) {
+                sessionStorage.setItem('activeDealListId', id);
+            } else {
+                sessionStorage.removeItem('activeDealListId');
+            }
         }
         setAppState('VIEW_DATA');
     }, [activeDealListId]);
@@ -885,6 +890,9 @@ const App: React.FC = () => {
             return dealLists.filter(list => selectedCreator.assignedDealListIds?.includes(list.id));
         }, [selectedCreator, dealLists]);
 
+        const creatorOptions = useMemo(() => creators.map(c => ({ value: c.id, label: c.name })), [creators]);
+        const dealListOptions = useMemo(() => creatorDealLists.map(dl => ({ value: dl.id, label: dl.name })), [creatorDealLists]);
+
         useEffect(() => {
             if (activeDealListId && selectedCreator) {
                 if (!creatorDealLists.some(l => l.id === activeDealListId)) {
@@ -912,39 +920,26 @@ const App: React.FC = () => {
                                 <CogIcon className="w-6 h-6" />
                             </button>
                             
-                            <div className="w-64">
-                                <label htmlFor="creator-select" className="sr-only">Chọn Creator</label>
-                                <select
-                                    id="creator-select"
-                                    value={selectedCreatorId || ''}
-                                    onChange={e => {
-                                        const newCreatorId = e.target.value;
-                                        setSelectedCreatorId(newCreatorId || null);
-                                        if (activeDealListId) {
-                                            setActiveDealListId(null);
-                                            sessionStorage.removeItem('activeDealListId');
-                                        }
-                                    }}
-                                    className={`block w-full pl-3 pr-10 py-2 text-base border-slate-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md ${!selectedCreatorId ? 'text-slate-500' : 'text-slate-900'}`}
-                                >
-                                    <option value="">-- Chọn KOC/KOL --</option>
-                                    {creators.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
-                            </div>
+                            <CustomDropdown
+                                options={creatorOptions}
+                                selectedValue={selectedCreatorId}
+                                onSelect={(value) => {
+                                    setSelectedCreatorId(value);
+                                    if (activeDealListId) {
+                                        setActiveDealListId(null);
+                                        sessionStorage.removeItem('activeDealListId');
+                                    }
+                                }}
+                                placeholder="-- Chọn KOC/KOL --"
+                            />
 
-                            <div className="w-64">
-                                <label htmlFor="deallist-select" className="sr-only">Chọn Deal List</label>
-                                <select
-                                    id="deallist-select"
-                                    value={activeDealListId || ''}
-                                    onChange={e => handleSetActiveDealList(e.target.value)}
-                                    disabled={!selectedCreatorId}
-                                    className={`block w-full pl-3 pr-10 py-2 text-base border-slate-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md disabled:bg-slate-100 ${!activeDealListId ? 'text-slate-500' : 'text-slate-900'}`}
-                                >
-                                    <option value="">-- Chọn Deal List --</option>
-                                    {creatorDealLists.map(dl => <option key={dl.id} value={dl.id}>{dl.name}</option>)}
-                                </select>
-                            </div>
+                            <CustomDropdown
+                                options={dealListOptions}
+                                selectedValue={activeDealListId}
+                                onSelect={(value) => handleSetActiveDealList(value || '')}
+                                placeholder="-- Chọn Deal List --"
+                                disabled={!selectedCreatorId}
+                            />
 
                             {activeDealList && (
                                 <button 
