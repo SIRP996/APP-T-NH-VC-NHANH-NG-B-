@@ -300,7 +300,7 @@ const App: React.FC = () => {
             isInitialLoad.current = true;
             return;
         }
-    
+        
         const dealListsRef = db.collection('users').doc(user.uid).collection('dealLists');
         const unsubscribe = dealListsRef.onSnapshot((snapshot: any) => {
             const lists = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
@@ -1005,6 +1005,7 @@ const App: React.FC = () => {
                                     dealListName={activeDealList?.name || ''} 
                                     products={products}
                                     onProductSelect={setSelectedProduct}
+                                    onFocusSearch={() => searchInputRef.current?.focus()}
                                 />
                             </div>
                             <div className="flex-1 h-full flex flex-col bg-white rounded-3xl shadow-xl shadow-indigo-100/50 border border-slate-200 overflow-hidden">
