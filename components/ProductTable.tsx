@@ -1,12 +1,10 @@
 
-
-
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Product } from '../types';
 import { SearchIcon, CogIcon, Bars3Icon } from './Icons';
 
-const SortAscIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4 ml-1 opacity-60" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9M3 12h9m-9 4h6m4-11l4-4m0 0l4 4m-4-4v12" /></svg>;
-const SortDescIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4 ml-1 opacity-60" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9M3 12h9m-9 4h6m4 5l4-4m0 0l-4-4m4 4V3" /></svg>;
+const SortAscIcon: React.FC<{ className?: string }> = ({ className = "w-3.5 h-3.5 ml-1 text-indigo-600" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4h13M3 8h9M3 12h9m-9 4h6m4-11l4-4m0 0l4 4m-4-4v12" /></svg>;
+const SortDescIcon: React.FC<{ className?: string }> = ({ className = "w-3.5 h-3.5 ml-1 text-indigo-600" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4h13M3 8h9M3 12h9m-9 4h6m4 5l4-4m0 0l-4-4m4 4V3" /></svg>;
 
 type ColumnKey = keyof Pick<Product, 'name' | 'id' | 'exclusiveId' | 'displayPrice' | 'finalPrice' | 'gift'>;
 type SortKey = ColumnKey;
@@ -26,8 +24,8 @@ const DEFAULT_COLUMN_WIDTHS: Record<ColumnKey, number> = {
     name: 400,
     id: 180,
     exclusiveId: 180,
-    displayPrice: 120,
-    finalPrice: 120,
+    displayPrice: 140,
+    finalPrice: 140,
     gift: 250,
 };
 
@@ -72,11 +70,11 @@ const ColumnSettingsModal: React.FC<ColumnSettingsModalProps> = ({ isOpen, onClo
     const orderedColumnLabels = tempOrder.map(key => COLUMN_DEFINITIONS.find(c => c.key === key)!);
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={onClose}>
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
-                <h3 className="text-lg font-medium leading-6 text-slate-900 mb-4">Tùy chỉnh thứ tự cột</h3>
-                <p className="text-sm text-slate-700 mb-4">Kéo và thả để sắp xếp lại các cột.</p>
-                <ul className="space-y-2">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200" onClick={onClose}>
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md border border-slate-100 transform transition-all scale-100" onClick={e => e.stopPropagation()}>
+                <h3 className="text-lg font-bold leading-6 text-slate-900 mb-1">Tùy chỉnh cột</h3>
+                <p className="text-sm text-slate-500 mb-5">Kéo và thả để sắp xếp thứ tự hiển thị.</p>
+                <ul className="space-y-2 mb-6">
                     {orderedColumnLabels.map(({ key, label }, index) => (
                         <li 
                             key={key}
@@ -86,32 +84,32 @@ const ColumnSettingsModal: React.FC<ColumnSettingsModalProps> = ({ isOpen, onClo
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={handleDrop}
                             onDragEnd={() => { dragItem.current = null; dragOverItem.current = null; }}
-                            className="flex items-center p-3 bg-slate-100 rounded-md cursor-grab active:cursor-grabbing"
+                            className="flex items-center p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-grab active:cursor-grabbing hover:border-indigo-200 hover:shadow-sm transition-all"
                         >
                             <Bars3Icon className="w-5 h-5 text-slate-400 mr-3"/>
-                            <span className="text-sm font-medium text-slate-900">{label}</span>
+                            <span className="text-sm font-medium text-slate-700">{label}</span>
                         </li>
                     ))}
                 </ul>
-                <div className="mt-6 flex justify-between items-center">
+                <div className="flex justify-between items-center pt-4 border-t border-slate-100">
                      <button
                         onClick={() => setTempOrder(DEFAULT_COLUMN_ORDER)}
-                        className="px-4 py-2 text-sm font-medium text-slate-800 bg-white border border-slate-300 rounded-md hover:bg-slate-50"
+                        className="text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors"
                     >
-                        Đặt lại mặc định
+                        Về mặc định
                     </button>
                     <div className="flex gap-3">
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-slate-800 bg-white border border-slate-300 rounded-md hover:bg-slate-50"
+                            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50"
                         >
                             Hủy
                         </button>
                         <button
                             onClick={() => onOrderSave(tempOrder)}
-                            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700"
+                            className="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-xl hover:bg-slate-800 shadow-lg shadow-slate-200"
                         >
-                            Lưu
+                            Lưu thay đổi
                         </button>
                     </div>
                 </div>
@@ -120,7 +118,6 @@ const ColumnSettingsModal: React.FC<ColumnSettingsModalProps> = ({ isOpen, onClo
     );
 };
 
-// FIX: Added missing ProductTableProps interface definition.
 interface ProductTableProps {
     products: Product[];
     onProductSelect: (product: Product | null) => void;
@@ -284,48 +281,49 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
         return columnOrder.map(key => COLUMN_DEFINITIONS.find(c => c.key === key)!);
     }, [columnOrder]);
 
+    // Cập nhật style cho các ô dữ liệu để tăng độ tương phản
     const cellClassMap: Record<ColumnKey, string> = {
-        name: 'font-medium text-slate-900',
-        id: 'text-slate-700 font-mono',
-        exclusiveId: 'text-purple-800 font-mono',
-        displayPrice: 'text-slate-900 font-medium',
-        finalPrice: 'text-slate-700',
-        gift: 'text-slate-700',
+        name: 'font-semibold text-slate-900 text-[15px]', // Đậm hơn chút
+        id: 'text-slate-700 font-bold font-mono text-xs', // Đổi từ gray-500 sang 700 và bold
+        exclusiveId: 'text-purple-700 font-mono text-xs bg-purple-50 px-2 py-1 rounded-md w-fit font-bold border border-purple-100',
+        displayPrice: 'text-slate-500 font-semibold', // Giá hiển thị nhạt hơn chút để làm nền cho giá cuối
+        finalPrice: 'text-indigo-900 font-extrabold text-[15px]', // Giá cuối đậm nhất, màu tối
+        gift: 'text-slate-700 text-xs', // Bỏ italic, cho đậm lên xíu
     };
     
     return (
-        <div className="bg-white shadow-lg rounded-xl border border-slate-200 w-full h-full flex flex-col">
-            <div className="p-4 border-b border-slate-200">
+        <div className="bg-white shadow-xl rounded-3xl border border-slate-100 w-full h-full flex flex-col overflow-hidden">
+            <div className="p-5 border-b border-slate-100 bg-white z-20">
                 <div className="flex items-center gap-4">
-                    <div className="relative flex-grow">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                            <SearchIcon className="w-5 h-5 text-slate-400" />
+                    <div className="relative flex-grow group">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                            <SearchIcon className="w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                         </span>
                         <input
                             type="text"
-                            placeholder="Tìm theo tên, ID hoặc quà tặng..."
+                            placeholder="Tìm kiếm sản phẩm..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-500"
+                            className="w-full pl-11 pr-4 py-2.5 border-0 bg-slate-50 rounded-2xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-inner font-bold"
                         />
                     </div>
                     <button 
                         onClick={() => setIsSettingsModalOpen(true)} 
-                        className="p-2 text-slate-700 hover:text-indigo-600 rounded-md hover:bg-slate-100 transition-colors flex-shrink-0" 
+                        className="p-2.5 text-slate-500 hover:text-indigo-600 rounded-xl hover:bg-indigo-50 transition-colors flex-shrink-0 border border-slate-100 hover:border-indigo-100" 
                         aria-label="Tùy chỉnh cột"
                     >
                         <CogIcon className="w-5 h-5" />
                     </button>
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-4">
-                    <div className="bg-indigo-50 p-4 rounded-lg text-center">
-                        <div className="text-sm font-medium text-indigo-700">Tổng SKU</div>
-                        <div className="mt-1 text-2xl font-bold text-indigo-900">{isLoading ? '...' : new Intl.NumberFormat('vi-VN').format(totalSKUs)}</div>
+                <div className="mt-4 flex gap-4">
+                    <div className="flex items-baseline gap-2 px-4 py-2 bg-indigo-50/50 rounded-xl border border-indigo-50">
+                        <span className="text-xs font-bold uppercase text-indigo-500 tracking-wider">Tổng SKU</span>
+                        <span className="text-lg font-black text-indigo-900">{isLoading ? '...' : new Intl.NumberFormat('vi-VN').format(totalSKUs)}</span>
                     </div>
-                    <div className="bg-indigo-100 p-4 rounded-lg text-center">
-                        <div className="text-sm font-medium text-indigo-800">Tổng ID (sản phẩm)</div>
-                        <div className="mt-1 text-2xl font-bold text-indigo-900">{isLoading ? '...' : new Intl.NumberFormat('vi-VN').format(totalProducts)}</div>
+                    <div className="flex items-baseline gap-2 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
+                        <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">Tổng sản phẩm</span>
+                        <span className="text-lg font-black text-slate-700">{isLoading ? '...' : new Intl.NumberFormat('vi-VN').format(totalProducts)}</span>
                     </div>
                 </div>
 
@@ -340,45 +338,51 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
                 }}
             />
 
-            <div className="flex-grow overflow-auto">
-                <table className="divide-y divide-slate-200 table-fixed">
-                    <thead className="bg-slate-50 sticky top-0 z-10">
+            <div className="flex-grow overflow-auto custom-scrollbar relative">
+                <table className="divide-y divide-slate-100 table-fixed w-full">
+                    {/* Header đậm màu hơn */}
+                    <thead className="bg-slate-100 sticky top-0 z-10 shadow-sm border-b border-slate-200">
                         <tr>
                             {orderedTableHeaders.map(({ key, label }) => (
                                  <th 
                                      key={key} 
                                      scope="col" 
-                                     className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider group relative select-none"
+                                     className="px-6 py-4 text-left text-xs font-extrabold text-slate-800 uppercase tracking-wider group relative select-none"
                                      style={{ width: columnWidths[key] ? `${columnWidths[key]}px` : 'auto' }}
                                  >
-                                    <button onClick={() => requestSort(key)} className="flex items-center gap-1 transition-colors hover:text-slate-900">
+                                    <button onClick={() => requestSort(key)} className="flex items-center gap-1 hover:text-indigo-600 transition-colors w-full">
                                         {label} {getSortIcon(key)}
                                     </button>
                                     <div
                                         onMouseDown={handleResizeMouseDown(key)}
-                                        className="absolute top-0 -right-2 w-4 h-full cursor-col-resize select-none z-20 flex items-center justify-center"
+                                        className="absolute top-1/2 -translate-y-1/2 -right-1 w-4 h-6 cursor-col-resize z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                                     >
-                                        <div className="w-px h-1/2 bg-slate-300 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                                        <div className="w-0.5 h-full bg-indigo-300 rounded-full" />
                                     </div>
                                 </th>
                             ))}
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-slate-200">
+                    <tbody className="bg-white divide-y divide-slate-100">
                         {isLoading ? (
-                            <tr><td colSpan={orderedTableHeaders.length} className="text-center py-10 text-slate-700">Đang tải dữ liệu sản phẩm...</td></tr>
+                            <tr><td colSpan={orderedTableHeaders.length} className="text-center py-20 text-slate-400">
+                                <div className="flex flex-col items-center justify-center gap-2">
+                                    <div className="w-8 h-8 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"/>
+                                    <span>Đang tải dữ liệu...</span>
+                                </div>
+                            </td></tr>
                         ) : sortedProducts.length > 0 ? (
                             sortedProducts.map((product, index) => (
-                                <tr key={`${product.id}-${index}`} onClick={() => onProductSelect(product)} className="hover:bg-indigo-50 cursor-pointer transition-colors">
+                                <tr key={`${product.id}-${index}`} onClick={() => onProductSelect(product)} className="hover:bg-indigo-50/60 cursor-pointer transition-colors group border-b border-slate-50 last:border-none">
                                     {orderedTableHeaders.map(({ key }) => (
-                                        <td key={key} className={`px-6 py-4 text-sm ${cellClassMap[key]} break-words align-top`}>
-                                            {key === 'displayPrice' ? formatCurrency(product[key] as number) : product[key]}
+                                        <td key={key} className={`px-6 py-4 text-sm ${cellClassMap[key]} break-words align-top group-hover:text-indigo-900 transition-colors`}>
+                                            {key === 'displayPrice' || key === 'finalPrice' ? formatCurrency(Number(product[key])) : product[key]}
                                         </td>
                                     ))}
                                 </tr>
                             ))
                         ) : (
-                             <tr><td colSpan={orderedTableHeaders.length} className="text-center py-10 text-slate-700">Không tìm thấy sản phẩm nào.</td></tr>
+                             <tr><td colSpan={orderedTableHeaders.length} className="text-center py-20 text-slate-400">Không tìm thấy sản phẩm nào.</td></tr>
                         )}
                     </tbody>
                 </table>

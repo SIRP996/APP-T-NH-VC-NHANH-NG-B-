@@ -42,42 +42,47 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ options, selectedValue,
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={disabled}
-        className="block w-full pl-4 pr-10 py-2 text-base border-2 border-indigo-600 bg-slate-800 text-white sm:text-sm rounded-lg text-left flex justify-between items-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-indigo-400 disabled:bg-slate-600 disabled:border-slate-700 disabled:cursor-not-allowed"
+        className={`group w-full pl-4 pr-10 py-2.5 text-sm font-bold text-left rounded-xl transition-all duration-200 border flex justify-between items-center focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500/50
+        ${disabled 
+            ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed' 
+            : 'bg-white border-transparent text-slate-700 shadow-sm hover:border-indigo-300 hover:shadow-md'
+        }`}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        <span className="truncate">
+        <span className={`truncate ${!selectedValue ? 'text-slate-400' : 'text-slate-900'}`}>
           {selectedLabel}
         </span>
-        <ChevronDownIcon className={`w-5 h-5 text-slate-300 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDownIcon className={`w-4 h-4 text-slate-400 transition-transform duration-200 group-hover:text-indigo-500 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
-        <ul
-          className="absolute z-10 mt-1 w-full bg-slate-800 shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm"
-          role="listbox"
-        >
-          <li
-            onClick={() => handleSelect(null)}
-            className="text-slate-300 cursor-pointer select-none relative py-2 pl-4 pr-9 hover:bg-slate-700"
-            role="option"
-          >
-            {placeholder}
-          </li>
-          {options.map(option => (
+        <div className="absolute z-50 mt-2 w-full bg-white rounded-xl shadow-xl border border-slate-100 py-1 animate-in fade-in zoom-in-95 duration-100 origin-top-left">
+            <ul className="max-h-60 overflow-auto focus:outline-none p-1 custom-scrollbar" role="listbox">
             <li
-              key={option.value}
-              onClick={() => handleSelect(option.value)}
-              className={`cursor-pointer select-none relative py-2 pl-4 pr-9 ${
-                selectedValue === option.value ? 'bg-blue-600 text-white' : 'text-white hover:bg-slate-700'
-              }`}
-              role="option"
-              aria-selected={selectedValue === option.value}
+                onClick={() => handleSelect(null)}
+                className="text-slate-500 cursor-pointer select-none relative py-2.5 pl-3 pr-3 rounded-lg hover:bg-slate-50 text-sm transition-colors font-medium"
+                role="option"
             >
-              <span className="truncate">{option.label}</span>
+                {placeholder}
             </li>
-          ))}
-        </ul>
+            {options.map(option => (
+                <li
+                key={option.value}
+                onClick={() => handleSelect(option.value)}
+                className={`cursor-pointer select-none relative py-2.5 pl-3 pr-3 rounded-lg text-sm transition-colors mb-0.5 ${
+                    selectedValue === option.value 
+                    ? 'bg-indigo-50 text-indigo-700 font-bold' 
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 font-medium'
+                }`}
+                role="option"
+                aria-selected={selectedValue === option.value}
+                >
+                <span className="truncate block">{option.label}</span>
+                </li>
+            ))}
+            </ul>
+        </div>
       )}
     </div>
   );

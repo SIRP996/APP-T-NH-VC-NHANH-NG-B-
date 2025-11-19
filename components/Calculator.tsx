@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Product, VoucherType } from '../types';
 import { CalculatorIcon, CogIcon, CopyIcon, CheckIcon } from './Icons';
@@ -17,13 +16,17 @@ interface InputFieldProps {
     placeholder?: string;
     type?: string;
     onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+    onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
+    onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+    suffix?: React.ReactNode;
+    className?: string;
 }
 
 const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
-    ({ label, id, value, onChange, placeholder, type = "text", onKeyDown }, ref) => (
-        <div>
-            <label htmlFor={id} className="block text-sm font-semibold text-slate-900">{label}</label>
-            <div className="mt-1">
+    ({ label, id, value, onChange, placeholder, type = "text", onKeyDown, onFocus, onBlur, suffix, className }, ref) => (
+        <div className={`group ${className}`}>
+            {label && <label htmlFor={id} className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">{label}</label>}
+            <div className="relative transition-all duration-200">
                 <input
                     ref={ref}
                     type={type}
@@ -31,10 +34,13 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                     value={value}
                     onChange={onChange}
                     onKeyDown={onKeyDown}
+                    onFocus={onFocus}
+                    onBlur={onBlur}
                     placeholder={placeholder}
                     autoComplete="off"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500 sm:text-sm bg-white text-slate-900 placeholder-slate-400 font-medium transition-all duration-200"
+                    className="block w-full px-4 py-3 bg-white border border-slate-200 text-slate-900 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all sm:text-sm font-bold shadow-sm placeholder:text-slate-300 hover:border-indigo-200"
                 />
+                {suffix && <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">{suffix}</div>}
             </div>
         </div>
     )
@@ -57,15 +63,25 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
     const [desiredPrice, setDesiredPrice] = useState('');
     const [voucherType, setVoucherType] = useState<VoucherType>(VoucherType.Percentage);
     const [voucherValue, setVoucherValue] = useState('');
+    
+    // New states for conditional vouchers
+    const [minOrderValue, setMinOrderValue] = useState('');
+    const [maxDiscountValue, setMaxDiscountValue] = useState('');
+
     const [result, setResult] = useState<number | null>(null);
+    const [appliedPlatformDiscount, setAppliedPlatformDiscount] = useState<number>(0); // To show user how much platform actually paid
 
     const voucherInputRef = useRef<HTMLInputElement>(null);
     const [isCopied, setIsCopied] = useState(false);
     const [isIdCopied, setIsIdCopied] = useState(false);
     const [isExclusiveIdCopied, setIsExclusiveIdCopied] = useState(false);
     const [currentTime, setCurrentTime] = useState(new Date());
+    
+    // Quick Input States
     const [isQuickPriceInput, setIsQuickPriceInput] = useState(true);
     const [isDesiredPriceFocused, setIsDesiredPriceFocused] = useState(false);
+    const [isMinOrderFocused, setIsMinOrderFocused] = useState(false);
+    const [isMaxDiscountFocused, setIsMaxDiscountFocused] = useState(false);
 
 
     const [presetVouchers, setPresetVouchers] = useState<number[]>(() => {
@@ -85,8 +101,9 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
             setExclusiveId(selectedProduct.exclusiveId || '');
             setProductName(selectedProduct.name);
             setCurrentPrice(String(selectedProduct.displayPrice));
-            setResult(null); // Reset result when a new product is selected
-            setDesiredPrice(''); // Reset desired price on new product selection
+            setResult(null); 
+            setDesiredPrice(''); 
+            setAppliedPlatformDiscount(0);
         } else {
              setProductId('');
              setExclusiveId('');
@@ -95,6 +112,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
              setDesiredPrice('');
              setVoucherValue('');
              setResult(null);
+             setAppliedPlatformDiscount(0);
         }
     }, [selectedProduct]);
 
@@ -139,39 +157,106 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
         currentPriceStr: string,
         desiredPriceStr: string,
         voucherValueStr: string,
-        vType: VoucherType
-    ): number | null => {
+        vType: VoucherType,
+        minOrderStr: string,
+        maxDiscountStr: string
+    ): { sellerVoucher: number | null, platformContribution: number } => {
         const current = parseFloat(currentPriceStr);
         const desired = parseFloat(desiredPriceStr);
         const voucher = parseFloat(voucherValueStr);
+        const minOrder = minOrderStr ? parseFloat(minOrderStr) : 0;
+        const maxDiscount = maxDiscountStr ? parseFloat(maxDiscountStr) : Infinity;
 
         if (isNaN(current) || isNaN(desired)) {
-            return null;
+            return { sellerVoucher: null, platformContribution: 0 };
         }
 
         let sellerVoucher = 0;
+        let platformContribution = 0;
+
         if (vType === VoucherType.Percentage) {
             if (isNaN(voucher) || voucher >= 100) {
-                return null;
+                return { sellerVoucher: null, platformContribution: 0 };
             }
-            sellerVoucher = current - (desired / (1 - voucher / 100));
+
+            const voucherPercent = voucher / 100;
+
+            // LOGIC TÍNH NGƯỢC (BACKWARDS CALCULATION)
+            
+            // BƯỚC 1: Tính giá trị đơn hàng cần thiết (PriceAfterSeller) nếu CHƯA xét Max Cap.
+            // Công thức: Desired = PriceAfterSeller * (1 - %)
+            // => PriceAfterSeller = Desired / (1 - %)
+            let priceAfterSeller = desired / (1 - voucherPercent);
+            let calculatedDiscount = priceAfterSeller * voucherPercent;
+
+            // BƯỚC 2: Kiểm tra Max Cap (Giảm tối đa)
+            // Nếu mức giảm tính toán > Max Cap, thì sàn chỉ giảm đúng Max Cap.
+            // Khi đó công thức trở thành: Desired = PriceAfterSeller - MaxCap
+            // => PriceAfterSeller = Desired + MaxCap
+            if (calculatedDiscount > maxDiscount) {
+                priceAfterSeller = desired + maxDiscount;
+                calculatedDiscount = maxDiscount; // Sàn chỉ trả maxCap
+            }
+
+            // BƯỚC 3: Kiểm tra Min Order (Đơn tối thiểu)
+            // Giá sau khi người bán giảm (priceAfterSeller) phải >= Min Order thì voucher mới active
+            if (priceAfterSeller < minOrder) {
+                // Không đủ điều kiện voucher -> Sàn không hỗ trợ đồng nào
+                platformContribution = 0;
+                // Người bán phải giảm toàn bộ chênh lệch để đạt giá mong muốn
+                // PriceAfterSeller lúc này chính là DesiredPrice (vì không có voucher sàn)
+                priceAfterSeller = desired; 
+                sellerVoucher = current - desired;
+            } else {
+                // Đủ điều kiện
+                platformContribution = calculatedDiscount;
+                sellerVoucher = current - priceAfterSeller;
+            }
+
         } else {
+            // Voucher tiền mặt cố định (ít khi có điều kiện phức tạp kiểu % nên giữ đơn giản)
             const platformVoucher = isNaN(voucher) ? 0 : voucher;
-            sellerVoucher = current - desired - platformVoucher;
+            
+            // Vẫn kiểm tra Min Order cho Voucher tiền mặt
+            if ((desired + platformVoucher) < minOrder) {
+                 platformContribution = 0;
+                 sellerVoucher = current - desired;
+            } else {
+                 platformContribution = platformVoucher;
+                 sellerVoucher = current - desired - platformVoucher;
+            }
         }
-        return sellerVoucher;
+
+        return { sellerVoucher, platformContribution };
     };
 
     const handleCalculation = useCallback(() => {
-        const calculationResult = performCalculation(currentPrice, desiredPrice, voucherValue, voucherType);
-        setResult(calculationResult);
-    }, [currentPrice, desiredPrice, voucherValue, voucherType]);
+        const { sellerVoucher, platformContribution } = performCalculation(
+            currentPrice, 
+            desiredPrice, 
+            voucherValue, 
+            voucherType,
+            minOrderValue.replace(/[^0-9]/g, ''), // Ensure clean raw numbers
+            maxDiscountValue.replace(/[^0-9]/g, '')
+        );
+        setResult(sellerVoucher);
+        setAppliedPlatformDiscount(platformContribution);
+    }, [currentPrice, desiredPrice, voucherValue, voucherType, minOrderValue, maxDiscountValue]);
 
     const handlePresetClick = (val: number) => {
         const newVoucherStr = String(val);
         setVoucherValue(newVoucherStr); 
-        const calculationResult = performCalculation(currentPrice, desiredPrice, newVoucherStr, VoucherType.Percentage);
-        setResult(calculationResult);
+        // Trigger calculation immediately with new voucher value but current state values for others
+        const { sellerVoucher, platformContribution } = performCalculation(
+            currentPrice, 
+            desiredPrice, 
+            newVoucherStr, 
+            VoucherType.Percentage,
+            minOrderValue.replace(/[^0-9]/g, ''),
+            maxDiscountValue.replace(/[^0-9]/g, '')
+        );
+        setResult(sellerVoucher);
+        setAppliedPlatformDiscount(platformContribution);
     };
 
     const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -202,6 +287,9 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
         return value.replace(/[^0-9]/g, '');
     };
 
+    // --- Quick Input Handlers & Memoized Values ---
+
+    // 1. Desired Price Logic
     const desiredPriceValue = useMemo(() => {
         if (!desiredPrice) return '';
         const numericValue = parseInt(desiredPrice, 10);
@@ -230,23 +318,75 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
         }
     };
 
-    const handleSavePresets = () => {
-        const sortedPresets = [...tempSelectedPresets].sort((a, b) => a - b);
-        setPresetVouchers(sortedPresets);
-        localStorage.setItem('presetVouchers', JSON.stringify(sortedPresets));
-        setIsSettingsOpen(false);
+    // 2. Min Order Logic
+    const minOrderDisplayValue = useMemo(() => {
+        if (!minOrderValue) return '';
+        const numericValue = parseInt(minOrderValue, 10);
+        if (isNaN(numericValue)) return '';
+    
+        if (isQuickPriceInput && isMinOrderFocused) {
+            return String(Math.round(numericValue / 1000));
+        } else {
+            return formatCurrencyForInput(minOrderValue);
+        }
+    }, [minOrderValue, isQuickPriceInput, isMinOrderFocused]);
+
+    const handleMinOrderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const rawValue = e.target.value;
+        const numericString = parseInput(rawValue);
+
+        if (isQuickPriceInput) {
+            const numericValue = parseInt(numericString, 10);
+            if (isNaN(numericValue)) {
+                setMinOrderValue('');
+            } else {
+                setMinOrderValue(String(numericValue * 1000));
+            }
+        } else {
+            setMinOrderValue(numericString);
+        }
     };
 
-    const handleCopy = () => {
+    // 3. Max Discount Logic
+    const maxDiscountDisplayValue = useMemo(() => {
+        if (!maxDiscountValue) return '';
+        const numericValue = parseInt(maxDiscountValue, 10);
+        if (isNaN(numericValue)) return '';
+    
+        if (isQuickPriceInput && isMaxDiscountFocused) {
+            return String(Math.round(numericValue / 1000));
+        } else {
+            return formatCurrencyForInput(maxDiscountValue);
+        }
+    }, [maxDiscountValue, isQuickPriceInput, isMaxDiscountFocused]);
+
+    const handleMaxDiscountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const rawValue = e.target.value;
+        const numericString = parseInput(rawValue);
+
+        if (isQuickPriceInput) {
+            const numericValue = parseInt(numericString, 10);
+            if (isNaN(numericValue)) {
+                setMaxDiscountValue('');
+            } else {
+                setMaxDiscountValue(String(numericValue * 1000));
+            }
+        } else {
+            setMaxDiscountValue(numericString);
+        }
+    };
+
+
+    const handleCopyResult = () => {
         if (result !== null) {
-            navigator.clipboard.writeText(String(Math.round(result))).then(() => {
+            const textToCopy = String(Math.round(result));
+            navigator.clipboard.writeText(textToCopy).then(() => {
                 setIsCopied(true);
-                setTimeout(() => setIsCopied(false), 2000); 
+                setTimeout(() => setIsCopied(false), 2000);
             });
         }
     };
-    
-    const handleIdCopy = () => {
+     const handleCopyId = () => {
         if (productId) {
             navigator.clipboard.writeText(productId).then(() => {
                 setIsIdCopied(true);
@@ -255,7 +395,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
         }
     };
 
-    const handleExclusiveIdCopy = () => {
+    const handleCopyExclusiveId = () => {
         if (exclusiveId) {
             navigator.clipboard.writeText(exclusiveId).then(() => {
                 setIsExclusiveIdCopied(true);
@@ -264,236 +404,311 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
         }
     };
 
-    const toggleSettings = () => {
-        if (!isSettingsOpen) {
-            setTempSelectedPresets(presetVouchers);
-        }
-        setIsSettingsOpen(!isSettingsOpen);
-    };
+    const toggleSettings = () => setIsSettingsOpen(!isSettingsOpen);
 
-    const handlePresetSelectionChange = (voucherValue: number) => {
+    const handlePresetSelection = (voucher: number) => {
         setTempSelectedPresets(prev => {
-            if (prev.includes(voucherValue)) {
-                return prev.filter(v => v !== voucherValue);
+            if (prev.includes(voucher)) {
+                return prev.filter(v => v !== voucher);
             } else {
-                return [...prev, voucherValue]; 
+                if (prev.length >= 6) return prev; // Max 6 presets
+                return [...prev, voucher].sort((a, b) => a - b);
             }
         });
     };
 
+    const savePresets = () => {
+        setPresetVouchers(tempSelectedPresets);
+        localStorage.setItem('presetVouchers', JSON.stringify(tempSelectedPresets));
+        setIsSettingsOpen(false);
+    };
+
+    useEffect(() => {
+        if (isSettingsOpen) {
+            setTempSelectedPresets(presetVouchers);
+        }
+    }, [isSettingsOpen, presetVouchers]);
+
+
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 w-full h-full">
-            <div className="flex items-start justify-between gap-3 mb-6">
+        <div className="bg-white p-6 rounded-3xl shadow-lg border border-slate-100 h-full flex flex-col relative overflow-hidden">
+             {/* Header Card */}
+             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-3">
-                    <CalculatorIcon className="w-8 h-8 text-indigo-600 flex-shrink-0 mt-1" />
-                     <div>
-                        <h2 className="text-2xl font-bold text-slate-900">Công cụ tính giá</h2>
-                        <p className="text-sm font-medium text-indigo-700 truncate" title={dealListName}>{dealListName}</p>
+                    <div className="p-2.5 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-200">
+                        <CalculatorIcon className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-black text-slate-900 tracking-tight">Tính giá</h2>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{dealListName}</p>
                     </div>
                 </div>
-                <div className="text-4xl font-bold text-slate-900 bg-slate-100 px-6 py-3 rounded-lg flex-shrink-0">
-                     <span>{formattedTime}</span>
+                <div className="bg-slate-100 px-3 py-1.5 rounded-lg font-mono text-xs font-bold text-slate-600">
+                    {formattedTime}
                 </div>
             </div>
-            <div className="space-y-4">
-                 <div>
-                    <label htmlFor="productSearch" className="block text-sm font-semibold text-slate-900">Sản phẩm đang chọn</label>
-                    <textarea
-                        id="productSearch"
-                        value={productName}
-                        onChange={handleProductNameChange}
-                        placeholder="Chọn một sản phẩm từ bảng hoặc dán ID vào đây..."
-                        className="mt-1 w-full p-3 border border-slate-300 rounded-lg shadow-sm bg-white text-slate-900 sm:text-sm resize-y min-h-[60px] h-[60px] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium transition-all duration-200"
+
+            <div className="flex-grow overflow-y-auto custom-scrollbar space-y-5 pr-2 pb-2">
+                
+                 {/* Product Info Section */}
+                 <div className="space-y-3">
+                    <div className="relative">
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 ml-1">Sản phẩm đang chọn</label>
+                        <textarea
+                            value={productName}
+                            onChange={handleProductNameChange}
+                            placeholder="Chọn hoặc nhập ID..."
+                            rows={2}
+                            className="block w-full px-4 py-3 bg-slate-50 border-0 text-slate-900 rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all text-sm font-bold resize-none shadow-inner placeholder:text-slate-400 placeholder:font-medium"
+                        />
+                    </div>
+                     
+                    {/* IDs Display */}
+                    {(productId || exclusiveId) && (
+                        <div className="flex gap-2">
+                            {productId && (
+                                <div 
+                                    onClick={handleCopyId}
+                                    className="flex-1 bg-slate-50 rounded-xl px-3 py-2 border border-slate-100 flex items-center justify-between cursor-pointer group hover:border-indigo-200 hover:bg-indigo-50 transition-all"
+                                >
+                                    <div className="overflow-hidden">
+                                         <span className="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">ID Sản phẩm</span>
+                                         <span className="text-xs font-black text-slate-800 font-mono truncate block">{productId}</span>
+                                    </div>
+                                     {isIdCopied ? <CheckIcon className="w-4 h-4 text-green-500" /> : <CopyIcon className="w-4 h-4 text-slate-300 group-hover:text-indigo-500" />}
+                                </div>
+                            )}
+                             {exclusiveId && (
+                                <div 
+                                    onClick={handleCopyExclusiveId}
+                                    className="flex-1 bg-purple-50 rounded-xl px-3 py-2 border border-purple-100 flex items-center justify-between cursor-pointer group hover:border-purple-300 transition-all"
+                                >
+                                    <div className="overflow-hidden">
+                                         <span className="text-[10px] font-bold text-purple-400 uppercase block mb-0.5">ID Độc quyền</span>
+                                         <span className="text-xs font-black text-purple-800 font-mono truncate block">{exclusiveId}</span>
+                                    </div>
+                                     {isExclusiveIdCopied ? <CheckIcon className="w-4 h-4 text-green-500" /> : <CopyIcon className="w-4 h-4 text-purple-300 group-hover:text-purple-600" />}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                <hr className="border-slate-100" />
+
+                {/* Price Inputs */}
+                <div className="space-y-4">
+                    <InputField
+                        label="Giá hiển thị"
+                        id="currentPrice"
+                        value={currentPrice ? formatCurrency(parseInt(currentPrice)) : ''}
+                        onChange={(e) => setCurrentPrice(e.target.value.replace(/[^0-9]/g, ''))}
+                        suffix={<span className="text-slate-400 text-xs font-bold">VND</span>}
+                    />
+                    
+                    <InputField
+                        label="Giá cuối mong muốn"
+                        id="desiredPrice"
+                        value={desiredPriceValue}
+                        onChange={handleDesiredPriceChange}
+                        onFocus={() => setIsDesiredPriceFocused(true)}
+                        onBlur={() => setIsDesiredPriceFocused(false)}
+                        onKeyDown={handleDesiredPriceKeyDown}
+                        placeholder={isQuickPriceInput ? "Nhập 100 = 100k" : "Nhập số tiền"}
+                        suffix={
+                            <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1.5 cursor-pointer group" onClick={() => setIsQuickPriceInput(!isQuickPriceInput)} title="Bật/Tắt nhập nhanh (x1000)">
+                                     <span className={`text-[10px] font-bold transition-colors ${isQuickPriceInput ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`}>
+                                        Nhập nhanh (x1000)
+                                    </span>
+                                    <div className={`w-8 h-4 rounded-full relative transition-colors ${isQuickPriceInput ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                                        <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-all ${isQuickPriceInput ? 'left-4.5' : 'left-0.5'}`} style={{ left: isQuickPriceInput ? 'calc(100% - 14px)' : '2px' }}/>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        className="shadow-sm"
                     />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 -mt-2">
-                    {productId && (
-                        <div>
-                            <label htmlFor="selectedProductId" className="block text-xs font-medium text-slate-800">ID Sản phẩm</label>
-                            <div className="mt-1 flex items-center gap-2">
-                                <input
-                                    id="selectedProductId"
-                                    type="text"
-                                    readOnly
-                                    value={productId}
-                                    title={productId}
-                                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg bg-slate-100 text-slate-900 sm:text-sm focus:outline-none focus:ring-1 focus:ring-indigo-300 cursor-default"
-                                />
-                                <button
-                                    onClick={handleIdCopy}
-                                    className="p-2 rounded-md text-slate-700 hover:bg-indigo-100 hover:text-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex-shrink-0"
-                                    aria-label="Sao chép ID sản phẩm"
-                                >
-                                    {isIdCopied ? <CheckIcon className="w-5 h-5 text-green-600" /> : <CopyIcon className="w-5 h-5" />}
-                                </button>
-                            </div>
+                {/* Voucher Inputs */}
+                <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-100 space-y-4">
+                    <div className="flex justify-between items-center">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Voucher Sàn</label>
+                         <div className="flex bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+                            <button
+                                onClick={() => setVoucherType(VoucherType.Percentage)}
+                                className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${voucherType === VoucherType.Percentage ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100'}`}
+                            >
+                                Phần trăm (%)
+                            </button>
+                            <button
+                                onClick={() => setVoucherType(VoucherType.Fixed)}
+                                className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${voucherType === VoucherType.Fixed ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100'}`}
+                            >
+                                Số tiền (VND)
+                            </button>
                         </div>
-                    )}
-                    {exclusiveId && (
-                         <div>
-                            <label htmlFor="selectedExclusiveId" className="block text-xs font-medium text-purple-800">ID Độc quyền</label>
-                            <div className="mt-1 flex items-center gap-2">
-                                <input
-                                    id="selectedExclusiveId"
-                                    type="text"
-                                    readOnly
-                                    value={exclusiveId}
-                                    title={exclusiveId}
-                                    className="w-full px-3 py-1.5 border border-purple-200 rounded-lg bg-purple-50 text-purple-900 sm:text-sm focus:outline-none focus:ring-1 focus:ring-purple-300 cursor-default"
-                                />
-                                <button
-                                    onClick={handleExclusiveIdCopy}
-                                    className="p-2 rounded-md text-purple-700 hover:bg-purple-100 hover:text-purple-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 flex-shrink-0"
-                                    aria-label="Sao chép ID độc quyền"
-                                >
-                                    {isExclusiveIdCopied ? <CheckIcon className="w-5 h-5 text-green-600" /> : <CopyIcon className="w-5 h-5" />}
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-                
-                <InputField 
-                    label="Giá hiển thị hiện tại" 
-                    id="currentPrice" 
-                    value={formatCurrencyForInput(currentPrice)} 
-                    onChange={(e) => setCurrentPrice(parseInput(e.target.value))} 
-                    placeholder="ví dụ: 139,000"
-                    type="text" 
-                    onKeyDown={handleKeyDown}
-                />
-                <div>
-                    <div className="flex items-center justify-between">
-                        <label htmlFor="desiredPrice" className="block text-sm font-semibold text-slate-900">Giá cuối cùng mong muốn</label>
-                        <label htmlFor="quick-price-toggle" className="flex items-center cursor-pointer">
-                            <span className="text-xs font-medium text-slate-800 mr-2">Nhập nhanh (x1000)</span>
+                    </div>
+
+                    <div className="relative">
+                         <input
+                            ref={voucherInputRef}
+                            type="number" // Changed to number for better mobile input
+                            value={voucherValue}
+                            onChange={(e) => setVoucherType(VoucherType.Percentage) ? setVoucherValue(e.target.value) : setVoucherValue(e.target.value)} // Keep simple for now
+                            onKeyDown={handleKeyDown}
+                            placeholder={voucherType === VoucherType.Percentage ? "Nhập %" : "Nhập số tiền"}
+                            className="block w-full px-4 py-3 bg-white border border-slate-200 text-slate-900 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-lg font-bold shadow-sm text-center placeholder:text-slate-300"
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
+                            {voucherType === VoucherType.Percentage ? '%' : ''}
+                        </span>
+                    </div>
+
+                    {/* Conditional Voucher Fields (Min Order & Max Discount) */}
+                    {voucherType === VoucherType.Percentage && (
+                        <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
                             <div className="relative">
                                 <input
-                                    id="quick-price-toggle"
-                                    type="checkbox"
-                                    className="sr-only peer"
-                                    checked={isQuickPriceInput}
-                                    onChange={() => setIsQuickPriceInput(!isQuickPriceInput)}
+                                    type="text"
+                                    value={minOrderDisplayValue}
+                                    onChange={handleMinOrderChange}
+                                    onFocus={() => setIsMinOrderFocused(true)}
+                                    onBlur={() => setIsMinOrderFocused(false)}
+                                    onKeyDown={handleKeyDown}
+                                    placeholder={isQuickPriceInput ? "Đơn tối thiểu (x1k)" : "Đơn tối thiểu"}
+                                    className="block w-full pl-3 pr-8 py-2 bg-white border border-slate-200 text-slate-900 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs font-bold shadow-sm placeholder:text-slate-300"
                                 />
-                                <div className="w-10 h-6 bg-slate-300 rounded-full peer-checked:bg-indigo-600 transition-colors"></div>
-                                <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-4"></div>
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] font-black pointer-events-none">MIN</span>
                             </div>
-                        </label>
-                    </div>
-                    <div className="mt-1">
-                        <input
-                            type="text"
-                            id="desiredPrice"
-                            value={desiredPriceValue}
-                            onChange={handleDesiredPriceChange}
-                            onFocus={() => setIsDesiredPriceFocused(true)}
-                            onBlur={() => setIsDesiredPriceFocused(false)}
-                            onKeyDown={handleDesiredPriceKeyDown}
-                            placeholder={isQuickPriceInput ? "ví dụ: 99" : "ví dụ: 99,000"}
-                            autoComplete="off"
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500 sm:text-sm bg-white text-slate-900 placeholder-slate-400 font-medium transition-all duration-200"
-                        />
-                    </div>
-                </div>
-                <div>
-                    <label className="block text-sm font-semibold text-slate-900">Loại Voucher</label>
-                    <div className="mt-2 flex gap-4">
-                        <label className="flex items-center cursor-pointer">
-                            <input type="radio" value={VoucherType.Percentage} checked={voucherType === VoucherType.Percentage} onChange={() => setVoucherType(VoucherType.Percentage)} className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-slate-300" />
-                            <span className="ml-2 text-sm text-slate-900">Phần trăm (%)</span>
-                        </label>
-                        <label className="flex items-center cursor-pointer">
-                            <input type="radio" value={VoucherType.Fixed} checked={voucherType === VoucherType.Fixed} onChange={() => setVoucherType(VoucherType.Fixed)} className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-slate-300" />
-                            <span className="ml-2 text-sm text-slate-900">Số tiền cố định</span>
-                        </label>
-                    </div>
-                </div>
-                 <InputField 
-                    ref={voucherInputRef}
-                    label={voucherType === VoucherType.Percentage ? "Voucher Sàn (%)" : "Số tiền Voucher Sàn"}
-                    id="voucherValue" 
-                    value={voucherType === VoucherType.Fixed ? formatCurrencyForInput(voucherValue) : voucherValue} 
-                    onChange={(e) => setVoucherValue(parseInput(e.target.value))} 
-                    placeholder={voucherType === VoucherType.Percentage ? "ví dụ: 10" : "ví dụ: 10,000"} 
-                    type="text"
-                    onKeyDown={handleKeyDown}
-                />
-
-                {voucherType === VoucherType.Percentage && (
-                    <div className="pt-2">
-                         <div className="flex justify-between items-center mb-2">
-                            <p className="text-xs text-slate-700">Hoặc chọn nhanh voucher thường dùng:</p>
-                            <button onClick={toggleSettings} className="text-slate-700 hover:text-indigo-600 p-1 rounded-full hover:bg-slate-100" aria-label="Cài đặt voucher nhanh">
-                                <CogIcon className="w-5 h-5" />
-                            </button>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={maxDiscountDisplayValue}
+                                    onChange={handleMaxDiscountChange}
+                                    onFocus={() => setIsMaxDiscountFocused(true)}
+                                    onBlur={() => setIsMaxDiscountFocused(false)}
+                                    onKeyDown={handleKeyDown}
+                                    placeholder={isQuickPriceInput ? "Giảm tối đa (x1k)" : "Giảm tối đa"}
+                                    className="block w-full pl-3 pr-8 py-2 bg-white border border-slate-200 text-slate-900 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs font-bold shadow-sm placeholder:text-slate-300"
+                                />
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] font-black pointer-events-none">MAX</span>
+                            </div>
                         </div>
-                         {isSettingsOpen && (
-                            <div className="p-3 bg-slate-50 rounded-md border mb-3 transition-all duration-300 ease-in-out">
-                                <p className="text-sm font-medium text-slate-900 block mb-3">Chọn voucher để hiển thị:</p>
-                                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mb-4">
-                                    {ALL_POSSIBLE_VOUCHERS.map((val) => (
-                                        <label key={val} className="flex items-center justify-center gap-2 p-2 rounded-md hover:bg-slate-200 cursor-pointer text-sm text-slate-900">
-                                            <input
-                                                type="checkbox"
-                                                checked={tempSelectedPresets.includes(val)}
-                                                onChange={() => handlePresetSelectionChange(val)}
-                                                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                                            />
-                                            {val}%
-                                        </label>
-                                    ))}
-                                </div>
-                                <div className="flex justify-end">
-                                    <button onClick={handleSavePresets} className="px-4 py-1.5 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                        Lưu
+                    )}
+
+                    {/* Preset Vouchers */}
+                     {voucherType === VoucherType.Percentage && (
+                        <div>
+                            <div className="flex justify-between items-center mb-2 px-1">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Chọn nhanh</span>
+                                <button onClick={toggleSettings} className="text-slate-400 hover:text-indigo-600 transition-colors"><CogIcon className="w-4 h-4" /></button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {presetVouchers.map(v => (
+                                    <button
+                                        key={v}
+                                        onClick={() => handlePresetClick(v)}
+                                        className={`flex-1 min-w-[3rem] py-2 rounded-full text-xs font-bold border transition-all active:scale-95 ${
+                                            voucherValue === String(v) 
+                                            ? 'bg-slate-900 text-white border-slate-900 shadow-md shadow-slate-300' 
+                                            : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600 hover:shadow-sm'
+                                        }`}
+                                    >
+                                        {v}%
                                     </button>
-                                </div>
+                                ))}
                             </div>
-                        )}
-                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                            {presetVouchers.map((val) => (
-                                <button
-                                    key={val}
-                                    onClick={() => handlePresetClick(val)}
-                                    type="button"
-                                    className={`py-2 px-2 text-center rounded-md text-sm font-medium border transition-colors ${
-                                        voucherValue === String(val)
-                                            ? 'bg-indigo-600 text-white border-indigo-600'
-                                            : 'bg-white hover:bg-slate-100 text-slate-900 border-slate-300'
-                                    }`}
-                                >
-                                    {val}%
-                                </button>
-                            ))}
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
 
+            </div>
+
+             {/* Footer / Result */}
+            <div className="mt-auto pt-4 border-t border-slate-100">
                 <button
                     onClick={handleCalculation}
-                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                    className="w-full py-4 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white rounded-2xl font-black text-lg shadow-xl shadow-slate-300 hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 mb-4"
                 >
-                    Tính Voucher Người Bán
+                    Tính giá
                 </button>
 
-                {result !== null && (
-                    <div className="mt-6 p-4 rounded-lg bg-indigo-50 border border-indigo-200">
-                        <p className="text-sm font-semibold text-indigo-800 text-center">Voucher người bán cần có:</p>
-                        <div className="flex items-center justify-center gap-2 mt-1">
-                            <p className="text-4xl font-bold text-indigo-600 tracking-tight">{formatCurrency(result)} VND</p>
-                             <button
-                                onClick={handleCopy}
-                                className="p-2 rounded-full text-slate-700 hover:bg-indigo-100 hover:text-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                aria-label="Sao chép số tiền"
-                            >
-                                {isCopied ? <CheckIcon className="w-5 h-5 text-green-600" /> : <CopyIcon className="w-5 h-5" />}
-                            </button>
+                 {result !== null && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl p-1 shadow-lg shadow-indigo-200">
+                            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20 text-center relative overflow-hidden">
+                                {/* Platform Contribution Info */}
+                                {(minOrderValue || maxDiscountValue) && appliedPlatformDiscount > 0 && (
+                                    <div className="mb-3 pb-3 border-b border-white/20 text-indigo-100 text-xs font-medium">
+                                        <div className="flex justify-between items-center">
+                                            <span>Voucher sàn tài trợ:</span>
+                                            <span className="font-bold text-white">{formatCurrency(appliedPlatformDiscount)} đ</span>
+                                        </div>
+                                        {(parseFloat(maxDiscountValue.replace(/[^0-9]/g, '')) > 0 && appliedPlatformDiscount === parseFloat(maxDiscountValue.replace(/[^0-9]/g, ''))) && (
+                                            <div className="text-[10px] text-yellow-300 mt-1 font-bold italic">⚠️ Đã chạm trần giảm tối đa</div>
+                                        )}
+                                    </div>
+                                )}
+                                {(minOrderValue || maxDiscountValue) && appliedPlatformDiscount === 0 && voucherType === VoucherType.Percentage && voucherValue && (
+                                    <div className="mb-3 pb-3 border-b border-white/20 text-red-200 text-xs font-bold flex items-center justify-center gap-1">
+                                        <span>⚠️ Không đủ điều kiện áp mã sàn</span>
+                                    </div>
+                                )}
+
+                                <p className="text-indigo-100 text-xs font-bold uppercase tracking-widest mb-1">Voucher Người Bán (VND)</p>
+                                <div className="text-4xl font-black text-white drop-shadow-sm tracking-tight">
+                                    {formatCurrency(result)}
+                                </div>
+                                <button 
+                                    onClick={handleCopyResult}
+                                    className="absolute top-3 right-3 p-2 rounded-lg bg-white/10 hover:bg-white/20 text-indigo-100 transition-colors"
+                                    title="Sao chép kết quả"
+                                >
+                                     {isCopied ? <CheckIcon className="w-5 h-5 text-green-400" /> : <CopyIcon className="w-5 h-5" />}
+                                </button>
+                            </div>
                         </div>
-                         {result < 0 && <p className="text-center text-sm text-red-600 mt-2">Lưu ý: Giá trị âm có nghĩa là giá có thể giảm mà không cần thêm voucher của người bán.</p>}
                     </div>
                 )}
             </div>
+
+             {/* Settings Modal */}
+             {isSettingsOpen && (
+                <div className="absolute inset-0 bg-white z-50 p-6 animate-in fade-in zoom-in-95 duration-200 flex flex-col">
+                    <div className="flex justify-between items-center mb-6">
+                         <h3 className="font-bold text-lg text-slate-900">Cài đặt phím tắt %</h3>
+                         <button onClick={() => setIsSettingsOpen(false)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-slate-600">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                         </button>
+                    </div>
+                    <p className="text-sm text-slate-500 mb-4">Chọn tối đa 6 mức phần trăm thường dùng:</p>
+                    <div className="grid grid-cols-4 gap-3 mb-auto">
+                        {ALL_POSSIBLE_VOUCHERS.map(v => (
+                            <button
+                                key={v}
+                                onClick={() => handlePresetSelection(v)}
+                                className={`py-3 rounded-xl text-sm font-bold border transition-all ${
+                                    tempSelectedPresets.includes(v)
+                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                                    : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
+                                }`}
+                            >
+                                {v}%
+                            </button>
+                        ))}
+                    </div>
+                    <button 
+                        onClick={savePresets}
+                        className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg"
+                    >
+                        Lưu cài đặt
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
