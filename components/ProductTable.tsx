@@ -123,15 +123,21 @@ interface ProductTableProps {
     onProductSelect: (product: Product | null) => void;
     isLoading: boolean;
     activeDealListId: string | null;
+    searchInputRef?: React.RefObject<HTMLInputElement>;
 }
 
-export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductSelect, isLoading, activeDealListId }) => {
+export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductSelect, isLoading, activeDealListId, searchInputRef }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection } | null>({ key: 'name', direction: 'asc' });
 
     const [columnOrder, setColumnOrder] = useState<ColumnKey[]>(DEFAULT_COLUMN_ORDER);
     const [columnWidths, setColumnWidths] = useState<Record<ColumnKey, number>>(DEFAULT_COLUMN_WIDTHS);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+
+    // New State for keyboard navigation
+    const [selectedIndex, setSelectedIndex] = useState<number>(-1);
+    const tableContainerRef = useRef<HTMLDivElement>(null);
+
 
     const totalProducts = products.length;
     const totalSKUs = useMemo(() => new Set(products.map(p => p.id)).size, [products]);
@@ -222,6 +228,22 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
         return sortableItems;
     }, [filteredProducts, sortConfig]);
 
+    // Reset selection index when filtering
+    useEffect(() => {
+        setSelectedIndex(-1);
+    }, [searchTerm, sortedProducts.length]);
+
+    // Auto-scroll active row into view
+    useEffect(() => {
+        if (selectedIndex >= 0 && tableContainerRef.current) {
+            const rows = tableContainerRef.current.querySelectorAll('tbody tr');
+            if (rows[selectedIndex]) {
+                rows[selectedIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+        }
+    }, [selectedIndex]);
+
+
     const requestSort = (key: SortKey) => {
         let direction: SortDirection = 'asc';
         if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -277,18 +299,36 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
         window.addEventListener('mouseup', handleMouseUp);
     }, []);
     
+    // Handle keyboard inputs on search box
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setSelectedIndex(prev => Math.min(prev + 1, sortedProducts.length - 1));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setSelectedIndex(prev => Math.max(prev - 1, 0));
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (selectedIndex >= 0 && selectedIndex < sortedProducts.length) {
+                onProductSelect(sortedProducts[selectedIndex]);
+            } else if (sortedProducts.length > 0) {
+                // If nothing selected but Enter is pressed, select first item
+                onProductSelect(sortedProducts[0]);
+            }
+        }
+    };
+
     const orderedTableHeaders = useMemo(() => {
         return columnOrder.map(key => COLUMN_DEFINITIONS.find(c => c.key === key)!);
     }, [columnOrder]);
 
-    // Cập nhật style cho các ô dữ liệu để tăng độ tương phản
     const cellClassMap: Record<ColumnKey, string> = {
-        name: 'font-semibold text-slate-900 text-[15px]', // Đậm hơn chút
-        id: 'text-slate-700 font-bold font-mono text-xs', // Đổi từ gray-500 sang 700 và bold
+        name: 'font-semibold text-slate-900 text-[15px]',
+        id: 'text-slate-700 font-bold font-mono text-xs',
         exclusiveId: 'text-purple-700 font-mono text-xs bg-purple-50 px-2 py-1 rounded-md w-fit font-bold border border-purple-100',
-        displayPrice: 'text-slate-500 font-semibold', // Giá hiển thị nhạt hơn chút để làm nền cho giá cuối
-        finalPrice: 'text-indigo-900 font-extrabold text-[15px]', // Giá cuối đậm nhất, màu tối
-        gift: 'text-slate-700 text-xs', // Bỏ italic, cho đậm lên xíu
+        displayPrice: 'text-slate-500 font-semibold', 
+        finalPrice: 'text-indigo-900 font-extrabold text-[15px]',
+        gift: 'text-slate-700 text-xs', 
     };
     
     return (
@@ -300,10 +340,12 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
                             <SearchIcon className="w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                         </span>
                         <input
+                            ref={searchInputRef}
                             type="text"
-                            placeholder="Tìm kiếm sản phẩm..."
+                            placeholder="Tìm kiếm sản phẩm... (Phím tắt: /)"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
+                            onKeyDown={handleKeyDown}
                             className="w-full pl-11 pr-4 py-2.5 border-0 bg-slate-50 rounded-2xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-inner font-bold"
                         />
                     </div>
@@ -338,9 +380,8 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
                 }}
             />
 
-            <div className="flex-grow overflow-auto custom-scrollbar relative">
+            <div className="flex-grow overflow-auto custom-scrollbar relative" ref={tableContainerRef}>
                 <table className="divide-y divide-slate-100 table-fixed w-full">
-                    {/* Header đậm màu hơn */}
                     <thead className="bg-slate-100 sticky top-0 z-10 shadow-sm border-b border-slate-200">
                         <tr>
                             {orderedTableHeaders.map(({ key, label }) => (
@@ -372,15 +413,23 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
                                 </div>
                             </td></tr>
                         ) : sortedProducts.length > 0 ? (
-                            sortedProducts.map((product, index) => (
-                                <tr key={`${product.id}-${index}`} onClick={() => onProductSelect(product)} className="hover:bg-indigo-50/60 cursor-pointer transition-colors group border-b border-slate-50 last:border-none">
-                                    {orderedTableHeaders.map(({ key }) => (
-                                        <td key={key} className={`px-6 py-4 text-sm ${cellClassMap[key]} break-words align-top group-hover:text-indigo-900 transition-colors`}>
-                                            {key === 'displayPrice' || key === 'finalPrice' ? formatCurrency(Number(product[key])) : product[key]}
-                                        </td>
-                                    ))}
-                                </tr>
-                            ))
+                            sortedProducts.map((product, index) => {
+                                const isSelected = index === selectedIndex;
+                                return (
+                                    <tr 
+                                        key={`${product.id}-${index}`} 
+                                        onClick={() => onProductSelect(product)} 
+                                        onMouseEnter={() => setSelectedIndex(index)} // Sync hover with selection
+                                        className={`cursor-pointer transition-colors group border-b border-slate-50 last:border-none ${isSelected ? 'bg-indigo-100/60 ring-1 ring-inset ring-indigo-200' : 'hover:bg-indigo-50/60'}`}
+                                    >
+                                        {orderedTableHeaders.map(({ key }) => (
+                                            <td key={key} className={`px-6 py-4 text-sm ${cellClassMap[key]} break-words align-top ${isSelected ? 'text-indigo-900' : 'group-hover:text-indigo-900'} transition-colors`}>
+                                                {key === 'displayPrice' || key === 'finalPrice' ? formatCurrency(Number(product[key])) : product[key]}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                );
+                            })
                         ) : (
                              <tr><td colSpan={orderedTableHeaders.length} className="text-center py-20 text-slate-400">Không tìm thấy sản phẩm nào.</td></tr>
                         )}

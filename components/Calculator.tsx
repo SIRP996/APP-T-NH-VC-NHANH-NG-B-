@@ -72,6 +72,8 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
     const [appliedPlatformDiscount, setAppliedPlatformDiscount] = useState<number>(0); // To show user how much platform actually paid
 
     const voucherInputRef = useRef<HTMLInputElement>(null);
+    const desiredPriceInputRef = useRef<HTMLInputElement>(null);
+
     const [isCopied, setIsCopied] = useState(false);
     const [isIdCopied, setIsIdCopied] = useState(false);
     const [isExclusiveIdCopied, setIsExclusiveIdCopied] = useState(false);
@@ -104,6 +106,12 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
             setResult(null); 
             setDesiredPrice(''); 
             setAppliedPlatformDiscount(0);
+            
+            // Auto-focus desired price input when product is selected
+            // Use setTimeout to ensure DOM is ready and to account for any animation
+            setTimeout(() => {
+                desiredPriceInputRef.current?.focus();
+            }, 50);
         } else {
              setProductId('');
              setExclusiveId('');
@@ -507,6 +515,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                     />
                     
                     <InputField
+                        ref={desiredPriceInputRef}
                         label="Giá cuối mong muốn"
                         id="desiredPrice"
                         value={desiredPriceValue}

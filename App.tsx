@@ -232,6 +232,9 @@ const App: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const isInitialLoad = useRef(true);
     
+    // Ref for the search input in ProductTable to handle global hotkeys
+    const searchInputRef = useRef<HTMLInputElement>(null);
+
     const [listPendingDeletion, setListPendingDeletion] = useState<DealList | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
@@ -243,6 +246,23 @@ const App: React.FC = () => {
 
     const activeDealList = useMemo(() => dealLists.find(dl => dl.id === activeDealListId), [dealLists, activeDealListId]);
     
+    // Global Hotkey Listener
+    useEffect(() => {
+        const handleGlobalKeyDown = (e: KeyboardEvent) => {
+            // Focus search input on '/' or 'Ctrl+K' or 'Cmd+K'
+            if ((e.key === '/' || ((e.ctrlKey || e.metaKey) && e.key === 'k')) && appState === 'VIEW_DATA' && activeViewDataTab === 'products') {
+                if (document.activeElement !== searchInputRef.current) {
+                    e.preventDefault();
+                    searchInputRef.current?.focus();
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleGlobalKeyDown);
+        return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    }, [appState, activeViewDataTab]);
+
+
     // Main Firebase and Auth effect
     useEffect(() => {
         try {
@@ -1017,7 +1037,13 @@ const App: React.FC = () => {
                                 <div className="flex-grow min-h-0 bg-slate-50/30">
                                     {activeViewDataTab === 'products' && (
                                         <div className="h-full overflow-hidden">
-                                             <ProductTable products={products} onProductSelect={setSelectedProduct} isLoading={isLoading} activeDealListId={activeDealListId} />
+                                             <ProductTable 
+                                                products={products} 
+                                                onProductSelect={setSelectedProduct} 
+                                                isLoading={isLoading} 
+                                                activeDealListId={activeDealListId}
+                                                searchInputRef={searchInputRef}
+                                             />
                                         </div>
                                     )}
                                     {activeViewDataTab === 'creators' && (
