@@ -9,7 +9,7 @@ const formatCurrency = (value: number) => {
 };
 
 interface InputFieldProps {
-    label: string;
+    label?: string; // Made optional since we might render label externally
     id: string;
     value: string;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -120,7 +120,6 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
             setAppliedPlatformDiscount(0);
             
             // Auto-focus desired price input when product is selected
-            // Use setTimeout to ensure DOM is ready and to account for any animation
             setTimeout(() => {
                 desiredPriceInputRef.current?.focus();
             }, 50);
@@ -200,44 +199,26 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
             }
 
             const voucherPercent = voucher / 100;
-
-            // LOGIC TÍNH NGƯỢC (BACKWARDS CALCULATION)
-            
-            // BƯỚC 1: Tính giá trị đơn hàng cần thiết (PriceAfterSeller) nếu CHƯA xét Max Cap.
-            // Công thức: Desired = PriceAfterSeller * (1 - %)
-            // => PriceAfterSeller = Desired / (1 - %)
             let priceAfterSeller = desired / (1 - voucherPercent);
             let calculatedDiscount = priceAfterSeller * voucherPercent;
 
-            // BƯỚC 2: Kiểm tra Max Cap (Giảm tối đa)
-            // Nếu mức giảm tính toán > Max Cap, thì sàn chỉ giảm đúng Max Cap.
-            // Khi đó công thức trở thành: Desired = PriceAfterSeller - MaxCap
-            // => PriceAfterSeller = Desired + MaxCap
             if (calculatedDiscount > maxDiscount) {
                 priceAfterSeller = desired + maxDiscount;
-                calculatedDiscount = maxDiscount; // Sàn chỉ trả maxCap
+                calculatedDiscount = maxDiscount; 
             }
 
-            // BƯỚC 3: Kiểm tra Min Order (Đơn tối thiểu)
-            // Giá sau khi người bán giảm (priceAfterSeller) phải >= Min Order thì voucher mới active
             if (priceAfterSeller < minOrder) {
-                // Không đủ điều kiện voucher -> Sàn không hỗ trợ đồng nào
                 platformContribution = 0;
-                // Người bán phải giảm toàn bộ chênh lệch để đạt giá mong muốn
-                // PriceAfterSeller lúc này chính là DesiredPrice (vì không có voucher sàn)
                 priceAfterSeller = desired; 
                 sellerVoucher = current - desired;
             } else {
-                // Đủ điều kiện
                 platformContribution = calculatedDiscount;
                 sellerVoucher = current - priceAfterSeller;
             }
 
         } else {
-            // Voucher tiền mặt cố định (ít khi có điều kiện phức tạp kiểu % nên giữ đơn giản)
             const platformVoucher = isNaN(voucher) ? 0 : voucher;
             
-            // Vẫn kiểm tra Min Order cho Voucher tiền mặt
             if ((desired + platformVoucher) < minOrder) {
                  platformContribution = 0;
                  sellerVoucher = current - desired;
@@ -257,13 +238,12 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
             desiredPrice, 
             voucherValue, 
             voucherType,
-            minOrderValue.replace(/[^0-9]/g, ''), // Ensure clean raw numbers
+            minOrderValue.replace(/[^0-9]/g, ''),
             maxDiscountValue.replace(/[^0-9]/g, '')
         );
         setResult(sellerVoucher);
         setAppliedPlatformDiscount(platformContribution);
 
-        // Add to history if successful
         if (sellerVoucher !== null && !isNaN(sellerVoucher) && !isNaN(desired)) {
             setHistory(prev => {
                 const newItem: HistoryItem = {
@@ -273,7 +253,6 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                     result: sellerVoucher,
                     timestamp: new Date()
                 };
-                // Keep last 5 items
                 return [newItem, ...prev].slice(0, 5);
             });
         }
@@ -283,7 +262,6 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
     const handlePresetClick = (val: number) => {
         const newVoucherStr = String(val);
         setVoucherValue(newVoucherStr); 
-        // Trigger calculation immediately with new voucher value but current state values for others
         const { sellerVoucher, platformContribution } = performCalculation(
             currentPrice, 
             desiredPrice, 
@@ -319,7 +297,6 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
         }
     };
     
-    // Select text on focus for quick overwrite
     const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
         e.target.select();
     };
@@ -459,7 +436,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
             if (prev.includes(voucher)) {
                 return prev.filter(v => v !== voucher);
             } else {
-                if (prev.length >= 6) return prev; // Max 6 presets
+                if (prev.length >= 6) return prev; 
                 return [...prev, voucher].sort((a, b) => a - b);
             }
         });
@@ -491,8 +468,8 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                         <p className="text-xs font-medium text-slate-500">{dealListName}</p>
                     </div>
                 </div>
-                {/* Clock */}
-                <div className="bg-slate-100 px-4 py-2 rounded-xl font-mono text-4xl font-black text-slate-700 tracking-widest">
+                {/* Clock - SUPER SIZED 3x */}
+                <div className="bg-slate-100 px-6 py-3 rounded-2xl font-mono text-6xl font-black text-slate-700 tracking-widest">
                     {formattedTime}
                 </div>
             </div>
@@ -509,7 +486,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                             onChange={handleProductNameChange}
                             placeholder="Chọn hoặc nhập ID..."
                             rows={2}
-                            className="block w-full px-4 py-2.5 bg-slate-50 border-0 text-slate-900 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all text-sm font-medium resize-y shadow-inner placeholder:text-slate-400"
+                            className="block w-full px-4 py-2.5 bg-slate-50 border-0 text-slate-900 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all text-sm font-medium resize-y shadow-inner placeholder:text-slate-400 min-h-[80px]"
                         />
                     </div>
                      
@@ -558,33 +535,38 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                         onFocus={handleInputFocus}
                     />
                     
-                    <InputField
-                        ref={desiredPriceInputRef}
-                        label="Giá cuối mong muốn"
-                        id="desiredPrice"
-                        value={desiredPriceValue}
-                        onChange={handleDesiredPriceChange}
-                        onFocus={(e) => {
-                            setIsDesiredPriceFocused(true);
-                            handleInputFocus(e);
-                        }}
-                        onBlur={() => setIsDesiredPriceFocused(false)}
-                        onKeyDown={handleDesiredPriceKeyDown}
-                        placeholder={isQuickPriceInput ? "Nhập 100 = 100k" : "Nhập số tiền"}
-                        suffix={
-                            <div className="flex items-center gap-2">
-                                <div className="flex items-center gap-1.5 cursor-pointer group" onClick={() => setIsQuickPriceInput(!isQuickPriceInput)} title="Bật/Tắt nhập nhanh (x1000)">
-                                     <span className={`text-[10px] font-semibold transition-colors ${isQuickPriceInput ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`}>
-                                        x1000
-                                    </span>
-                                    <div className={`w-8 h-4 rounded-full relative transition-colors ${isQuickPriceInput ? 'bg-indigo-600' : 'bg-slate-300'}`}>
-                                        <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-all ${isQuickPriceInput ? 'left-4.5' : 'left-0.5'}`} style={{ left: isQuickPriceInput ? 'calc(100% - 14px)' : '2px' }}/>
-                                    </div>
+                    {/* Separated Logic for Desired Price */}
+                    <div>
+                        <div className="flex justify-between items-center mb-1.5 ml-1">
+                            <label htmlFor="desiredPrice" className="block text-sm font-medium text-slate-700">Giá cuối mong muốn</label>
+                            
+                            {/* Toggle Switch moved to Header */}
+                            <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setIsQuickPriceInput(!isQuickPriceInput)} title="Bật/Tắt nhập nhanh (x1000)">
+                                 <span className={`text-xs font-semibold transition-colors ${isQuickPriceInput ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`}>
+                                    Nhập nhanh (x1000)
+                                </span>
+                                <div className={`w-9 h-5 rounded-full relative transition-colors ${isQuickPriceInput ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                                    <div className={`absolute top-1 w-3 h-3 rounded-full bg-white shadow-sm transition-all ${isQuickPriceInput ? 'left-5' : 'left-1'}`} />
                                 </div>
                             </div>
-                        }
-                        className="shadow-sm"
-                    />
+                        </div>
+
+                        <InputField
+                            ref={desiredPriceInputRef}
+                            id="desiredPrice"
+                            value={desiredPriceValue}
+                            onChange={handleDesiredPriceChange}
+                            onFocus={(e) => {
+                                setIsDesiredPriceFocused(true);
+                                handleInputFocus(e);
+                            }}
+                            onBlur={() => setIsDesiredPriceFocused(false)}
+                            onKeyDown={handleDesiredPriceKeyDown}
+                            placeholder={isQuickPriceInput ? "Ví dụ: 100 (sẽ là 100.000)" : "Nhập số tiền đầy đủ"}
+                            suffix={<span className="text-slate-400 text-xs font-medium">VND</span>}
+                            className="shadow-sm"
+                        />
+                    </div>
                 </div>
 
                 {/* Voucher Inputs */}
@@ -610,9 +592,9 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                     <div className="relative">
                          <input
                             ref={voucherInputRef}
-                            type="number" // Changed to number for better mobile input
+                            type="number" 
                             value={voucherValue}
-                            onChange={(e) => setVoucherType(VoucherType.Percentage) ? setVoucherValue(e.target.value) : setVoucherValue(e.target.value)} // Keep simple for now
+                            onChange={(e) => setVoucherType(VoucherType.Percentage) ? setVoucherValue(e.target.value) : setVoucherValue(e.target.value)} 
                             onKeyDown={handleKeyDown}
                             onFocus={handleInputFocus}
                             placeholder={voucherType === VoucherType.Percentage ? "Nhập %" : "Nhập số tiền"}
