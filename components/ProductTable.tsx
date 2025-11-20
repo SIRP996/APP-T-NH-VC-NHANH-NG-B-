@@ -16,7 +16,7 @@ const COLUMN_DEFINITIONS: { key: ColumnKey; label: string }[] = [
     { key: 'exclusiveId', label: 'ID Độc quyền' },
     { key: 'displayPrice', label: 'Giá hiển thị' },
     { key: 'finalPrice', label: 'Giá cuối' },
-    { key: 'gift', label: 'Quà Tặng' },
+    { key: 'gift', label: 'Quà tặng' },
 ];
 
 const DEFAULT_COLUMN_ORDER = COLUMN_DEFINITIONS.map(c => c.key);
@@ -324,11 +324,11 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
 
     const cellClassMap: Record<ColumnKey, string> = {
         name: 'font-semibold text-slate-900 text-[15px]',
-        id: 'text-slate-700 font-bold font-mono text-xs',
+        id: 'text-slate-700 font-medium font-mono text-xs',
         exclusiveId: 'text-purple-700 font-mono text-xs bg-purple-50 px-2 py-1 rounded-md w-fit font-bold border border-purple-100',
-        displayPrice: 'text-slate-500 font-semibold', 
-        finalPrice: 'text-indigo-900 font-extrabold text-[15px]',
-        gift: 'text-slate-700 text-xs', 
+        displayPrice: 'text-slate-500 font-medium', 
+        finalPrice: 'text-indigo-900 font-bold text-[15px]',
+        gift: 'text-slate-600 text-xs', 
     };
     
     return (
@@ -346,7 +346,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            className="w-full pl-11 pr-4 py-2.5 border-0 bg-slate-50 rounded-2xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-inner font-bold"
+                            className="w-full pl-11 pr-4 py-2.5 border-0 bg-slate-50 rounded-2xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-inner font-medium"
                         />
                     </div>
                     <button 
@@ -361,11 +361,11 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
                 <div className="mt-4 flex gap-4">
                     <div className="flex items-baseline gap-2 px-4 py-2 bg-indigo-50/50 rounded-xl border border-indigo-50">
                         <span className="text-xs font-bold uppercase text-indigo-500 tracking-wider">Tổng SKU</span>
-                        <span className="text-lg font-black text-indigo-900">{isLoading ? '...' : new Intl.NumberFormat('vi-VN').format(totalSKUs)}</span>
+                        <span className="text-lg font-bold text-indigo-900">{isLoading ? '...' : new Intl.NumberFormat('vi-VN').format(totalSKUs)}</span>
                     </div>
                     <div className="flex items-baseline gap-2 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
                         <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">Tổng sản phẩm</span>
-                        <span className="text-lg font-black text-slate-700">{isLoading ? '...' : new Intl.NumberFormat('vi-VN').format(totalProducts)}</span>
+                        <span className="text-lg font-bold text-slate-700">{isLoading ? '...' : new Intl.NumberFormat('vi-VN').format(totalProducts)}</span>
                     </div>
                 </div>
 
@@ -382,13 +382,13 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
 
             <div className="flex-grow overflow-auto custom-scrollbar relative" ref={tableContainerRef}>
                 <table className="divide-y divide-slate-100 table-fixed w-full">
-                    <thead className="bg-slate-100 sticky top-0 z-10 shadow-sm border-b border-slate-200">
+                    <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm border-b border-slate-200">
                         <tr>
                             {orderedTableHeaders.map(({ key, label }) => (
                                  <th 
                                      key={key} 
                                      scope="col" 
-                                     className="px-6 py-4 text-left text-xs font-extrabold text-slate-800 uppercase tracking-wider group relative select-none"
+                                     className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider group relative select-none"
                                      style={{ width: columnWidths[key] ? `${columnWidths[key]}px` : 'auto' }}
                                  >
                                     <button onClick={() => requestSort(key)} className="flex items-center gap-1 hover:text-indigo-600 transition-colors w-full">

@@ -6,7 +6,7 @@ import { SearchIcon, CopyIcon, CheckIcon, PlusIcon, EditIcon, TrashIcon, Spinner
 // Reusable Input Component for Modals
 const ModalInput: React.FC<{ label: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder: string; required?: boolean }> = ({ label, value, onChange, placeholder, required }) => (
     <div>
-        <label className="block text-sm font-medium text-slate-900">{label}</label>
+        <label className="block text-sm font-medium text-slate-700">{label}</label>
         <input
             type="text"
             value={value}
@@ -67,7 +67,7 @@ const CreatorModal: React.FC<{
                     <ModalInput label="ID Kênh TikTok" value={tiktokId} onChange={e => setTiktokId(e.target.value)} placeholder="Nhập ID kênh..." required />
                     
                     <div className="mt-4">
-                        <label className="block text-sm font-medium text-slate-900">Gán Deal Lists</label>
+                        <label className="block text-sm font-medium text-slate-700">Gán Deal Lists</label>
                         <div className="mt-2 max-h-40 overflow-y-auto space-y-2 rounded-md border p-3 bg-slate-50">
                             {dealLists.length > 0 ? (
                                 dealLists.map(list => (
@@ -78,7 +78,7 @@ const CreatorModal: React.FC<{
                                             onChange={() => handleDealListToggle(list.id)}
                                             className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                                         />
-                                        <span className="text-sm text-slate-800">{list.name}</span>
+                                        <span className="text-sm text-slate-700">{list.name}</span>
                                     </label>
                                 ))
                             ) : (
@@ -88,7 +88,7 @@ const CreatorModal: React.FC<{
                     </div>
 
                     <div className="mt-6 flex justify-end gap-3">
-                        <button type="button" onClick={onClose} disabled={isSaving} className="px-4 py-2 text-sm font-medium text-slate-800 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50">Hủy</button>
+                        <button type="button" onClick={onClose} disabled={isSaving} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50">Hủy</button>
                         <button type="submit" disabled={isSaving} className="px-4 py-2 w-28 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center">
                             {isSaving ? <SpinnerIcon /> : 'Lưu'}
                         </button>
@@ -114,7 +114,7 @@ const DeleteCreatorModal: React.FC<{
                 <h3 className="text-lg font-bold text-slate-900">Xác nhận xóa</h3>
                 <p className="mt-2 text-sm text-slate-800">Bạn có chắc chắn muốn xóa creator <strong className="font-semibold">{creator?.name}</strong>?</p>
                 <div className="mt-6 flex justify-end gap-3">
-                    <button onClick={onClose} disabled={isDeleting} className="px-4 py-2 text-sm font-medium text-slate-800 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50">Hủy</button>
+                    <button onClick={onClose} disabled={isDeleting} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50">Hủy</button>
                     <button onClick={onConfirm} disabled={isDeleting} className="px-4 py-2 w-28 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 flex items-center justify-center">
                         {isDeleting ? <SpinnerIcon /> : 'Xóa'}
                     </button>
@@ -200,7 +200,7 @@ export const CreatorList: React.FC<{
                         placeholder="Tìm theo tên KOL..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-500"
+                        className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-400"
                     />
                 </div>
                 <button
@@ -215,14 +215,14 @@ export const CreatorList: React.FC<{
                 <table className="min-w-full divide-y divide-slate-200">
                     <thead className="bg-slate-50 sticky top-0 z-10">
                         <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Tên KOL</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">ID Kênh TikTok</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Tên KOL</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">ID Kênh TikTok</th>
                             <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-200">
                         {isLoading ? (
-                            <tr><td colSpan={3} className="text-center py-10 text-slate-700">Đang tải danh sách...</td></tr>
+                            <tr><td colSpan={3} className="text-center py-10 text-slate-500">Đang tải danh sách...</td></tr>
                         ) : filteredCreators.length > 0 ? (
                             filteredCreators.map(creator => (
                                 <tr key={creator.id} className="hover:bg-indigo-50 transition-colors">
@@ -244,7 +244,7 @@ export const CreatorList: React.FC<{
                                 </tr>
                             ))
                         ) : (
-                            <tr><td colSpan={3} className="text-center py-10 text-slate-700">Không tìm thấy creator nào.</td></tr>
+                            <tr><td colSpan={3} className="text-center py-10 text-slate-500">Không tìm thấy creator nào.</td></tr>
                         )}
                     </tbody>
                 </table>

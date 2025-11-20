@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Product, ColumnMapping, DealList, FirebaseConfig, Creator } from './types';
 import { fetchProductsFromSheet, fetchSheetPreviewAndHeaders } from './services/googleSheetService';
@@ -710,7 +711,7 @@ const App: React.FC = () => {
             <div className="max-w-5xl mx-auto p-6 sm:p-8 lg:p-10 relative z-10">
                 <input type="file" ref={fileInputRef} onChange={handleFileImport} className="hidden" accept=".xlsx, .xls, .csv" />
                 <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Quản lý Deal Lists</h1>
+                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Quản lý Deal Lists</h1>
                     {user && (
                         <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full shadow-md shadow-slate-200/50 border border-slate-200">
                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-sm">
@@ -734,7 +735,7 @@ const App: React.FC = () => {
                                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${dl.source === 'excel' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}>
                                          {dl.source === 'excel' ? <SheetIcon className="w-6 h-6"/> : <LinkIcon className="w-6 h-6"/>}
                                     </div>
-                                    <span className={`text-[10px] uppercase font-black px-2.5 py-1 rounded-lg tracking-wide ${dl.source === 'excel' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+                                    <span className={`text-[10px] uppercase font-bold px-2.5 py-1 rounded-lg tracking-wide ${dl.source === 'excel' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
                                         {dl.source === 'excel' ? 'Excel' : 'Sheet'}
                                     </span>
                                 </div>
@@ -789,7 +790,7 @@ const App: React.FC = () => {
                     <div className="w-16 h-16 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-indigo-600 shadow-sm">
                         <LinkIcon className="w-8 h-8" />
                     </div>
-                    <h2 className="text-2xl font-black text-slate-900">{editingDealList?.id ? 'Cập nhật kết nối' : 'Kết nối Google Sheet'}</h2>
+                    <h2 className="text-2xl font-bold text-slate-900">{editingDealList?.id ? 'Cập nhật kết nối' : 'Kết nối Google Sheet'}</h2>
                     <p className="text-slate-500 text-sm mt-2 font-medium">Nhập thông tin bảng tính để đồng bộ dữ liệu.</p>
                 </div>
 
