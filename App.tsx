@@ -120,18 +120,22 @@ const LoginScreen: React.FC<{
     const switchModeText = mode === 'login' ? 'Chưa có tài khoản?' : 'Đã có tài khoản?';
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4">
-            <div className="p-8 bg-white rounded-3xl shadow-xl border border-slate-100 text-center max-w-sm w-full">
-                <div className="bg-orange-50 p-4 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-                    <FirebaseIcon className="w-10 h-10" />
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-violet-50 p-4 relative overflow-hidden">
+             {/* Decorative background elements */}
+             <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-violet-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+            <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-fuchsia-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+
+            <div className="p-8 bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 text-center max-w-sm w-full relative z-10">
+                <div className="bg-gradient-to-tr from-violet-500 to-fuchsia-500 p-4 rounded-2xl w-20 h-20 mx-auto mb-6 flex items-center justify-center shadow-lg shadow-violet-200">
+                    <FirebaseIcon className="w-10 h-10 brightness-200 grayscale contrast-200 text-white" />
                 </div>
                 <h1 className="text-2xl font-bold text-slate-900 mb-2 tracking-tight">{title}</h1>
-                <p className="text-slate-500 mb-8 text-sm">Truy cập vào công cụ quản lý deal list của bạn.</p>
+                <p className="text-slate-500 mb-8 text-sm font-medium">Truy cập vào công cụ quản lý giá & deal.</p>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="relative group">
                         <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                            <MailIcon className="w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                            <MailIcon className="w-5 h-5 text-slate-400 group-focus-within:text-violet-500 transition-colors" />
                         </span>
                         <input
                             type="email"
@@ -139,14 +143,14 @@ const LoginScreen: React.FC<{
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="Email"
                             required
-                            className="w-full pl-10 pr-3 py-2.5 border border-slate-200 bg-slate-50 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white transition-all outline-none"
+                            className="w-full pl-10 pr-3 py-3 border border-slate-200 bg-slate-50/50 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent focus:bg-white transition-all outline-none text-sm font-medium"
                         />
                     </div>
 
                     {mode !== 'reset' && (
                         <div className="relative group">
                             <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                                <LockClosedIcon className="w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                                <LockClosedIcon className="w-5 h-5 text-slate-400 group-focus-within:text-violet-500 transition-colors" />
                             </span>
                             <input
                                 type="password"
@@ -154,18 +158,18 @@ const LoginScreen: React.FC<{
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="Mật khẩu"
                                 required
-                                className="w-full pl-10 pr-3 py-2.5 border border-slate-200 bg-slate-50 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white transition-all outline-none"
+                                className="w-full pl-10 pr-3 py-3 border border-slate-200 bg-slate-50/50 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent focus:bg-white transition-all outline-none text-sm font-medium"
                             />
                         </div>
                     )}
                     
-                    {error && <p className="text-red-500 text-sm bg-red-50 p-2 rounded-lg">{error}</p>}
-                    {message && <p className="text-green-600 text-sm bg-green-50 p-2 rounded-lg">{message}</p>}
+                    {error && <p className="text-red-500 text-sm bg-red-50 p-2 rounded-lg border border-red-100">{error}</p>}
+                    {message && <p className="text-green-600 text-sm bg-green-50 p-2 rounded-lg border border-green-100">{message}</p>}
 
                     <button
                         type="submit"
                         disabled={isLoading || !isFirebaseReady}
-                        className="w-full py-3 px-4 border border-transparent rounded-xl shadow-lg shadow-indigo-200 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+                        className="w-full py-3 px-4 border border-transparent rounded-xl shadow-lg shadow-violet-200 text-sm font-bold text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
                     >
                         {isLoading ? 'Đang xử lý...' : buttonText}
                     </button>
@@ -173,7 +177,7 @@ const LoginScreen: React.FC<{
 
                 <div className="text-sm text-center mt-6">
                     {mode !== 'reset' && (
-                        <button onClick={() => setMode(mode === 'login' ? 'register' : 'login')} className="font-medium text-indigo-600 hover:text-indigo-500 hover:underline">
+                        <button onClick={() => setMode(mode === 'login' ? 'register' : 'login')} className="font-bold text-violet-600 hover:text-violet-700 hover:underline">
                             {switchModeText} {mode === 'login' ? 'Đăng ký' : 'Đăng nhập'}
                         </button>
                     )}
@@ -184,20 +188,20 @@ const LoginScreen: React.FC<{
                         </>
                     )}
                      {mode === 'reset' && (
-                         <button onClick={() => setMode('login')} className="font-medium text-indigo-600 hover:text-indigo-500 hover:underline">Quay lại đăng nhập</button>
+                         <button onClick={() => setMode('login')} className="font-bold text-violet-600 hover:text-violet-700 hover:underline">Quay lại đăng nhập</button>
                     )}
                 </div>
 
                 <div className="my-6 flex items-center">
                     <div className="flex-grow border-t border-slate-200"></div>
-                    <span className="flex-shrink mx-4 text-slate-400 text-xs uppercase font-medium">hoặc</span>
+                    <span className="flex-shrink mx-4 text-slate-400 text-xs uppercase font-bold tracking-wider">hoặc</span>
                     <div className="flex-grow border-t border-slate-200"></div>
                 </div>
 
                 <button
                     onClick={onGoogleSignIn}
                     disabled={!isFirebaseReady}
-                    className="w-full inline-flex justify-center items-center gap-3 py-2.5 px-4 border border-slate-200 rounded-xl shadow-sm bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="w-full inline-flex justify-center items-center gap-3 py-3 px-4 border border-slate-200 rounded-xl shadow-sm bg-white text-sm font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                     <GoogleIcon className="w-5 h-5" />
                     Tiếp tục với Google
@@ -696,7 +700,7 @@ const App: React.FC = () => {
     const renderLoading = () => (
         <div className="flex items-center justify-center h-screen bg-slate-900">
             <div className="text-center">
-                <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-indigo-400 mx-auto mb-4"></div>
+                <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-violet-400 mx-auto mb-4"></div>
                 <h2 className="text-xl font-semibold text-white tracking-tight">Đang tải ứng dụng...</h2>
             </div>
         </div>
@@ -704,17 +708,18 @@ const App: React.FC = () => {
     
 
     const renderManageLists = () => (
-        <div className="bg-[#F1F5F9] min-h-screen relative overflow-hidden">
+        <div className="bg-slate-50 min-h-screen relative overflow-hidden">
              {/* Background blobs */}
-            <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-indigo-100 to-transparent opacity-60 pointer-events-none"></div>
+             <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-violet-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob"></div>
+             <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-fuchsia-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000"></div>
 
             <div className="max-w-5xl mx-auto p-6 sm:p-8 lg:p-10 relative z-10">
                 <input type="file" ref={fileInputRef} onChange={handleFileImport} className="hidden" accept=".xlsx, .xls, .csv" />
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Quản lý Deal Lists</h1>
                     {user && (
-                        <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full shadow-md shadow-slate-200/50 border border-slate-200">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-sm">
+                        <div className="flex items-center gap-3 bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-sm border border-white/50">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center text-white font-bold shadow-md">
                                 {user.email ? user.email.charAt(0).toUpperCase() : 'U'}
                             </div>
                              <span className="text-sm font-bold text-slate-700 hidden sm:inline">{user.displayName || user.email}</span>
@@ -729,23 +734,27 @@ const App: React.FC = () => {
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {dealLists.map(dl => (
-                        <div key={dl.id} className="bg-white p-6 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/10 transition-all group flex flex-col justify-between h-52">
+                        <div key={dl.id} className="bg-white/90 backdrop-blur-sm p-6 rounded-3xl shadow-sm border border-white/60 hover:border-violet-300 hover:shadow-xl hover:shadow-violet-200/20 transition-all group flex flex-col justify-between h-56 relative overflow-hidden">
+                             <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
+                                 {dl.source === 'excel' ? <SheetIcon className="w-24 h-24 text-green-600"/> : <LinkIcon className="w-24 h-24 text-violet-600"/>}
+                             </div>
+
                             <div>
-                                <div className="flex justify-between items-start">
-                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${dl.source === 'excel' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}>
+                                <div className="flex justify-between items-start relative z-10">
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 shadow-sm ${dl.source === 'excel' ? 'bg-green-50 text-green-600' : 'bg-violet-50 text-violet-600'}`}>
                                          {dl.source === 'excel' ? <SheetIcon className="w-6 h-6"/> : <LinkIcon className="w-6 h-6"/>}
                                     </div>
-                                    <span className={`text-[10px] uppercase font-bold px-2.5 py-1 rounded-lg tracking-wide ${dl.source === 'excel' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+                                    <span className={`text-[10px] uppercase font-bold px-2.5 py-1 rounded-lg tracking-wide ${dl.source === 'excel' ? 'bg-green-100 text-green-800' : 'bg-violet-100 text-violet-800'}`}>
                                         {dl.source === 'excel' ? 'Excel' : 'Sheet'}
                                     </span>
                                 </div>
-                                <h3 className="font-bold text-xl text-slate-900 truncate" title={dl.name}>{dl.name}</h3>
-                                <p className="text-xs text-slate-400 mt-1 truncate font-medium">{dl.sheetUrl || 'Nhập từ file cục bộ'}</p>
+                                <h3 className="font-bold text-xl text-slate-900 truncate relative z-10" title={dl.name}>{dl.name}</h3>
+                                <p className="text-xs text-slate-400 mt-1 truncate font-medium relative z-10">{dl.sheetUrl || 'Nhập từ file cục bộ'}</p>
                             </div>
                             
-                            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-50">
+                            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100 relative z-10">
                                 <button onClick={() => handleSetActiveDealList(dl.id)} className="flex-1 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 active:scale-95">Vào xem</button>
-                                <button onClick={() => handleEditList(dl)} className="p-2.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors" disabled={dl.source === 'excel'}><EditIcon className="w-5 h-5"/></button>
+                                <button onClick={() => handleEditList(dl)} className="p-2.5 text-slate-500 hover:text-violet-600 hover:bg-violet-50 rounded-xl transition-colors" disabled={dl.source === 'excel'}><EditIcon className="w-5 h-5"/></button>
                                 <button 
                                     onClick={() => setListPendingDeletion(dl)}
                                     className="p-2.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
@@ -757,13 +766,13 @@ const App: React.FC = () => {
                     ))}
                     
                     {/* Add New Card */}
-                     <div className="bg-white p-6 rounded-2xl border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all flex flex-col items-center justify-center h-52 gap-4 group cursor-default">
-                        <div className="w-14 h-14 rounded-full bg-slate-50 shadow-inner flex items-center justify-center text-slate-400 group-hover:text-indigo-600 group-hover:bg-white group-hover:shadow-md transition-all">
+                     <div className="bg-white/50 backdrop-blur-sm p-6 rounded-3xl border-2 border-dashed border-slate-300 hover:border-violet-400 hover:bg-white/80 transition-all flex flex-col items-center justify-center h-56 gap-4 group cursor-default">
+                        <div className="w-14 h-14 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-400 group-hover:text-violet-600 group-hover:shadow-md transition-all">
                              <PlusIcon className="w-7 h-7" />
                         </div>
-                        <p className="text-sm font-bold text-slate-500">Tạo danh sách mới</p>
+                        <p className="text-sm font-bold text-slate-600 group-hover:text-slate-900">Tạo danh sách mới</p>
                         <div className="flex gap-2 w-full">
-                             <button onClick={handleAddNewList} className="flex-1 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:border-indigo-300 hover:text-indigo-600 shadow-sm transition-all">
+                             <button onClick={handleAddNewList} className="flex-1 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:border-violet-300 hover:text-violet-600 shadow-sm transition-all">
                                 Google Sheet
                             </button>
                              <button onClick={() => fileInputRef.current?.click()} className="flex-1 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:border-green-300 hover:text-green-600 shadow-sm transition-all">
@@ -784,10 +793,10 @@ const App: React.FC = () => {
     );
     
     const renderConnectSheet = () => (
-        <div className="bg-[#F1F5F9] min-h-screen flex items-center justify-center p-4">
+        <div className="bg-slate-50 min-h-screen flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl shadow-2xl p-10 max-w-xl w-full border border-slate-100">
                  <div className="mb-8 text-center">
-                    <div className="w-16 h-16 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-indigo-600 shadow-sm">
+                    <div className="w-16 h-16 bg-violet-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-violet-600 shadow-sm">
                         <LinkIcon className="w-8 h-8" />
                     </div>
                     <h2 className="text-2xl font-bold text-slate-900">{editingDealList?.id ? 'Cập nhật kết nối' : 'Kết nối Google Sheet'}</h2>
@@ -804,7 +813,7 @@ const App: React.FC = () => {
                             onChange={(e) => setEditingDealList(prev => ({...prev, name: e.target.value}))}
                             placeholder="Ví dụ: Deal tháng 11"
                             required
-                            className="block w-full px-4 py-3.5 rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm font-medium"
+                            className="block w-full px-4 py-3.5 rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all text-sm font-medium"
                         />
                     </div>
                     <div>
@@ -816,7 +825,7 @@ const App: React.FC = () => {
                             onChange={(e) => setEditingDealList(prev => ({...prev, sheetUrl: e.target.value}))}
                             placeholder="https://docs.google.com/spreadsheets/d/..."
                             required
-                            className="block w-full px-4 py-3.5 rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm font-medium"
+                            className="block w-full px-4 py-3.5 rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all text-sm font-medium"
                         />
                         <p className="mt-3 text-xs text-blue-700 bg-blue-50 p-3.5 rounded-xl flex gap-2 items-start border border-blue-100">
                             <span>ℹ️</span>
@@ -827,7 +836,7 @@ const App: React.FC = () => {
                     
                     <div className="grid grid-cols-2 gap-4 pt-4">
                         <button type="button" onClick={() => setAppState('MANAGE_LISTS')} className="px-4 py-3.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors">Hủy bỏ</button>
-                        <button type="submit" disabled={isLoading} className="px-4 py-3.5 rounded-xl shadow-lg shadow-indigo-200 text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 transition-all">
+                        <button type="submit" disabled={isLoading} className="px-4 py-3.5 rounded-xl shadow-lg shadow-violet-200 text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 transition-all">
                             {isLoading ? 'Đang kiểm tra...' : 'Tiếp tục'}
                         </button>
                     </div>
@@ -837,7 +846,7 @@ const App: React.FC = () => {
     );
 
     const renderMapColumns = () => (
-       <div className="bg-[#F1F5F9] min-h-screen">
+       <div className="bg-slate-50 min-h-screen">
             <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
                 <div className="flex items-center justify-between mb-8">
                      <div>
@@ -846,7 +855,7 @@ const App: React.FC = () => {
                     </div>
                     <div className="flex gap-3">
                          <button onClick={() => setAppState('MANAGE_LISTS')} className="px-5 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50">Hủy</button>
-                        <button onClick={handleMappingSave} className="px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all">Lưu & Đồng bộ</button>
+                        <button onClick={handleMappingSave} className="px-6 py-2.5 text-sm font-bold text-white bg-violet-600 rounded-xl shadow-lg shadow-violet-200 hover:bg-violet-700 transition-all">Lưu & Đồng bộ</button>
                     </div>
                 </div>
 
@@ -864,10 +873,10 @@ const App: React.FC = () => {
                                     <div 
                                         key={config.key} 
                                         onClick={() => setActiveMappingKey(config.key)} 
-                                        className={`p-4 rounded-xl cursor-pointer border-2 transition-all duration-200 ${activeMappingKey === config.key ? 'border-indigo-500 bg-indigo-50/50 shadow-sm' : 'border-slate-100 hover:border-indigo-200 bg-white'}`}
+                                        className={`p-4 rounded-xl cursor-pointer border-2 transition-all duration-200 ${activeMappingKey === config.key ? 'border-violet-500 bg-violet-50/50 shadow-sm' : 'border-slate-100 hover:border-violet-200 bg-white'}`}
                                     >
                                         <div className="flex justify-between items-center mb-1.5">
-                                            <span className={`text-sm font-bold ${activeMappingKey === config.key ? 'text-indigo-900' : 'text-slate-700'}`}>{config.label}</span>
+                                            <span className={`text-sm font-bold ${activeMappingKey === config.key ? 'text-violet-900' : 'text-slate-700'}`}>{config.label}</span>
                                             {config.required && <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">Bắt buộc</span>}
                                         </div>
                                         <div className={`text-xs px-3 py-2 rounded-lg w-full truncate font-medium ${tempMapping[config.key] ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-slate-50 text-slate-400 border border-slate-200 border-dashed'}`}>
@@ -901,10 +910,10 @@ const App: React.FC = () => {
                                                                     setActiveMappingKey(nextUnmapped ? nextUnmapped.key : null);
                                                                 }
                                                             }}
-                                                            className={`w-full text-left px-4 py-3.5 border-b-4 transition-colors hover:bg-indigo-50 ${isMapped ? 'border-indigo-500 text-indigo-700 bg-indigo-50/50 font-bold' : 'border-transparent text-slate-500 hover:text-indigo-600'}`}
+                                                            className={`w-full text-left px-4 py-3.5 border-b-4 transition-colors hover:bg-violet-50 ${isMapped ? 'border-violet-500 text-violet-700 bg-violet-50/50 font-bold' : 'border-transparent text-slate-500 hover:text-violet-600'}`}
                                                         >
                                                             {header}
-                                                            {isMapped && <span className="ml-2 text-[10px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full align-middle">Đã chọn</span>}
+                                                            {isMapped && <span className="ml-2 text-[10px] bg-violet-100 text-violet-600 px-1.5 py-0.5 rounded-full align-middle">Đã chọn</span>}
                                                         </button>
                                                     </th>
                                                 );
@@ -936,21 +945,21 @@ const App: React.FC = () => {
         const dealListOptions = useMemo(() => dealLists.map(dl => ({ value: dl.id, label: dl.name })), [dealLists]);
 
         return (
-            <div className="h-screen w-screen flex flex-col bg-[#F8FAFC] font-sans overflow-hidden relative">
-                {/* Decorative gradient background */}
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-slate-100 via-white to-slate-100 -z-10"></div>
-                <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-100/50 blur-3xl pointer-events-none"></div>
-                <div className="absolute bottom-[-20%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-100/50 blur-3xl pointer-events-none"></div>
+            <div className="h-screen w-screen flex flex-col bg-slate-50 font-sans overflow-hidden relative">
+                {/* Modern Vivid Gradient Background */}
+                <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-violet-200 mix-blend-multiply filter blur-[80px] opacity-40 animate-pulse"></div>
+                <div className="absolute bottom-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-fuchsia-200 mix-blend-multiply filter blur-[80px] opacity-40 animate-pulse animation-delay-2000"></div>
+                <div className="absolute top-[20%] left-[30%] w-[30%] h-[30%] rounded-full bg-blue-100 mix-blend-multiply filter blur-[80px] opacity-30 animate-pulse animation-delay-4000"></div>
 
 
-                <header className="flex-shrink-0 bg-slate-900 text-white shadow-xl shadow-indigo-900/10 z-30 px-4 py-3">
+                <header className="flex-shrink-0 bg-white/70 backdrop-blur-md border-b border-white/50 z-30 px-6 py-4 shadow-sm">
                     <div className="flex justify-between items-center gap-4">
                         <div className="flex items-center gap-4 flex-grow">
-                            <button onClick={() => setAppState('MANAGE_LISTS')} className="text-slate-400 hover:text-white hover:bg-white/10 p-2.5 rounded-xl transition-all flex-shrink-0" title="Quay lại quản lý">
+                            <button onClick={() => setAppState('MANAGE_LISTS')} className="text-slate-400 hover:text-violet-600 hover:bg-violet-50 p-2.5 rounded-xl transition-all flex-shrink-0" title="Quay lại quản lý">
                                 <CogIcon className="w-6 h-6" />
                             </button>
                             
-                            <div className="h-8 w-px bg-slate-700 mx-1"></div>
+                            <div className="h-8 w-px bg-slate-200 mx-1"></div>
 
                             <CustomDropdown
                                 options={creatorOptions}
@@ -970,7 +979,7 @@ const App: React.FC = () => {
                                 <button 
                                     onClick={() => activeDealList && handleSync(activeDealList)} 
                                     disabled={isSyncing || activeDealList?.source === 'excel'}
-                                    className="flex items-center gap-2 px-4 py-2.5 bg-white/10 border border-white/10 text-slate-200 rounded-xl text-sm font-bold hover:bg-white/20 hover:text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all backdrop-blur-sm"
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:border-violet-300 hover:text-violet-600 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                 >
                                     <SyncIcon className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
                                     {isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ'}
@@ -982,25 +991,25 @@ const App: React.FC = () => {
                          {user && (
                             <div className="flex items-center gap-4 flex-shrink-0 pr-2">
                                 <div className="text-right hidden sm:block">
-                                    <p className="text-xs font-bold text-white">{user.displayName || 'User'}</p>
-                                    <p className="text-[10px] text-slate-400 font-medium">{user.email}</p>
+                                    <p className="text-xs font-bold text-slate-900">{user.displayName || 'User'}</p>
+                                    <p className="text-[10px] text-slate-500 font-medium">{user.email}</p>
                                 </div>
-                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold text-sm shadow-lg shadow-indigo-900/50 ring-2 ring-slate-800">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-violet-200 ring-2 ring-white">
                                      {user.email ? user.email.charAt(0).toUpperCase() : 'U'}
                                 </div>
-                                <button onClick={handleLogout} className="p-2 rounded-full text-slate-400 hover:bg-red-500/20 hover:text-red-400 transition-colors" aria-label="Đăng xuất">
+                                <button onClick={handleLogout} className="p-2 rounded-full text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors" aria-label="Đăng xuất">
                                     <LogoutIcon className="w-5 h-5"/>
                                 </button>
                             </div>
                         )}
                     </div>
-                    {error && <p className="text-red-200 text-xs font-bold mt-2 text-center bg-red-900/50 p-2 rounded-lg animate-pulse border border-red-500/30">{error}</p>}
+                    {error && <p className="text-red-600 text-xs font-bold mt-2 text-center bg-red-50 p-2 rounded-lg animate-pulse border border-red-200">{error}</p>}
                 </header>
 
-                <main className="flex-grow flex gap-4 min-h-0 p-4 z-20">
+                <main className="flex-grow flex gap-6 min-h-0 p-6 z-20">
                     {activeDealListId ? (
                         <>
-                            <div className="w-1/3 h-full min-w-[360px] max-w-[450px]">
+                            <div className="w-1/3 h-full min-w-[360px] max-w-[420px]">
                                 <Calculator 
                                     selectedProduct={selectedProduct} 
                                     dealListName={activeDealList?.name || ''} 
@@ -1009,15 +1018,15 @@ const App: React.FC = () => {
                                     onFocusSearch={() => searchInputRef.current?.focus()}
                                 />
                             </div>
-                            <div className="flex-1 h-full flex flex-col bg-white rounded-3xl shadow-xl shadow-indigo-100/50 border border-slate-200 overflow-hidden">
-                                <div className="flex-shrink-0 border-b border-slate-100 bg-white px-6 pt-4">
-                                    <nav className="flex space-x-2" aria-label="Tabs">
+                            <div className="flex-1 h-full flex flex-col bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl shadow-slate-200/50 border border-white/60 overflow-hidden">
+                                <div className="flex-shrink-0 border-b border-slate-100 px-6 pt-4">
+                                    <nav className="flex space-x-4" aria-label="Tabs">
                                         <button
                                             onClick={() => setActiveViewDataTab('products')}
-                                            className={`flex items-center gap-2 px-5 py-3 rounded-t-lg font-bold text-sm transition-all border-b-2 ${
+                                            className={`flex items-center gap-2 px-4 py-3 font-bold text-sm transition-all border-b-2 ${
                                                 activeViewDataTab === 'products'
-                                                    ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50'
-                                                    : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                                                    ? 'border-violet-600 text-violet-700'
+                                                    : 'border-transparent text-slate-400 hover:text-slate-600'
                                             }`}
                                         >
                                             <SheetIcon className="w-4 h-4" />
@@ -1025,10 +1034,10 @@ const App: React.FC = () => {
                                         </button>
                                         <button
                                             onClick={() => setActiveViewDataTab('creators')}
-                                            className={`flex items-center gap-2 px-5 py-3 rounded-t-lg font-bold text-sm transition-all border-b-2 ${
+                                            className={`flex items-center gap-2 px-4 py-3 font-bold text-sm transition-all border-b-2 ${
                                                 activeViewDataTab === 'creators'
-                                                    ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50'
-                                                    : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                                                    ? 'border-violet-600 text-violet-700'
+                                                    : 'border-transparent text-slate-400 hover:text-slate-600'
                                             }`}
                                         >
                                             <IdentificationIcon className="w-4 h-4" />
@@ -1036,7 +1045,7 @@ const App: React.FC = () => {
                                         </button>
                                     </nav>
                                 </div>
-                                <div className="flex-grow min-h-0 bg-slate-50/30">
+                                <div className="flex-grow min-h-0 relative">
                                     {activeViewDataTab === 'products' && (
                                         <div className="h-full overflow-hidden">
                                              <ProductTable 
@@ -1064,12 +1073,12 @@ const App: React.FC = () => {
                             </div>
                         </>
                     ) : (
-                        <div className="w-full flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50">
+                        <div className="w-full flex items-center justify-center bg-white/60 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50">
                             <div className="text-center text-slate-400 max-w-md">
-                                <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-slate-200">
-                                    <SheetIcon className="w-10 h-10 text-indigo-200" />
+                                <div className="w-24 h-24 bg-violet-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-lg shadow-violet-100">
+                                    <SheetIcon className="w-10 h-10 text-violet-300" />
                                 </div>
-                                <h2 className="text-3xl font-black text-slate-800 mb-3">Chưa chọn danh sách</h2>
+                                <h2 className="text-3xl font-black text-slate-800 mb-3 tracking-tight">Chưa chọn danh sách</h2>
                                 <p className="text-slate-500 font-medium">Vui lòng chọn một Deal List từ menu phía trên để bắt đầu tính toán và tra cứu.</p>
                             </div>
                         </div>
