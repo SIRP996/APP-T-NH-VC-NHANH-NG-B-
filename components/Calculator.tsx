@@ -468,8 +468,8 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                         <p className="text-xs font-medium text-slate-500">{dealListName}</p>
                     </div>
                 </div>
-                {/* Clock - SUPER SIZED 3x */}
-                <div className="bg-slate-100 px-6 py-3 rounded-2xl font-mono text-6xl font-black text-slate-700 tracking-widest">
+                {/* Clock - Resized to 1/2 of previous (text-3xl) */}
+                <div className="bg-slate-100 px-4 py-2 rounded-2xl font-mono text-3xl font-black text-slate-700 tracking-widest">
                     {formattedTime}
                 </div>
             </div>
