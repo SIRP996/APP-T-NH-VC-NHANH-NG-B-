@@ -94,6 +94,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
     // Quick Input States
     const [isQuickPriceInput, setIsQuickPriceInput] = useState(true);
     const [isDesiredPriceFocused, setIsDesiredPriceFocused] = useState(false);
+    const [isVoucherFocused, setIsVoucherFocused] = useState(false);
     const [isMinOrderFocused, setIsMinOrderFocused] = useState(false);
     const [isMaxDiscountFocused, setIsMaxDiscountFocused] = useState(false);
 
@@ -343,7 +344,49 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
         }
     };
 
-    // 2. Min Order Logic
+    // 2. Voucher Value Logic (Fixed missing x1000 and lag)
+    const voucherDisplayValue = useMemo(() => {
+        if (!voucherValue) return '';
+        
+        // Percentage Mode: always return raw
+        if (voucherType === VoucherType.Percentage) {
+            return voucherValue;
+        }
+
+        // Fixed Mode: apply format logic
+        const numericValue = parseInt(voucherValue, 10);
+        if (isNaN(numericValue)) return '';
+
+        if (isQuickPriceInput && isVoucherFocused) {
+            return String(Math.round(numericValue / 1000));
+        } else {
+            return formatCurrencyForInput(voucherValue);
+        }
+    }, [voucherValue, voucherType, isQuickPriceInput, isVoucherFocused]);
+
+    const handleVoucherChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const rawValue = e.target.value;
+        const numericString = parseInput(rawValue);
+
+        if (voucherType === VoucherType.Percentage) {
+            setVoucherValue(numericString);
+        } else {
+            // Fixed (VND) Logic with x1000 support
+            if (isQuickPriceInput) {
+                const numericValue = parseInt(numericString, 10);
+                if (isNaN(numericValue)) {
+                    setVoucherValue('');
+                } else {
+                    setVoucherValue(String(numericValue * 1000));
+                }
+            } else {
+                setVoucherValue(numericString);
+            }
+        }
+    };
+
+
+    // 3. Min Order Logic
     const minOrderDisplayValue = useMemo(() => {
         if (!minOrderValue) return '';
         const numericValue = parseInt(minOrderValue, 10);
@@ -372,7 +415,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
         }
     };
 
-    // 3. Max Discount Logic
+    // 4. Max Discount Logic
     const maxDiscountDisplayValue = useMemo(() => {
         if (!maxDiscountValue) return '';
         const numericValue = parseInt(maxDiscountValue, 10);
@@ -592,16 +635,17 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                     <div className="relative">
                          <input
                             ref={voucherInputRef}
-                            type="number" 
-                            value={voucherValue}
-                            onChange={(e) => setVoucherType(VoucherType.Percentage) ? setVoucherValue(e.target.value) : setVoucherValue(e.target.value)} 
+                            type="text" 
+                            value={voucherDisplayValue}
+                            onChange={handleVoucherChange} 
                             onKeyDown={handleKeyDown}
-                            onFocus={handleInputFocus}
-                            placeholder={voucherType === VoucherType.Percentage ? "Nhập %" : "Nhập số tiền"}
+                            onFocus={(e) => { setIsVoucherFocused(true); handleInputFocus(e); }}
+                            onBlur={() => setIsVoucherFocused(false)}
+                            placeholder={voucherType === VoucherType.Percentage ? "Nhập %" : (isQuickPriceInput ? "Nhập số tiền (x1000)" : "Nhập số tiền")}
                             className="block w-full px-4 py-2.5 bg-white border border-slate-200 text-slate-900 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-lg font-bold shadow-sm text-center placeholder:text-slate-300"
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">
-                            {voucherType === VoucherType.Percentage ? '%' : ''}
+                            {voucherType === VoucherType.Percentage ? '%' : 'VND'}
                         </span>
                     </div>
 
