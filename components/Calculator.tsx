@@ -499,7 +499,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
 
 
     return (
-        <div className="bg-white/70 backdrop-blur-xl p-6 rounded-[24px] shadow-2xl shadow-violet-100 border border-white/60 h-full flex flex-col relative overflow-hidden ring-1 ring-white">
+        <div className="bg-white/80 backdrop-blur-lg p-6 rounded-3xl shadow-2xl border border-white/50 h-full flex flex-col relative overflow-hidden">
              {/* Header Card */}
              <div className="flex justify-between items-center mb-6 flex-shrink-0">
                 <div className="flex items-center gap-3">
@@ -508,11 +508,11 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                     </div>
                     <div>
                         <h2 className="text-lg font-black text-slate-900 tracking-tight leading-tight">Tính giá nhanh</h2>
-                        <p className="text-xs font-bold text-slate-400 truncate max-w-[150px]">{dealListName}</p>
+                        <p className="text-xs font-bold text-slate-400">{dealListName}</p>
                     </div>
                 </div>
                 {/* Clock */}
-                <div className="bg-slate-50/80 px-4 py-2 rounded-2xl font-mono text-xl font-bold text-slate-700 tracking-widest shadow-inner border border-slate-100">
+                <div className="bg-slate-50 px-4 py-2 rounded-2xl font-mono text-2xl font-black text-slate-700 tracking-widest shadow-inner">
                     {formattedTime}
                 </div>
             </div>
@@ -529,7 +529,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                             onChange={handleProductNameChange}
                             placeholder="Chọn hoặc nhập ID..."
                             rows={2}
-                            className="block w-full px-4 py-3 bg-slate-50/50 border border-transparent focus:bg-white text-slate-900 rounded-xl focus:ring-2 focus:ring-violet-500 transition-all text-sm font-semibold resize-y shadow-inner placeholder:text-slate-400 min-h-[80px]"
+                            className="block w-full px-4 py-3 bg-slate-50 border-0 text-slate-900 rounded-xl focus:ring-2 focus:ring-violet-500 transition-all text-sm font-semibold resize-y shadow-inner placeholder:text-slate-400 min-h-[80px]"
                         />
                     </div>
                      
@@ -613,7 +613,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                 </div>
 
                 {/* Voucher Inputs */}
-                <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-100 space-y-4 shadow-sm">
+                <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-100 space-y-4">
                     <div className="flex justify-between items-center">
                         <label className="text-sm font-bold text-slate-700 ml-1">Voucher sàn</label>
                          <div className="flex bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
@@ -642,7 +642,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                             onFocus={(e) => { setIsVoucherFocused(true); handleInputFocus(e); }}
                             onBlur={() => setIsVoucherFocused(false)}
                             placeholder={voucherType === VoucherType.Percentage ? "Nhập %" : (isQuickPriceInput ? "Nhập số tiền (x1000)" : "Nhập số tiền")}
-                            className="block w-full px-4 py-3 bg-white border border-slate-200 text-slate-900 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all text-lg font-black shadow-sm text-center placeholder:text-slate-300 placeholder:font-normal"
+                            className="block w-full px-4 py-3 bg-white border border-slate-200 text-slate-900 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all text-lg font-bold shadow-sm text-center placeholder:text-slate-300"
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
                             {voucherType === VoucherType.Percentage ? '%' : 'VND'}
@@ -745,10 +745,10 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
             </div>
 
              {/* Footer / Result (Redesigned as a Premium Card) */}
-            <div className="mt-auto pt-4 border-t border-slate-100 flex-shrink-0 z-10 -mx-6 -mb-6 px-6 pb-6">
+            <div className="mt-auto pt-4 border-t border-slate-100 flex-shrink-0 bg-white/50 backdrop-blur-sm z-10 -mx-6 -mb-6 px-6 pb-6">
                 <button
                     onClick={handleCalculation}
-                    className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold text-base shadow-lg shadow-slate-400/20 hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 mb-4"
+                    className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold text-base shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 mb-4"
                 >
                     Tính giá ngay
                 </button>
@@ -758,7 +758,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                         <div className="bg-gradient-to-br from-violet-600 via-fuchsia-600 to-indigo-600 rounded-2xl p-0.5 shadow-2xl shadow-fuchsia-200">
                             <div className="bg-white/10 backdrop-blur-md rounded-[14px] p-5 border border-white/20 relative overflow-hidden">
                                 {/* Mesh Gradient Background inside card */}
-                                <div className="absolute top-[-50%] right-[-50%] w-full h-full bg-fuchsia-500/30 blur-3xl rounded-full animate-pulse"></div>
+                                <div className="absolute top-[-50%] right-[-50%] w-full h-full bg-fuchsia-500/30 blur-3xl rounded-full"></div>
                                 
                                 <div className="relative z-10">
                                     {/* Platform Contribution Info */}
@@ -780,19 +780,22 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
                                         </div>
                                     )}
 
-                                    <p className="text-violet-100 text-[10px] uppercase font-bold tracking-wider mb-1 opacity-80">Voucher người bán (VND)</p>
-                                    <div className="text-4xl font-black text-white drop-shadow-md tracking-tighter">
-                                        {formatCurrency(result)}
+                                    <div className="flex justify-between items-end">
+                                        <div>
+                                            <p className="text-violet-100 text-[10px] uppercase font-bold tracking-wider mb-1 opacity-80">Voucher người bán (VND)</p>
+                                            <div className="text-4xl font-black text-white drop-shadow-md tracking-tighter">
+                                                {formatCurrency(result)}
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={handleCopyResult}
+                                            className="p-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-all border border-white/10 backdrop-blur-md mb-1 shrink-0"
+                                            title="Sao chép kết quả"
+                                        >
+                                             {isCopied ? <CheckIcon className="w-5 h-5 text-green-300" /> : <CopyIcon className="w-5 h-5" />}
+                                        </button>
                                     </div>
                                 </div>
-
-                                <button 
-                                    onClick={handleCopyResult}
-                                    className="absolute top-4 right-4 p-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-all border border-white/10 backdrop-blur-md"
-                                    title="Sao chép kết quả"
-                                >
-                                     {isCopied ? <CheckIcon className="w-5 h-5 text-green-300" /> : <CopyIcon className="w-5 h-5" />}
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -801,7 +804,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
 
              {/* Settings Modal */}
              {isSettingsOpen && (
-                <div className="absolute inset-0 bg-white z-50 p-6 animate-in fade-in zoom-in-95 duration-200 flex flex-col rounded-[24px]">
+                <div className="absolute inset-0 bg-white z-50 p-6 animate-in fade-in zoom-in-95 duration-200 flex flex-col rounded-3xl">
                     <div className="flex justify-between items-center mb-6">
                          <h3 className="font-bold text-lg text-slate-900">Cài đặt phím tắt %</h3>
                          <button onClick={() => setIsSettingsOpen(false)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">

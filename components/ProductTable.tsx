@@ -332,8 +332,8 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
     };
     
     return (
-        <div className="w-full h-full flex flex-col overflow-hidden bg-white/60">
-            <div className="p-5 border-b border-slate-100 bg-white/60 backdrop-blur-md z-20 sticky top-0">
+        <div className="w-full h-full flex flex-col overflow-hidden bg-white">
+            <div className="p-5 border-b border-slate-100 bg-white/50 backdrop-blur-sm z-20 sticky top-0">
                 <div className="flex items-center gap-4">
                     <div className="relative flex-grow group">
                         <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
@@ -346,7 +346,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            className="w-full pl-11 pr-4 py-2.5 border border-slate-200 bg-white/80 rounded-2xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all shadow-sm font-medium"
+                            className="w-full pl-11 pr-4 py-2.5 border border-slate-200 bg-white/70 rounded-2xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all shadow-sm font-medium"
                         />
                     </div>
                     <button 
@@ -359,11 +359,11 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
                 </div>
 
                 <div className="mt-4 flex gap-4">
-                    <div className="flex items-baseline gap-2 px-4 py-2 bg-violet-50/80 rounded-xl border border-violet-100">
+                    <div className="flex items-baseline gap-2 px-4 py-2 bg-violet-50 rounded-xl border border-violet-100">
                         <span className="text-xs font-bold uppercase text-violet-500 tracking-wider">Tổng SKU</span>
                         <span className="text-lg font-bold text-violet-900">{isLoading ? '...' : new Intl.NumberFormat('vi-VN').format(totalSKUs)}</span>
                     </div>
-                    <div className="flex items-baseline gap-2 px-4 py-2 bg-slate-50/80 rounded-xl border border-slate-100">
+                    <div className="flex items-baseline gap-2 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
                         <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">Tổng sản phẩm</span>
                         <span className="text-lg font-bold text-slate-700">{isLoading ? '...' : new Intl.NumberFormat('vi-VN').format(totalProducts)}</span>
                     </div>
@@ -404,7 +404,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
                             ))}
                         </tr>
                     </thead>
-                    <tbody className="bg-white/50 divide-y divide-slate-100">
+                    <tbody className="bg-white divide-y divide-slate-100">
                         {isLoading ? (
                             <tr><td colSpan={orderedTableHeaders.length} className="text-center py-20 text-slate-400">
                                 <div className="flex flex-col items-center justify-center gap-2">
@@ -420,7 +420,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
                                         key={`${product.id}-${index}`} 
                                         onClick={() => onProductSelect(product)} 
                                         onMouseEnter={() => setSelectedIndex(index)} // Sync hover with selection
-                                        className={`cursor-pointer transition-all group border-b border-slate-50 last:border-none ${isSelected ? 'bg-violet-50/80 ring-1 ring-inset ring-violet-200 z-10 relative shadow-sm' : 'hover:bg-violet-50/40'}`}
+                                        className={`cursor-pointer transition-colors group border-b border-slate-50 last:border-none ${isSelected ? 'bg-violet-50/60 ring-1 ring-inset ring-violet-200' : 'hover:bg-violet-50/30'}`}
                                     >
                                         {orderedTableHeaders.map(({ key }) => (
                                             <td key={key} className={`px-6 py-4 text-sm ${cellClassMap[key]} break-words align-top ${isSelected ? 'text-violet-900' : 'group-hover:text-violet-900'} transition-colors`}>
@@ -431,7 +431,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
                                 );
                             })
                         ) : (
-                             <tr><td colSpan={orderedTableHeaders.length} className="text-center py-20 text-slate-400 font-medium">Không tìm thấy sản phẩm nào.</td></tr>
+                             <tr><td colSpan={orderedTableHeaders.length} className="text-center py-20 text-slate-400">Không tìm thấy sản phẩm nào.</td></tr>
                         )}
                     </tbody>
                 </table>
