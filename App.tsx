@@ -120,16 +120,18 @@ const LoginScreen: React.FC<{
     const switchModeText = mode === 'login' ? 'Chưa có tài khoản?' : 'Đã có tài khoản?';
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-violet-50 p-4 relative overflow-hidden">
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-violet-50 to-fuchsia-50 p-4 relative overflow-hidden">
              {/* Decorative background elements */}
-             <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-violet-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-            <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-fuchsia-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+             <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-violet-300 rounded-full mix-blend-multiply filter blur-[80px] opacity-40 animate-blob"></div>
+            <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-fuchsia-300 rounded-full mix-blend-multiply filter blur-[80px] opacity-40 animate-blob animation-delay-2000"></div>
+            <div className="absolute top-[20%] left-[20%] w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-[80px] opacity-30 animate-blob animation-delay-4000"></div>
 
-            <div className="p-8 bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 text-center max-w-sm w-full relative z-10">
-                <div className="bg-gradient-to-tr from-violet-500 to-fuchsia-500 p-4 rounded-2xl w-20 h-20 mx-auto mb-6 flex items-center justify-center shadow-lg shadow-violet-200">
+
+            <div className="p-8 bg-white/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/60 text-center max-w-sm w-full relative z-10 ring-1 ring-white/50">
+                <div className="bg-gradient-to-tr from-violet-500 to-fuchsia-600 p-4 rounded-2xl w-20 h-20 mx-auto mb-6 flex items-center justify-center shadow-lg shadow-violet-200/50">
                     <FirebaseIcon className="w-10 h-10 brightness-200 grayscale contrast-200 text-white" />
                 </div>
-                <h1 className="text-2xl font-bold text-slate-900 mb-2 tracking-tight">{title}</h1>
+                <h1 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">{title}</h1>
                 <p className="text-slate-500 mb-8 text-sm font-medium">Truy cập vào công cụ quản lý giá & deal.</p>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -143,7 +145,7 @@ const LoginScreen: React.FC<{
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="Email"
                             required
-                            className="w-full pl-10 pr-3 py-3 border border-slate-200 bg-slate-50/50 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent focus:bg-white transition-all outline-none text-sm font-medium"
+                            className="w-full pl-10 pr-3 py-3 border border-slate-200 bg-white/50 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent focus:bg-white transition-all outline-none text-sm font-medium"
                         />
                     </div>
 
@@ -158,7 +160,7 @@ const LoginScreen: React.FC<{
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="Mật khẩu"
                                 required
-                                className="w-full pl-10 pr-3 py-3 border border-slate-200 bg-slate-50/50 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent focus:bg-white transition-all outline-none text-sm font-medium"
+                                className="w-full pl-10 pr-3 py-3 border border-slate-200 bg-white/50 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent focus:bg-white transition-all outline-none text-sm font-medium"
                             />
                         </div>
                     )}
@@ -169,7 +171,7 @@ const LoginScreen: React.FC<{
                     <button
                         type="submit"
                         disabled={isLoading || !isFirebaseReady}
-                        className="w-full py-3 px-4 border border-transparent rounded-xl shadow-lg shadow-violet-200 text-sm font-bold text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+                        className="w-full py-3 px-4 border border-transparent rounded-xl shadow-lg shadow-violet-300/50 text-sm font-bold text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
                     >
                         {isLoading ? 'Đang xử lý...' : buttonText}
                     </button>
@@ -201,7 +203,7 @@ const LoginScreen: React.FC<{
                 <button
                     onClick={onGoogleSignIn}
                     disabled={!isFirebaseReady}
-                    className="w-full inline-flex justify-center items-center gap-3 py-3 px-4 border border-slate-200 rounded-xl shadow-sm bg-white text-sm font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="w-full inline-flex justify-center items-center gap-3 py-3 px-4 border border-slate-200 rounded-xl shadow-sm bg-white/80 text-sm font-bold text-slate-700 hover:bg-white hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                     <GoogleIcon className="w-5 h-5" />
                     Tiếp tục với Google
@@ -492,6 +494,34 @@ const App: React.FC = () => {
                 const workbook = XLSX.read(data, { type: 'array' });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
+
+                // --- SMART MERGE HANDLING START ---
+                // This block detects merged cells and fills them with the value of the top-left cell.
+                // Crucial for "NoSQL-like" messy Excel files with grouped rows.
+                if (worksheet['!merges']) {
+                    worksheet['!merges'].forEach((range: any) => {
+                        // Get the value of the top-left cell of the merged range
+                        const startCellRef = XLSX.utils.encode_cell({ c: range.s.c, r: range.s.r });
+                        const startCell = worksheet[startCellRef];
+                        const value = startCell ? startCell.v : undefined;
+
+                        // Fill all other cells in the range with this value
+                        for (let R = range.s.r; R <= range.e.r; ++R) {
+                            for (let C = range.s.c; C <= range.e.c; ++C) {
+                                const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
+                                // If cell doesn't exist, create it
+                                if (!worksheet[cellRef]) {
+                                    worksheet[cellRef] = { t: 's', v: value };
+                                } else {
+                                    // If it exists (even if empty), overwrite value so JSON conversion picks it up
+                                    worksheet[cellRef].v = value;
+                                }
+                            }
+                        }
+                    });
+                }
+                // --- SMART MERGE HANDLING END ---
+
                 const json: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
                 if (json.length === 0) {
@@ -700,64 +730,66 @@ const App: React.FC = () => {
     const renderLoading = () => (
         <div className="flex items-center justify-center h-screen bg-slate-900">
             <div className="text-center">
-                <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-violet-400 mx-auto mb-4"></div>
-                <h2 className="text-xl font-semibold text-white tracking-tight">Đang tải ứng dụng...</h2>
+                <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-violet-500 mx-auto mb-4"></div>
+                <h2 className="text-xl font-bold text-white tracking-tight">Đang tải ứng dụng...</h2>
             </div>
         </div>
     );
     
 
     const renderManageLists = () => (
-        <div className="bg-slate-50 min-h-screen relative overflow-hidden">
+        <div className="bg-slate-50 min-h-screen relative overflow-hidden font-sans">
              {/* Background blobs */}
-             <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-violet-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob"></div>
-             <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-fuchsia-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000"></div>
+             <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-violet-300 rounded-full mix-blend-multiply filter blur-[100px] opacity-30 animate-blob"></div>
+             <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-fuchsia-300 rounded-full mix-blend-multiply filter blur-[100px] opacity-30 animate-blob animation-delay-2000"></div>
 
             <div className="max-w-5xl mx-auto p-6 sm:p-8 lg:p-10 relative z-10">
                 <input type="file" ref={fileInputRef} onChange={handleFileImport} className="hidden" accept=".xlsx, .xls, .csv" />
-                <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Quản lý Deal Lists</h1>
+                <div className="flex justify-between items-center mb-10">
+                    <div>
+                         <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-1">Quản lý Deal Lists</h1>
+                         <p className="text-slate-500 font-medium">Import và đồng bộ dữ liệu sản phẩm của bạn</p>
+                    </div>
+                    
                     {user && (
-                        <div className="flex items-center gap-3 bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-sm border border-white/50">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center text-white font-bold shadow-md">
+                        <div className="flex items-center gap-3 bg-white/70 backdrop-blur-lg px-2 py-2 pr-4 rounded-full shadow-sm border border-white/60">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center text-white font-bold shadow-md">
                                 {user.email ? user.email.charAt(0).toUpperCase() : 'U'}
                             </div>
                              <span className="text-sm font-bold text-slate-700 hidden sm:inline">{user.displayName || user.email}</span>
-                            <button onClick={handleLogout} className="p-1.5 rounded-full text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors" aria-label="Đăng xuất">
+                            <button onClick={handleLogout} className="p-2 rounded-full text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors" aria-label="Đăng xuất">
                                 <LogoutIcon className="w-5 h-5"/>
                             </button>
                         </div>
                     )}
                 </div>
                 
-                {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl relative mb-6 shadow-sm" role="alert">{error}</div>}
+                {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl relative mb-6 shadow-sm font-medium" role="alert">{error}</div>}
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {dealLists.map(dl => (
-                        <div key={dl.id} className="bg-white/90 backdrop-blur-sm p-6 rounded-3xl shadow-sm border border-white/60 hover:border-violet-300 hover:shadow-xl hover:shadow-violet-200/20 transition-all group flex flex-col justify-between h-56 relative overflow-hidden">
-                             <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
-                                 {dl.source === 'excel' ? <SheetIcon className="w-24 h-24 text-green-600"/> : <LinkIcon className="w-24 h-24 text-violet-600"/>}
-                             </div>
-
+                        <div key={dl.id} className="bg-white/80 backdrop-blur-md p-6 rounded-[2rem] shadow-lg shadow-slate-200/50 border border-white/60 hover:border-violet-300 hover:shadow-xl hover:shadow-violet-200/30 transition-all duration-300 group flex flex-col justify-between h-60 relative overflow-hidden">
+                             <div className="absolute top-[-20%] right-[-20%] w-32 h-32 bg-gradient-to-br from-transparent to-white/40 rounded-full blur-xl pointer-events-none"></div>
+                             
                             <div>
                                 <div className="flex justify-between items-start relative z-10">
-                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 shadow-sm ${dl.source === 'excel' ? 'bg-green-50 text-green-600' : 'bg-violet-50 text-violet-600'}`}>
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-5 shadow-inner border border-white/50 ${dl.source === 'excel' ? 'bg-green-50 text-green-600' : 'bg-violet-50 text-violet-600'}`}>
                                          {dl.source === 'excel' ? <SheetIcon className="w-6 h-6"/> : <LinkIcon className="w-6 h-6"/>}
                                     </div>
-                                    <span className={`text-[10px] uppercase font-bold px-2.5 py-1 rounded-lg tracking-wide ${dl.source === 'excel' ? 'bg-green-100 text-green-800' : 'bg-violet-100 text-violet-800'}`}>
+                                    <span className={`text-[10px] uppercase font-black px-2.5 py-1 rounded-lg tracking-wide ${dl.source === 'excel' ? 'bg-green-100 text-green-800' : 'bg-violet-100 text-violet-800'}`}>
                                         {dl.source === 'excel' ? 'Excel' : 'Sheet'}
                                     </span>
                                 </div>
-                                <h3 className="font-bold text-xl text-slate-900 truncate relative z-10" title={dl.name}>{dl.name}</h3>
-                                <p className="text-xs text-slate-400 mt-1 truncate font-medium relative z-10">{dl.sheetUrl || 'Nhập từ file cục bộ'}</p>
+                                <h3 className="font-black text-xl text-slate-900 truncate relative z-10 mb-1" title={dl.name}>{dl.name}</h3>
+                                <p className="text-xs text-slate-400 truncate font-semibold relative z-10">{dl.sheetUrl || 'Nhập từ file cục bộ'}</p>
                             </div>
                             
-                            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100 relative z-10">
-                                <button onClick={() => handleSetActiveDealList(dl.id)} className="flex-1 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 active:scale-95">Vào xem</button>
-                                <button onClick={() => handleEditList(dl)} className="p-2.5 text-slate-500 hover:text-violet-600 hover:bg-violet-50 rounded-xl transition-colors" disabled={dl.source === 'excel'}><EditIcon className="w-5 h-5"/></button>
+                            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100/50 relative z-10">
+                                <button onClick={() => handleSetActiveDealList(dl.id)} className="flex-1 py-3 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-300 hover:shadow-slate-400 active:scale-95">Vào xem</button>
+                                <button onClick={() => handleEditList(dl)} className="p-3 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-xl transition-colors" disabled={dl.source === 'excel'}><EditIcon className="w-5 h-5"/></button>
                                 <button 
                                     onClick={() => setListPendingDeletion(dl)}
-                                    className="p-2.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                                    className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
                                 >
                                     <TrashIcon className="w-5 h-5"/>
                                 </button>
@@ -766,16 +798,16 @@ const App: React.FC = () => {
                     ))}
                     
                     {/* Add New Card */}
-                     <div className="bg-white/50 backdrop-blur-sm p-6 rounded-3xl border-2 border-dashed border-slate-300 hover:border-violet-400 hover:bg-white/80 transition-all flex flex-col items-center justify-center h-56 gap-4 group cursor-default">
-                        <div className="w-14 h-14 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-400 group-hover:text-violet-600 group-hover:shadow-md transition-all">
-                             <PlusIcon className="w-7 h-7" />
+                     <div className="bg-white/40 backdrop-blur-sm p-6 rounded-[2rem] border-2 border-dashed border-slate-300 hover:border-violet-400 hover:bg-white/60 transition-all flex flex-col items-center justify-center h-60 gap-4 group cursor-default">
+                        <div className="w-16 h-16 rounded-full bg-white/80 shadow-sm flex items-center justify-center text-slate-400 group-hover:text-violet-600 group-hover:scale-110 transition-all duration-300">
+                             <PlusIcon className="w-8 h-8" />
                         </div>
                         <p className="text-sm font-bold text-slate-600 group-hover:text-slate-900">Tạo danh sách mới</p>
-                        <div className="flex gap-2 w-full">
-                             <button onClick={handleAddNewList} className="flex-1 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:border-violet-300 hover:text-violet-600 shadow-sm transition-all">
+                        <div className="flex gap-2 w-full px-2">
+                             <button onClick={handleAddNewList} className="flex-1 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:border-violet-300 hover:text-violet-600 shadow-sm transition-all">
                                 Google Sheet
                             </button>
-                             <button onClick={() => fileInputRef.current?.click()} className="flex-1 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:border-green-300 hover:text-green-600 shadow-sm transition-all">
+                             <button onClick={() => fileInputRef.current?.click()} className="flex-1 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:border-green-300 hover:text-green-600 shadow-sm transition-all">
                                 Excel File
                             </button>
                         </div>
@@ -793,13 +825,16 @@ const App: React.FC = () => {
     );
     
     const renderConnectSheet = () => (
-        <div className="bg-slate-50 min-h-screen flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl shadow-2xl p-10 max-w-xl w-full border border-slate-100">
+        <div className="bg-slate-50 min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+             <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-violet-200 rounded-full mix-blend-multiply filter blur-[100px] opacity-30 animate-blob"></div>
+             <div className="absolute bottom-[-10%] left-[-10%] w-[60%] h-[60%] bg-fuchsia-200 rounded-full mix-blend-multiply filter blur-[100px] opacity-30 animate-blob animation-delay-2000"></div>
+
+            <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10 max-w-xl w-full border border-white/60 relative z-10">
                  <div className="mb-8 text-center">
-                    <div className="w-16 h-16 bg-violet-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-violet-600 shadow-sm">
-                        <LinkIcon className="w-8 h-8" />
+                    <div className="w-20 h-20 bg-violet-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-violet-600 shadow-inner">
+                        <LinkIcon className="w-10 h-10" />
                     </div>
-                    <h2 className="text-2xl font-bold text-slate-900">{editingDealList?.id ? 'Cập nhật kết nối' : 'Kết nối Google Sheet'}</h2>
+                    <h2 className="text-2xl font-black text-slate-900">{editingDealList?.id ? 'Cập nhật kết nối' : 'Kết nối Google Sheet'}</h2>
                     <p className="text-slate-500 text-sm mt-2 font-medium">Nhập thông tin bảng tính để đồng bộ dữ liệu.</p>
                 </div>
 
@@ -813,7 +848,7 @@ const App: React.FC = () => {
                             onChange={(e) => setEditingDealList(prev => ({...prev, name: e.target.value}))}
                             placeholder="Ví dụ: Deal tháng 11"
                             required
-                            className="block w-full px-4 py-3.5 rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all text-sm font-medium"
+                            className="block w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-white/50 focus:bg-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all text-sm font-medium shadow-sm"
                         />
                     </div>
                     <div>
@@ -825,17 +860,17 @@ const App: React.FC = () => {
                             onChange={(e) => setEditingDealList(prev => ({...prev, sheetUrl: e.target.value}))}
                             placeholder="https://docs.google.com/spreadsheets/d/..."
                             required
-                            className="block w-full px-4 py-3.5 rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all text-sm font-medium"
+                            className="block w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-white/50 focus:bg-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all text-sm font-medium shadow-sm"
                         />
-                        <p className="mt-3 text-xs text-blue-700 bg-blue-50 p-3.5 rounded-xl flex gap-2 items-start border border-blue-100">
+                        <p className="mt-3 text-xs text-blue-700 bg-blue-50 p-3.5 rounded-xl flex gap-2 items-start border border-blue-100 font-medium">
                             <span>ℹ️</span>
                             Sheet phải được chia sẻ công khai ở chế độ "Bất kỳ ai có đường liên kết".
                         </p>
                     </div>
-                    {error && <p className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">{error}</p>}
+                    {error && <p className="text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-100 font-bold">{error}</p>}
                     
                     <div className="grid grid-cols-2 gap-4 pt-4">
-                        <button type="button" onClick={() => setAppState('MANAGE_LISTS')} className="px-4 py-3.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors">Hủy bỏ</button>
+                        <button type="button" onClick={() => setAppState('MANAGE_LISTS')} className="px-4 py-3.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 transition-colors shadow-sm">Hủy bỏ</button>
                         <button type="submit" disabled={isLoading} className="px-4 py-3.5 rounded-xl shadow-lg shadow-violet-200 text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 transition-all">
                             {isLoading ? 'Đang kiểm tra...' : 'Tiếp tục'}
                         </button>
@@ -846,7 +881,7 @@ const App: React.FC = () => {
     );
 
     const renderMapColumns = () => (
-       <div className="bg-slate-50 min-h-screen">
+       <div className="bg-slate-50 min-h-screen font-sans">
             <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
                 <div className="flex items-center justify-between mb-8">
                      <div>
@@ -854,18 +889,18 @@ const App: React.FC = () => {
                         <p className="text-slate-500 text-sm mt-1 font-medium">Chọn cột tương ứng trong file của bạn với dữ liệu hệ thống.</p>
                     </div>
                     <div className="flex gap-3">
-                         <button onClick={() => setAppState('MANAGE_LISTS')} className="px-5 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50">Hủy</button>
+                         <button onClick={() => setAppState('MANAGE_LISTS')} className="px-5 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-sm">Hủy</button>
                         <button onClick={handleMappingSave} className="px-6 py-2.5 text-sm font-bold text-white bg-violet-600 rounded-xl shadow-lg shadow-violet-200 hover:bg-violet-700 transition-all">Lưu & Đồng bộ</button>
                     </div>
                 </div>
 
-                {error && <p className="text-red-600 bg-red-50 border border-red-100 p-3 rounded-xl text-sm mb-6">{error}</p>}
+                {error && <p className="text-red-600 bg-red-50 border border-red-100 p-3 rounded-xl text-sm mb-6 font-bold">{error}</p>}
                 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     <div className="lg:col-span-4">
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 sticky top-6">
+                        <div className="bg-white p-6 rounded-2xl shadow-lg shadow-slate-100 border border-slate-100 sticky top-6">
                             <h3 className="font-bold text-slate-900 mb-5 flex items-center gap-3 text-lg">
-                                <span className="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold">1</span>
+                                <span className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold">1</span>
                                 Cột cần chọn
                             </h3>
                             <div className="space-y-3">
@@ -873,13 +908,13 @@ const App: React.FC = () => {
                                     <div 
                                         key={config.key} 
                                         onClick={() => setActiveMappingKey(config.key)} 
-                                        className={`p-4 rounded-xl cursor-pointer border-2 transition-all duration-200 ${activeMappingKey === config.key ? 'border-violet-500 bg-violet-50/50 shadow-sm' : 'border-slate-100 hover:border-violet-200 bg-white'}`}
+                                        className={`p-4 rounded-xl cursor-pointer border-2 transition-all duration-200 ${activeMappingKey === config.key ? 'border-violet-500 bg-violet-50 shadow-sm ring-1 ring-violet-200' : 'border-slate-100 hover:border-violet-200 bg-white'}`}
                                     >
                                         <div className="flex justify-between items-center mb-1.5">
                                             <span className={`text-sm font-bold ${activeMappingKey === config.key ? 'text-violet-900' : 'text-slate-700'}`}>{config.label}</span>
-                                            {config.required && <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">Bắt buộc</span>}
+                                            {config.required && <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">Bắt buộc</span>}
                                         </div>
-                                        <div className={`text-xs px-3 py-2 rounded-lg w-full truncate font-medium ${tempMapping[config.key] ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-slate-50 text-slate-400 border border-slate-200 border-dashed'}`}>
+                                        <div className={`text-xs px-3 py-2 rounded-lg w-full truncate font-bold ${tempMapping[config.key] ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-slate-50 text-slate-400 border border-slate-200 border-dashed'}`}>
                                             {tempMapping[config.key] || 'Chưa chọn cột'}
                                         </div>
                                     </div>
@@ -888,9 +923,9 @@ const App: React.FC = () => {
                         </div>
                     </div>
                     <div className="lg:col-span-8">
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-full flex flex-col">
+                        <div className="bg-white p-6 rounded-2xl shadow-lg shadow-slate-100 border border-slate-100 h-full flex flex-col">
                              <h3 className="font-bold text-slate-900 mb-5 flex items-center gap-3 text-lg">
-                                <span className="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold">2</span>
+                                <span className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold">2</span>
                                 Dữ liệu từ file (15 dòng đầu)
                             </h3>
                             <div className="flex-grow overflow-auto border border-slate-200 rounded-xl custom-scrollbar shadow-inner bg-slate-50">
@@ -910,10 +945,10 @@ const App: React.FC = () => {
                                                                     setActiveMappingKey(nextUnmapped ? nextUnmapped.key : null);
                                                                 }
                                                             }}
-                                                            className={`w-full text-left px-4 py-3.5 border-b-4 transition-colors hover:bg-violet-50 ${isMapped ? 'border-violet-500 text-violet-700 bg-violet-50/50 font-bold' : 'border-transparent text-slate-500 hover:text-violet-600'}`}
+                                                            className={`w-full text-left px-4 py-3.5 border-b-4 transition-colors hover:bg-violet-50 ${isMapped ? 'border-violet-500 text-violet-700 bg-violet-50 font-bold' : 'border-transparent text-slate-500 hover:text-violet-600'}`}
                                                         >
                                                             {header}
-                                                            {isMapped && <span className="ml-2 text-[10px] bg-violet-100 text-violet-600 px-1.5 py-0.5 rounded-full align-middle">Đã chọn</span>}
+                                                            {isMapped && <span className="ml-2 text-[10px] bg-violet-100 text-violet-600 px-1.5 py-0.5 rounded-full align-middle border border-violet-200">Đã chọn</span>}
                                                         </button>
                                                     </th>
                                                 );
@@ -922,7 +957,7 @@ const App: React.FC = () => {
                                     </thead>
                                     <tbody className="bg-white divide-y divide-slate-100">
                                         {sheetPreview.map((row, rowIndex) => (
-                                            <tr key={rowIndex} className="hover:bg-slate-50 transition-colors">
+                                            <tr key={rowIndex} className="hover:bg-violet-50/50 transition-colors">
                                                 {row.map((cell, cellIndex) => (
                                                     <td key={cellIndex} className="px-4 py-3.5 whitespace-nowrap text-sm text-slate-600 max-w-[200px] truncate border-r border-slate-100 last:border-r-0 font-medium">
                                                         {cell}
@@ -947,9 +982,9 @@ const App: React.FC = () => {
         return (
             <div className="h-screen w-screen flex flex-col bg-slate-50 font-sans overflow-hidden relative">
                 {/* Modern Vivid Gradient Background */}
-                <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-violet-200 mix-blend-multiply filter blur-[80px] opacity-40 animate-pulse"></div>
-                <div className="absolute bottom-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-fuchsia-200 mix-blend-multiply filter blur-[80px] opacity-40 animate-pulse animation-delay-2000"></div>
-                <div className="absolute top-[20%] left-[30%] w-[30%] h-[30%] rounded-full bg-blue-100 mix-blend-multiply filter blur-[80px] opacity-30 animate-pulse animation-delay-4000"></div>
+                <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-violet-200 mix-blend-multiply filter blur-[100px] opacity-40 animate-pulse"></div>
+                <div className="absolute bottom-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-fuchsia-200 mix-blend-multiply filter blur-[100px] opacity-40 animate-pulse animation-delay-2000"></div>
+                <div className="absolute top-[20%] left-[30%] w-[30%] h-[30%] rounded-full bg-blue-100 mix-blend-multiply filter blur-[100px] opacity-30 animate-pulse animation-delay-4000"></div>
 
 
                 <header className="flex-shrink-0 bg-white/70 backdrop-blur-md border-b border-white/50 z-30 px-6 py-4 shadow-sm">
@@ -1018,7 +1053,7 @@ const App: React.FC = () => {
                                     onFocusSearch={() => searchInputRef.current?.focus()}
                                 />
                             </div>
-                            <div className="flex-1 h-full flex flex-col bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl shadow-slate-200/50 border border-white/60 overflow-hidden">
+                            <div className="flex-1 h-full flex flex-col bg-white/70 backdrop-blur-2xl rounded-3xl shadow-2xl shadow-slate-200/50 border border-white/60 overflow-hidden ring-1 ring-white/50">
                                 <div className="flex-shrink-0 border-b border-slate-100 px-6 pt-4">
                                     <nav className="flex space-x-4" aria-label="Tabs">
                                         <button
