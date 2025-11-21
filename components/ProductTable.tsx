@@ -391,7 +391,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     
     return (
         <div className="w-full h-full flex flex-col overflow-hidden bg-transparent">
-            <div className="p-5 border-b border-white/5 bg-slate-900/50 backdrop-blur-md z-20 sticky top-0">
+            <div className="p-5 border-b border-white/5 bg-transparent z-20 sticky top-0">
                 <div className="flex items-center gap-4">
                     <div className="relative flex-grow group">
                         <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
@@ -450,7 +450,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
             />
 
             <div 
-                className="flex-grow overflow-auto custom-scrollbar relative bg-slate-900/30" 
+                className="flex-grow overflow-auto custom-scrollbar relative bg-transparent" 
                 ref={tableContainerRef}
                 onScroll={handleScroll}
             >

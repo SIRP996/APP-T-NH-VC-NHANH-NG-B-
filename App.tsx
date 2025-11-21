@@ -1088,165 +1088,175 @@ const App: React.FC = () => {
         const dealListOptions = useMemo(() => dealLists.map(dl => ({ value: dl.id, label: dl.name })), [dealLists]);
 
         return (
-            <div className="h-screen w-screen flex flex-col font-sans overflow-hidden relative bg-[#020617]">
+            <div className="h-screen w-screen flex flex-col font-sans overflow-hidden relative bg-[#020617] p-6">
                 <ToastContainer toasts={toasts} removeToast={removeToast} />
 
                 <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-primary-600 mix-blend-screen filter blur-[120px] opacity-10 animate-pulse-slow"></div>
                 <div className="absolute bottom-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-secondary-500 mix-blend-screen filter blur-[120px] opacity-10 animate-pulse-slow animation-delay-2000"></div>
 
-                <header className="flex-shrink-0 bg-slate-900/50 backdrop-blur-md border-b border-white/5 z-30 px-6 py-4 shadow-sm">
-                    <div className="flex justify-between items-center gap-4">
-                        <div className="flex items-center gap-4 flex-grow">
-                            <button onClick={() => setAppState('MANAGE_LISTS')} className="text-slate-400 hover:text-white hover:bg-white/10 p-2.5 rounded-xl transition-all flex-shrink-0" title="Quay lại quản lý">
-                                <CogIcon className="w-6 h-6" />
-                            </button>
-                            
-                            <div className="h-8 w-px bg-slate-700 mx-1"></div>
-
-                            <CustomDropdown
-                                options={creatorOptions}
-                                selectedValue={selectedCreatorId}
-                                onSelect={(value) => setSelectedCreatorId(value)}
-                                placeholder="Chọn KOC/KOL"
-                            />
-
-                            <CustomDropdown
-                                options={dealListOptions}
-                                selectedValue={activeDealListId}
-                                onSelect={(value) => handleSetActiveDealList(value)}
-                                placeholder="Chọn Deal List"
-                            />
-
-                            {activeDealList && (
-                                <button 
-                                    onClick={() => activeDealList && handleSync(activeDealList)} 
-                                    disabled={isSyncing || activeDealList?.source === 'excel'}
-                                    className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-xl text-sm font-bold hover:border-primary-500 hover:text-white hover:shadow-glow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
-                                >
-                                    <SyncIcon className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                                    {isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ'}
+                {/* Unified Workspace Container */}
+                <div className="glass-panel h-full w-full rounded-3xl flex flex-col overflow-hidden shadow-2xl border border-white/10 relative z-20">
+                    
+                    {/* Integrated Header */}
+                    <header className="flex-shrink-0 bg-slate-900/30 backdrop-blur-md border-b border-white/5 z-30 px-6 py-4 shadow-sm">
+                        <div className="flex justify-between items-center gap-4">
+                            <div className="flex items-center gap-4 flex-grow">
+                                <button onClick={() => setAppState('MANAGE_LISTS')} className="text-slate-400 hover:text-white hover:bg-white/10 p-2.5 rounded-xl transition-all flex-shrink-0" title="Quay lại quản lý">
+                                    <CogIcon className="w-6 h-6" />
                                 </button>
-                            )}
-                            <div className="flex-grow"></div>
-                        </div>
-                        
-                        <div className="flex items-center gap-3">
-                             <button 
-                                onClick={toggleTheme}
-                                className="p-2.5 rounded-full bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700 backdrop-blur-md border border-white/5 transition-all"
-                                title="Chuyển giao diện"
-                            >
-                                <SwatchIcon className="w-5 h-5" />
-                            </button>
+                                
+                                <div className="h-8 w-px bg-slate-700 mx-1"></div>
 
-                            {user && (
-                                <div className="flex items-center gap-4 flex-shrink-0 pr-2">
-                                    <div className="text-right hidden sm:block">
-                                        <p className="text-xs font-bold text-white">{user.displayName || 'User'}</p>
-                                        <p className="text-[10px] text-slate-400 font-medium">{user.email}</p>
-                                    </div>
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-secondary-600 text-white flex items-center justify-center font-bold text-sm shadow-lg shadow-primary-900/50 ring-2 ring-white/10">
-                                        {user.email ? user.email.charAt(0).toUpperCase() : 'U'}
-                                    </div>
-                                    <button onClick={handleLogout} className="p-2 rounded-full text-slate-400 hover:bg-red-500/10 hover:text-red-500 transition-colors" aria-label="Đăng xuất">
-                                        <LogoutIcon className="w-5 h-5"/>
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                    {error && <p className="text-red-400 text-xs font-bold mt-2 text-center bg-red-900/20 p-2 rounded-lg animate-pulse border border-red-800/50">{error}</p>}
-                </header>
-
-                <main className="flex-grow flex gap-6 min-h-0 p-6 z-20">
-                    {activeDealListId ? (
-                        <>
-                            <div className="w-1/3 h-full min-w-[360px] max-w-[420px]">
-                                <Calculator 
-                                    selectedProduct={selectedProduct} 
-                                    dealListName={activeDealList?.name || ''} 
-                                    products={products}
-                                    onProductSelect={setSelectedProduct}
-                                    onFocusSearch={() => searchInputRef.current?.focus()}
-                                    presetVouchers={calculatorPresets}
-                                    onSavePresets={handleSavePresets}
+                                <CustomDropdown
+                                    options={creatorOptions}
+                                    selectedValue={selectedCreatorId}
+                                    onSelect={(value) => setSelectedCreatorId(value)}
+                                    placeholder="Chọn KOC/KOL"
                                 />
+
+                                <CustomDropdown
+                                    options={dealListOptions}
+                                    selectedValue={activeDealListId}
+                                    onSelect={(value) => handleSetActiveDealList(value)}
+                                    placeholder="Chọn Deal List"
+                                />
+
+                                {activeDealList && (
+                                    <button 
+                                        onClick={() => activeDealList && handleSync(activeDealList)} 
+                                        disabled={isSyncing || activeDealList?.source === 'excel'}
+                                        className="flex items-center gap-2 px-4 py-2.5 bg-slate-800/80 border border-slate-700 text-slate-300 rounded-xl text-sm font-bold hover:border-primary-500 hover:text-white hover:shadow-glow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                                    >
+                                        <SyncIcon className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                                        {isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ'}
+                                    </button>
+                                )}
+                                <div className="flex-grow"></div>
                             </div>
-                            <div className="flex-1 h-full flex flex-col bg-slate-900/40 backdrop-blur-lg rounded-3xl shadow-2xl shadow-black/20 border border-white/5 overflow-hidden">
-                                <div className="flex-shrink-0 border-b border-slate-800 px-6 pt-4">
-                                    <nav className="flex space-x-4" aria-label="Tabs">
-                                        <button
-                                            onClick={() => setActiveViewDataTab('products')}
-                                            className={`flex items-center gap-2 px-4 py-3 font-bold text-sm transition-all border-b-2 ${
-                                                activeViewDataTab === 'products'
-                                                    ? 'border-primary-500 text-primary-400'
-                                                    : 'border-transparent text-slate-500 hover:text-slate-300'
-                                            }`}
-                                        >
-                                            <SheetIcon className="w-4 h-4" />
-                                            Sản phẩm
-                                        </button>
-                                        <button
-                                            onClick={() => setActiveViewDataTab('creators')}
-                                            className={`flex items-center gap-2 px-4 py-3 font-bold text-sm transition-all border-b-2 ${
-                                                activeViewDataTab === 'creators'
-                                                    ? 'border-primary-500 text-primary-400'
-                                                    : 'border-transparent text-slate-500 hover:text-slate-300'
-                                            }`}
-                                        >
-                                            <IdentificationIcon className="w-4 h-4" />
-                                            Creator IDs
-                                        </button>
-                                    </nav>
-                                </div>
-                                <div className="flex-grow min-h-0 relative">
-                                    {activeViewDataTab === 'products' && (
-                                        <div className="h-full overflow-hidden">
-                                             <ProductTable 
-                                                products={products} 
-                                                onProductSelect={setSelectedProduct} 
-                                                isLoading={isLoading} 
-                                                activeDealListId={activeDealListId}
-                                                searchInputRef={searchInputRef}
-                                                onAddProduct={() => {
-                                                    setEditingProduct(null);
-                                                    setIsProductModalOpen(true);
-                                                }}
-                                                onEditProduct={(p) => {
-                                                    setEditingProduct(p);
-                                                    setIsProductModalOpen(true);
-                                                }}
-                                                onDeleteProduct={(p) => setProductPendingDeletion(p)}
-                                             />
+                            
+                            <div className="flex items-center gap-3">
+                                <button 
+                                    onClick={toggleTheme}
+                                    className="p-2.5 rounded-full bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700 backdrop-blur-md border border-white/5 transition-all"
+                                    title="Chuyển giao diện"
+                                >
+                                    <SwatchIcon className="w-5 h-5" />
+                                </button>
+
+                                {user && (
+                                    <div className="flex items-center gap-4 flex-shrink-0 pr-2">
+                                        <div className="text-right hidden sm:block">
+                                            <p className="text-xs font-bold text-white">{user.displayName || 'User'}</p>
+                                            <p className="text-[10px] text-slate-400 font-medium">{user.email}</p>
                                         </div>
-                                    )}
-                                    {activeViewDataTab === 'creators' && (
-                                        <div className="h-full p-6">
-                                            <CreatorList
-                                                creators={creators}
-                                                isLoading={isCreatorLoading}
-                                                onAdd={handleAddCreator}
-                                                onUpdate={handleUpdateCreator}
-                                                onDelete={handleDeleteCreator}
-                                                dealLists={dealLists}
-                                            />
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-secondary-600 text-white flex items-center justify-center font-bold text-sm shadow-lg shadow-primary-900/50 ring-2 ring-white/10">
+                                            {user.email ? user.email.charAt(0).toUpperCase() : 'U'}
                                         </div>
-                                    )}
-                                </div>
-                            </div>
-                        </>
-                    ) : (
-                        <div className="w-full flex items-center justify-center bg-slate-900/20 backdrop-blur-sm rounded-3xl shadow-xl border border-white/5">
-                            <div className="text-center text-slate-500 max-w-md">
-                                <div className="w-24 h-24 bg-slate-800/50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-lg border border-white/5">
-                                    <SheetIcon className="w-10 h-10 text-primary-400" />
-                                </div>
-                                <h2 className="text-3xl font-black text-slate-200 mb-3 tracking-tight">Chưa chọn danh sách</h2>
-                                <p className="text-slate-500 font-medium">Vui lòng chọn một Deal List từ menu phía trên để bắt đầu tính toán và tra cứu.</p>
+                                        <button onClick={handleLogout} className="p-2 rounded-full text-slate-400 hover:bg-red-500/10 hover:text-red-500 transition-colors" aria-label="Đăng xuất">
+                                            <LogoutIcon className="w-5 h-5"/>
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
-                    )}
-                </main>
+                        {error && <p className="text-red-400 text-xs font-bold mt-2 text-center bg-red-900/20 p-2 rounded-lg animate-pulse border border-red-800/50">{error}</p>}
+                    </header>
+
+                    {/* Main Content Area (Split View) */}
+                    <div className="flex flex-grow min-h-0 overflow-hidden">
+                         {activeDealListId ? (
+                            <>
+                                {/* Left Sidebar: Calculator */}
+                                <div className="w-[400px] min-w-[360px] max-w-[420px] h-full border-r border-white/5 bg-slate-950/20 backdrop-blur-sm flex flex-col z-10">
+                                    <Calculator 
+                                        selectedProduct={selectedProduct} 
+                                        dealListName={activeDealList?.name || ''} 
+                                        products={products}
+                                        onProductSelect={setSelectedProduct}
+                                        onFocusSearch={() => searchInputRef.current?.focus()}
+                                        presetVouchers={calculatorPresets}
+                                        onSavePresets={handleSavePresets}
+                                    />
+                                </div>
+
+                                {/* Right Content: Table / Creator List */}
+                                <div className="flex-1 h-full flex flex-col bg-transparent overflow-hidden relative z-0">
+                                     <div className="flex-shrink-0 border-b border-white/5 px-6 pt-4 bg-slate-900/10">
+                                        <nav className="flex space-x-4" aria-label="Tabs">
+                                            <button
+                                                onClick={() => setActiveViewDataTab('products')}
+                                                className={`flex items-center gap-2 px-4 py-3 font-bold text-sm transition-all border-b-2 ${
+                                                    activeViewDataTab === 'products'
+                                                        ? 'border-primary-500 text-primary-400'
+                                                        : 'border-transparent text-slate-500 hover:text-slate-300'
+                                                }`}
+                                            >
+                                                <SheetIcon className="w-4 h-4" />
+                                                Sản phẩm
+                                            </button>
+                                            <button
+                                                onClick={() => setActiveViewDataTab('creators')}
+                                                className={`flex items-center gap-2 px-4 py-3 font-bold text-sm transition-all border-b-2 ${
+                                                    activeViewDataTab === 'creators'
+                                                        ? 'border-primary-500 text-primary-400'
+                                                        : 'border-transparent text-slate-500 hover:text-slate-300'
+                                                }`}
+                                            >
+                                                <IdentificationIcon className="w-4 h-4" />
+                                                Creator IDs
+                                            </button>
+                                        </nav>
+                                    </div>
+                                    
+                                    <div className="flex-grow min-h-0 relative">
+                                        {activeViewDataTab === 'products' && (
+                                            <div className="h-full overflow-hidden">
+                                                <ProductTable 
+                                                    products={products} 
+                                                    onProductSelect={setSelectedProduct} 
+                                                    isLoading={isLoading} 
+                                                    activeDealListId={activeDealListId}
+                                                    searchInputRef={searchInputRef}
+                                                    onAddProduct={() => {
+                                                        setEditingProduct(null);
+                                                        setIsProductModalOpen(true);
+                                                    }}
+                                                    onEditProduct={(p) => {
+                                                        setEditingProduct(p);
+                                                        setIsProductModalOpen(true);
+                                                    }}
+                                                    onDeleteProduct={(p) => setProductPendingDeletion(p)}
+                                                />
+                                            </div>
+                                        )}
+                                        {activeViewDataTab === 'creators' && (
+                                            <div className="h-full p-6">
+                                                <CreatorList
+                                                    creators={creators}
+                                                    isLoading={isCreatorLoading}
+                                                    onAdd={handleAddCreator}
+                                                    onUpdate={handleUpdateCreator}
+                                                    onDelete={handleDeleteCreator}
+                                                    dealLists={dealLists}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </>
+                         ) : (
+                             <div className="w-full h-full flex items-center justify-center">
+                                <div className="text-center text-slate-500 max-w-md">
+                                    <div className="w-24 h-24 bg-slate-800/50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-lg border border-white/5">
+                                        <SheetIcon className="w-10 h-10 text-primary-400" />
+                                    </div>
+                                    <h2 className="text-3xl font-black text-slate-200 mb-3 tracking-tight">Chưa chọn danh sách</h2>
+                                    <p className="text-slate-500 font-medium">Vui lòng chọn một Deal List từ menu phía trên để bắt đầu tính toán và tra cứu.</p>
+                                </div>
+                            </div>
+                         )}
+                    </div>
+                </div>
                 
                 {/* Modals */}
                 <ProductModal 

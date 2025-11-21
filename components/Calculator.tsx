@@ -483,7 +483,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
 
 
     return (
-        <div className="glass-panel p-6 rounded-3xl shadow-2xl h-full flex flex-col relative overflow-hidden">
+        <div className="h-full flex flex-col relative overflow-hidden p-6">
              {/* Header Card */}
              <div className="flex justify-between items-center mb-6 flex-shrink-0 border-b border-slate-800/50 pb-4">
                 <div className="flex items-center gap-3">
