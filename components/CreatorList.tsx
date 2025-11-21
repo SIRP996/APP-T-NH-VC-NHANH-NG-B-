@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { Creator, DealList } from '../types';
 import { SearchIcon, CopyIcon, CheckIcon, PlusIcon, EditIcon, TrashIcon, SpinnerIcon } from './Icons';
@@ -13,7 +11,7 @@ const ModalInput: React.FC<{ label: string; value: string; onChange: (e: React.C
             onChange={e => onChange(e)}
             placeholder={placeholder}
             required={required}
-            className="mt-1 block w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-white placeholder:text-slate-600"
+            className="mt-1 block w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-white placeholder:text-slate-600 hover:border-primary-400 hover:shadow-glow-hover hover:bg-slate-900/80 transition-all"
         />
     </div>
 );
@@ -88,7 +86,7 @@ const CreatorModal: React.FC<{
 
                     <div className="mt-6 flex justify-end gap-3">
                         <button type="button" onClick={onClose} disabled={isSaving} className="px-4 py-2 text-sm font-medium text-slate-300 bg-transparent border border-slate-700 rounded-lg hover:bg-slate-800 disabled:opacity-50">Hủy</button>
-                        <button type="submit" disabled={isSaving} className="px-4 py-2 w-28 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-500 disabled:opacity-50 flex items-center justify-center">
+                        <button type="submit" disabled={isSaving} className="px-4 py-2 w-28 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-500 disabled:opacity-50 flex items-center justify-center hover:shadow-glow-hover hover:border-primary-400">
                             {isSaving ? <SpinnerIcon /> : 'Lưu'}
                         </button>
                     </div>
@@ -197,12 +195,12 @@ export const CreatorList: React.FC<{
                         placeholder="Tìm theo tên KOL..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-slate-800 rounded-lg bg-slate-950/50 text-white focus:ring-1 focus:ring-primary-500 focus:border-primary-500 placeholder-slate-600"
+                        className="w-full pl-10 pr-4 py-2 border border-slate-800 rounded-lg bg-slate-950/50 text-white focus:ring-1 focus:ring-primary-500 focus:border-primary-500 placeholder-slate-600 hover:border-primary-400 hover:shadow-glow-hover hover:bg-slate-900/80 transition-all"
                     />
                 </div>
                 <button
                     onClick={() => handleOpenModal()}
-                    className="flex items-center gap-2 px-3 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-500 flex-shrink-0"
+                    className="flex items-center gap-2 px-3 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-500 flex-shrink-0 hover:shadow-glow-hover transition-all"
                 >
                     <PlusIcon className="w-5 h-5" />
                     Thêm mới
@@ -222,8 +220,8 @@ export const CreatorList: React.FC<{
                             <tr><td colSpan={3} className="text-center py-10 text-slate-500">Đang tải danh sách...</td></tr>
                         ) : filteredCreators.length > 0 ? (
                             filteredCreators.map(creator => (
-                                <tr key={creator.id} className="hover:bg-white/5 transition-colors">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-200">{creator.name}</td>
+                                <tr key={creator.id} className="hover:bg-slate-800/60 hover:shadow-[inset_0_0_20px_rgba(255,255,255,0.03)] transition-all duration-200 group">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-200 group-hover:text-white">{creator.name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400 font-mono">
                                         <div className="flex items-center gap-2">
                                             <span>{creator.tiktokId}</span>

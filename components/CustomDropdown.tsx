@@ -1,5 +1,3 @@
-
-
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDownIcon } from './Icons';
 
@@ -47,7 +45,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ options, selectedValue,
         className={`group w-full pl-4 pr-10 py-2.5 text-sm font-bold text-left rounded-xl transition-all duration-200 border flex justify-between items-center focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-primary-500
         ${disabled 
             ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed' 
-            : 'bg-slate-900 border-slate-700 text-slate-200 shadow-sm hover:border-primary-500/50 hover:shadow-md'
+            : 'bg-slate-900 border-slate-700 text-slate-200 shadow-sm hover:border-primary-400 hover:shadow-glow-hover hover:bg-slate-800'
         }`}
         aria-haspopup="listbox"
         aria-expanded={isOpen}

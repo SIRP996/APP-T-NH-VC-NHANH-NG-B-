@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Product } from '../types';
 import { SearchIcon, CogIcon, Bars3Icon, PlusIcon, EditIcon, TrashIcon } from './Icons';
@@ -406,14 +404,14 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            className="w-full pl-11 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-600 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm font-medium"
+                            className="w-full pl-11 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-600 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm font-medium hover:shadow-glow-hover hover:border-primary-500/50 hover:bg-slate-900/80"
                         />
                     </div>
                     
                     {onAddProduct && (
                          <button 
                             onClick={onAddProduct}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-bold hover:bg-primary-500 shadow-lg shadow-primary-900/20 transition-all hover:scale-105 active:scale-95"
+                            className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-bold hover:bg-primary-500 shadow-lg shadow-primary-900/20 transition-all hover:scale-105 active:scale-95 hover:shadow-glow-hover"
                         >
                             <PlusIcon className="w-5 h-5" />
                             <span className="hidden sm:inline">Thêm</span>
@@ -503,10 +501,10 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                                             key={`${product.docId || product.id}-${realIndex}`} 
                                             onClick={() => onProductSelect(product)} 
                                             onMouseEnter={() => setSelectedIndex(realIndex)}
-                                            className={`cursor-pointer transition-colors group border-b border-slate-800/30 last:border-none h-[58px] ${isSelected ? 'bg-primary-500/10 ring-1 ring-inset ring-primary-500/20' : 'hover:bg-white/5'}`}
+                                            className={`cursor-pointer transition-all duration-200 group border-b border-slate-800/30 last:border-none h-[58px] ${isSelected ? 'bg-primary-500/20 ring-1 ring-inset ring-primary-500/40 shadow-lg z-10 relative' : 'hover:bg-slate-800/60 hover:shadow-[inset_0_0_20px_rgba(255,255,255,0.03)]'}`}
                                         >
                                             {orderedTableHeaders.map(({ key }) => (
-                                                <td key={key} className={`px-6 py-4 text-sm ${cellClassMap[key]} truncate ${isSelected ? 'text-primary-200' : 'group-hover:text-slate-200'} transition-colors`} title={String(product[key])}>
+                                                <td key={key} className={`px-6 py-4 text-sm ${cellClassMap[key]} truncate ${isSelected ? 'text-white' : 'group-hover:text-white'} transition-colors`} title={String(product[key])}>
                                                     {key === 'displayPrice' || key === 'finalPrice' ? formatCurrency(Number(product[key])) : product[key]}
                                                 </td>
                                             ))}

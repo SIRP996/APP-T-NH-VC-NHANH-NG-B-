@@ -1,5 +1,3 @@
-
-
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Product, VoucherType } from '../types';
 import { CalculatorIcon, CogIcon, CopyIcon, CheckIcon } from './Icons';
@@ -39,7 +37,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                     onBlur={onBlur}
                     placeholder={placeholder}
                     autoComplete="off"
-                    className="block w-full px-4 py-3 glass-input rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm font-mono font-medium shadow-sm placeholder:text-slate-600 hover:border-slate-600"
+                    className="block w-full px-4 py-3 glass-input rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm font-mono font-medium shadow-sm placeholder:text-slate-600 hover:border-primary-400 hover:shadow-glow-hover hover:bg-slate-900/80"
                 />
                 {suffix && <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">{suffix}</div>}
             </div>
@@ -515,7 +513,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
                             onChange={handleProductNameChange}
                             placeholder="Chọn hoặc nhập tên..."
                             rows={2}
-                            className="block w-full px-4 py-3 glass-input rounded-xl focus:ring-2 focus:ring-primary-500/50 transition-all text-sm font-medium resize-y shadow-inner placeholder:text-slate-600 min-h-[80px]"
+                            className="block w-full px-4 py-3 glass-input rounded-xl focus:ring-2 focus:ring-primary-500/50 transition-all text-sm font-medium resize-y shadow-inner placeholder:text-slate-600 min-h-[80px] hover:border-primary-400 hover:shadow-glow-hover hover:bg-slate-900/80"
                         />
                     </div>
                      
@@ -525,7 +523,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
                             {productId && (
                                 <div 
                                     onClick={handleCopyId}
-                                    className="flex-1 bg-slate-900/50 rounded-xl px-3 py-2 border border-slate-700 flex items-center justify-between cursor-pointer group hover:border-primary-500/50 hover:bg-primary-900/10 transition-all"
+                                    className="flex-1 bg-slate-900/50 rounded-xl px-3 py-2 border border-slate-700 flex items-center justify-between cursor-pointer group hover:border-primary-500/50 hover:bg-primary-900/10 transition-all hover:shadow-glow-hover"
                                 >
                                     <div className="overflow-hidden">
                                          <span className="text-[10px] font-bold text-slate-500 block mb-0.5 uppercase tracking-wider">ID Sản phẩm</span>
@@ -537,7 +535,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
                              {exclusiveId && (
                                 <div 
                                     onClick={handleCopyExclusiveId}
-                                    className="flex-1 bg-secondary-900/10 rounded-xl px-3 py-2 border border-secondary-500/20 flex items-center justify-between cursor-pointer group hover:border-secondary-500/50 hover:bg-secondary-900/20 transition-all"
+                                    className="flex-1 bg-secondary-900/10 rounded-xl px-3 py-2 border border-secondary-500/20 flex items-center justify-between cursor-pointer group hover:border-secondary-500/50 hover:bg-secondary-900/20 transition-all hover:shadow-glow-hover"
                                 >
                                     <div className="overflow-hidden">
                                          <span className="text-[10px] font-bold text-secondary-400 block mb-0.5 uppercase tracking-wider">ID Độc quyền</span>
@@ -627,7 +625,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
                             onFocus={(e) => { setIsVoucherFocused(true); handleInputFocus(e); }}
                             onBlur={() => setIsVoucherFocused(false)}
                             placeholder={voucherType === VoucherType.Percentage ? "Nhập %" : (isQuickPriceInput ? "Nhập số tiền (x1000)" : "Nhập số tiền")}
-                            className="block w-full px-4 py-3 bg-slate-950 border border-slate-700 text-white rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-lg font-bold font-mono shadow-sm text-center placeholder:text-slate-700"
+                            className="block w-full px-4 py-3 bg-slate-950 border border-slate-700 text-white rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-lg font-bold font-mono shadow-sm text-center placeholder:text-slate-700 hover:border-primary-400 hover:shadow-glow-hover hover:bg-slate-900/80"
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 font-bold text-xs">
                             {voucherType === VoucherType.Percentage ? '%' : 'VND'}
@@ -646,7 +644,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
                                     onBlur={() => setIsMinOrderFocused(false)}
                                     onKeyDown={handleKeyDown}
                                     placeholder="Min (x1k)"
-                                    className="block w-full pl-3 pr-8 py-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl focus:ring-1 focus:ring-primary-500 text-xs font-mono shadow-sm placeholder:text-slate-700"
+                                    className="block w-full pl-3 pr-8 py-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl focus:ring-1 focus:ring-primary-500 text-xs font-mono shadow-sm placeholder:text-slate-700 hover:border-primary-400 hover:shadow-glow-hover hover:bg-slate-900/80 transition-all"
                                 />
                                 <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-600 text-[9px] font-bold pointer-events-none">MIN</span>
                             </div>
@@ -659,7 +657,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
                                     onBlur={() => setIsMaxDiscountFocused(false)}
                                     onKeyDown={handleKeyDown}
                                     placeholder="Max (x1k)"
-                                    className="block w-full pl-3 pr-8 py-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl focus:ring-1 focus:ring-primary-500 text-xs font-mono shadow-sm placeholder:text-slate-700"
+                                    className="block w-full pl-3 pr-8 py-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl focus:ring-1 focus:ring-primary-500 text-xs font-mono shadow-sm placeholder:text-slate-700 hover:border-primary-400 hover:shadow-glow-hover hover:bg-slate-900/80 transition-all"
                                 />
                                 <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-600 text-[9px] font-bold pointer-events-none">MAX</span>
                             </div>
@@ -681,7 +679,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
                                         className={`flex-1 min-w-[2.5rem] py-1.5 rounded-lg text-xs font-bold border transition-all active:scale-95 font-mono ${
                                             voucherValue === String(v) 
                                             ? 'bg-primary-600 text-white border-primary-500 shadow-md shadow-primary-900/20' 
-                                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-primary-500/30 hover:text-primary-300'
+                                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-primary-500/30 hover:text-primary-300 hover:bg-slate-800'
                                         }`}
                                     >
                                         {v}%
@@ -704,7 +702,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
                             {history.map((item) => (
                                 <div 
                                     key={item.id}
-                                    className="bg-slate-900/40 hover:bg-slate-800/60 rounded-xl p-2.5 border border-white/5 transition-colors flex justify-between items-center group cursor-pointer"
+                                    className="bg-slate-900/40 hover:bg-slate-800/60 rounded-xl p-2.5 border border-white/5 transition-all flex justify-between items-center group cursor-pointer hover:shadow-glow-hover hover:border-primary-500/30"
                                     onClick={() => {
                                          navigator.clipboard.writeText(String(Math.round(item.result)));
                                     }}
@@ -733,7 +731,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
             <div className="mt-auto pt-4 border-t border-slate-800 flex-shrink-0 z-10 -mx-6 -mb-6 px-6 pb-6 bg-[#0f172a]">
                 <button
                     onClick={handleCalculation}
-                    className="w-full py-3.5 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-bold text-base shadow-lg shadow-primary-900/30 hover:shadow-primary-600/40 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 mb-4"
+                    className="w-full py-3.5 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-bold text-base shadow-lg shadow-primary-900/30 hover:shadow-glow-hover hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 mb-4"
                 >
                     Tính giá ngay
                 </button>

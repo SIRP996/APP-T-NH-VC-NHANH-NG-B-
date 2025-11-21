@@ -878,7 +878,7 @@ const App: React.FC = () => {
 
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {dealLists.map(dl => (
-                        <div key={dl.id} className="bg-slate-900/40 backdrop-blur-lg p-6 rounded-3xl shadow-glass border border-white/5 hover:border-primary-500/50 hover:bg-slate-800/60 transition-all group flex flex-col justify-between h-60 relative overflow-hidden">
+                        <div key={dl.id} className="bg-slate-900/40 backdrop-blur-lg p-6 rounded-3xl shadow-glass border border-white/5 hover:border-primary-400/50 hover:bg-slate-800/80 hover:shadow-glow-hover hover:-translate-y-1 transition-all duration-300 group flex flex-col justify-between h-60 relative overflow-hidden">
                              <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity pointer-events-none">
                                  {dl.source === 'excel' ? <SheetIcon className="w-32 h-32 text-green-400"/> : <LinkIcon className="w-32 h-32 text-primary-400"/>}
                              </div>
@@ -909,7 +909,7 @@ const App: React.FC = () => {
                         </div>
                     ))}
                     
-                     <div className="bg-white/5 backdrop-blur-sm p-6 rounded-3xl border-2 border-dashed border-slate-700 hover:border-primary-500/50 hover:bg-white/10 transition-all flex flex-col items-center justify-center h-60 gap-4 group cursor-default">
+                     <div className="bg-white/5 backdrop-blur-sm p-6 rounded-3xl border-2 border-dashed border-slate-700 hover:border-primary-500/50 hover:bg-white/10 transition-all flex flex-col items-center justify-center h-60 gap-4 group cursor-default hover:shadow-glow-hover hover:-translate-y-1 duration-300">
                         <div className="w-14 h-14 rounded-full bg-slate-800 shadow-lg flex items-center justify-center text-slate-400 group-hover:text-white group-hover:bg-primary-600 transition-all">
                              <PlusIcon className="w-7 h-7" />
                         </div>
@@ -1121,7 +1121,7 @@ const App: React.FC = () => {
                                 <button 
                                     onClick={() => activeDealList && handleSync(activeDealList)} 
                                     disabled={isSyncing || activeDealList?.source === 'excel'}
-                                    className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-xl text-sm font-bold hover:border-primary-500 hover:text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-xl text-sm font-bold hover:border-primary-500 hover:text-white hover:shadow-glow-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
                                 >
                                     <SyncIcon className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
                                     {isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ'}
