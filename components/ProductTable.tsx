@@ -29,11 +29,15 @@ const DEFAULT_COLUMN_WIDTHS: Record<ColumnKey, number> = {
     gift: 250,
 };
 
+// Estimated row height in pixels (padding + line height + border)
+const ROW_HEIGHT = 58; 
+const BUFFER_ROWS = 5;
+
 const TableSkeleton: React.FC<{ columnsCount: number }> = ({ columnsCount }) => {
     return (
         <>
-            {[...Array(8)].map((_, i) => (
-                <tr key={i} className="border-b border-slate-50">
+            {[...Array(10)].map((_, i) => (
+                <tr key={i} className="border-b border-slate-50 h-[58px]">
                     {[...Array(columnsCount)].map((_, j) => (
                         <td key={j} className="px-6 py-4">
                             <div className={`h-4 bg-slate-100 rounded animate-pulse ${j === 0 ? 'w-3/4' : 'w-1/2'}`}></div>
@@ -164,17 +168,38 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     const [columnWidths, setColumnWidths] = useState<Record<ColumnKey, number>>(DEFAULT_COLUMN_WIDTHS);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
-    // New State for keyboard navigation
+    // Keyboard nav & Virtualization state
     const [selectedIndex, setSelectedIndex] = useState<number>(-1);
     const tableContainerRef = useRef<HTMLDivElement>(null);
-
+    const [scrollTop, setScrollTop] = useState(0);
+    const [containerHeight, setContainerHeight] = useState(600); // Default estimated height
 
     const totalProducts = products.length;
     const totalSKUs = useMemo(() => new Set(products.map(p => p.id)).size, [products]);
 
+    // Handle container resize to update viewport height for virtualization
+    useEffect(() => {
+        if (tableContainerRef.current) {
+            const updateHeight = () => {
+                if (tableContainerRef.current) {
+                    setContainerHeight(tableContainerRef.current.clientHeight);
+                }
+            };
+            
+            updateHeight();
+            const resizeObserver = new ResizeObserver(updateHeight);
+            resizeObserver.observe(tableContainerRef.current);
+            return () => resizeObserver.disconnect();
+        }
+    }, []);
+
+    // Scroll handler
+    const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+        setScrollTop(e.currentTarget.scrollTop);
+    }, []);
+
     useEffect(() => {
         if (activeDealListId) {
-            // Load column order
             const savedOrder = localStorage.getItem(`column-order-${activeDealListId}`);
             if (savedOrder) {
                 try {
@@ -192,7 +217,6 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                 setColumnOrder(DEFAULT_COLUMN_ORDER);
             }
 
-            // Load column widths
             const savedWidths = localStorage.getItem(`column-widths-${activeDealListId}`);
             let initialWidths = DEFAULT_COLUMN_WIDTHS;
             if (savedWidths) {
@@ -200,7 +224,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                     const parsedWidths = JSON.parse(savedWidths);
                     initialWidths = { ...DEFAULT_COLUMN_WIDTHS, ...parsedWidths };
                 } catch (e) {
-                    // Keep defaults on parse error
+                    // Keep defaults
                 }
             }
             setColumnWidths(initialWidths);
@@ -213,14 +237,9 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     useEffect(() => {
         if (activeDealListId) {
             localStorage.setItem(`column-order-${activeDealListId}`, JSON.stringify(columnOrder));
-        }
-    }, [columnOrder, activeDealListId]);
-
-    useEffect(() => {
-        if (activeDealListId) {
             localStorage.setItem(`column-widths-${activeDealListId}`, JSON.stringify(columnWidths));
         }
-    }, [columnWidths, activeDealListId]);
+    }, [columnOrder, columnWidths, activeDealListId]);
 
 
     const filteredProducts = useMemo(() => {
@@ -258,17 +277,30 @@ export const ProductTable: React.FC<ProductTableProps> = ({
         return sortableItems;
     }, [filteredProducts, sortConfig]);
 
-    // Reset selection index when filtering
+    // Reset scrolling and selection when list changes
     useEffect(() => {
         setSelectedIndex(-1);
+        if (tableContainerRef.current) {
+            tableContainerRef.current.scrollTop = 0;
+            setScrollTop(0);
+        }
     }, [searchTerm, sortedProducts.length]);
 
-    // Auto-scroll active row into view
+    // Enhanced Keyboard Navigation for Virtualized List
     useEffect(() => {
         if (selectedIndex >= 0 && tableContainerRef.current) {
-            const rows = tableContainerRef.current.querySelectorAll('tbody tr');
-            if (rows[selectedIndex]) {
-                rows[selectedIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            const currentScroll = tableContainerRef.current.scrollTop;
+            const itemTop = selectedIndex * ROW_HEIGHT;
+            const itemBottom = itemTop + ROW_HEIGHT;
+            const viewHeight = tableContainerRef.current.clientHeight;
+
+            // If item is above viewport
+            if (itemTop < currentScroll + 32) { // 32 for header offset safety
+                tableContainerRef.current.scrollTo({ top: itemTop, behavior: 'auto' });
+            } 
+            // If item is below viewport
+            else if (itemBottom > currentScroll + viewHeight) {
+                tableContainerRef.current.scrollTo({ top: itemBottom - viewHeight, behavior: 'auto' });
             }
         }
     }, [selectedIndex]);
@@ -296,7 +328,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 
     const handleResizeMouseDown = useCallback((key: ColumnKey) => (e: React.MouseEvent) => {
         e.preventDefault();
-        e.stopPropagation(); // Prevents sorting when clicking resizer
+        e.stopPropagation();
         const thElement = (e.target as HTMLElement).closest('th');
         if (!thElement) return;
 
@@ -308,7 +340,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 
         const handleMouseMove = (e: MouseEvent) => {
             const newWidth = startWidth + (e.clientX - startX);
-            const minWidth = 100; // Minimum column width
+            const minWidth = 100;
     
             if (newWidth > minWidth) {
                 setColumnWidths(prev => ({
@@ -329,7 +361,6 @@ export const ProductTable: React.FC<ProductTableProps> = ({
         window.addEventListener('mouseup', handleMouseUp);
     }, []);
     
-    // Handle keyboard inputs on search box
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'ArrowDown') {
             e.preventDefault();
@@ -342,7 +373,6 @@ export const ProductTable: React.FC<ProductTableProps> = ({
             if (selectedIndex >= 0 && selectedIndex < sortedProducts.length) {
                 onProductSelect(sortedProducts[selectedIndex]);
             } else if (sortedProducts.length > 0) {
-                // If nothing selected but Enter is pressed, select first item
                 onProductSelect(sortedProducts[0]);
             }
         }
@@ -360,6 +390,16 @@ export const ProductTable: React.FC<ProductTableProps> = ({
         finalPrice: 'text-violet-900 font-black text-[15px] font-mono',
         gift: 'text-slate-600 text-xs', 
     };
+
+    // --- Virtualization Math ---
+    const totalHeight = sortedProducts.length * ROW_HEIGHT;
+    const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER_ROWS);
+    const endIndex = Math.min(sortedProducts.length, Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + BUFFER_ROWS);
+    
+    const visibleProducts = sortedProducts.slice(startIndex, endIndex);
+    const paddingTop = startIndex * ROW_HEIGHT;
+    const paddingBottom = (sortedProducts.length - endIndex) * ROW_HEIGHT;
+    // ---------------------------
     
     return (
         <div className="w-full h-full flex flex-col overflow-hidden bg-white">
@@ -421,8 +461,12 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                 }}
             />
 
-            <div className="flex-grow overflow-auto custom-scrollbar relative" ref={tableContainerRef}>
-                <table className="divide-y divide-slate-100 table-fixed w-full">
+            <div 
+                className="flex-grow overflow-auto custom-scrollbar relative" 
+                ref={tableContainerRef}
+                onScroll={handleScroll}
+            >
+                <table className="divide-y divide-slate-100 table-fixed w-full border-collapse">
                     <thead className="bg-white/90 backdrop-blur-md sticky top-0 z-10 shadow-sm border-b border-slate-200">
                         <tr>
                             {orderedTableHeaders.map(({ key, label }) => (
@@ -453,47 +497,64 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                         {isLoading ? (
                             <TableSkeleton columnsCount={orderedTableHeaders.length} />
                         ) : sortedProducts.length > 0 ? (
-                            sortedProducts.map((product, index) => {
-                                const isSelected = index === selectedIndex;
-                                return (
-                                    <tr 
-                                        key={`${product.docId || product.id}-${index}`} 
-                                        onClick={() => onProductSelect(product)} 
-                                        onMouseEnter={() => setSelectedIndex(index)} // Sync hover with selection
-                                        className={`cursor-pointer transition-colors group border-b border-slate-50 last:border-none ${isSelected ? 'bg-violet-50/60 ring-1 ring-inset ring-violet-200' : 'hover:bg-violet-50/30'}`}
-                                    >
-                                        {orderedTableHeaders.map(({ key }) => (
-                                            <td key={key} className={`px-6 py-4 text-sm ${cellClassMap[key]} break-words align-top ${isSelected ? 'text-violet-900' : 'group-hover:text-violet-900'} transition-colors`}>
-                                                {key === 'displayPrice' || key === 'finalPrice' ? formatCurrency(Number(product[key])) : product[key]}
-                                            </td>
-                                        ))}
-                                        
-                                        {/* Action Buttons */}
-                                        <td className="px-4 py-4 text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-slate-50 transition-colors z-10 shadow-[-10px_0_20px_-10px_rgba(0,0,0,0.05)]">
-                                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                {onEditProduct && (
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); onEditProduct(product); }}
-                                                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                        title="Chỉnh sửa"
-                                                    >
-                                                        <EditIcon className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                                {onDeleteProduct && (
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); onDeleteProduct(product); }}
-                                                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                        title="Xóa"
-                                                    >
-                                                        <TrashIcon className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
+                            <>
+                                {/* Top Spacer */}
+                                {paddingTop > 0 && (
+                                    <tr style={{ height: paddingTop }}>
+                                        <td colSpan={orderedTableHeaders.length + 1} />
                                     </tr>
-                                );
-                            })
+                                )}
+
+                                {visibleProducts.map((product, i) => {
+                                    const realIndex = startIndex + i;
+                                    const isSelected = realIndex === selectedIndex;
+                                    return (
+                                        <tr 
+                                            key={`${product.docId || product.id}-${realIndex}`} 
+                                            onClick={() => onProductSelect(product)} 
+                                            onMouseEnter={() => setSelectedIndex(realIndex)}
+                                            className={`cursor-pointer transition-colors group border-b border-slate-50 last:border-none h-[58px] ${isSelected ? 'bg-violet-50/60 ring-1 ring-inset ring-violet-200' : 'hover:bg-violet-50/30'}`}
+                                        >
+                                            {orderedTableHeaders.map(({ key }) => (
+                                                <td key={key} className={`px-6 py-4 text-sm ${cellClassMap[key]} truncate ${isSelected ? 'text-violet-900' : 'group-hover:text-violet-900'} transition-colors`} title={String(product[key])}>
+                                                    {key === 'displayPrice' || key === 'finalPrice' ? formatCurrency(Number(product[key])) : product[key]}
+                                                </td>
+                                            ))}
+                                            
+                                            {/* Action Buttons */}
+                                            <td className="px-4 py-4 text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-slate-50 transition-colors z-10 shadow-[-10px_0_20px_-10px_rgba(0,0,0,0.05)]">
+                                                <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    {onEditProduct && (
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); onEditProduct(product); }}
+                                                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                            title="Chỉnh sửa"
+                                                        >
+                                                            <EditIcon className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                    {onDeleteProduct && (
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); onDeleteProduct(product); }}
+                                                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                            title="Xóa"
+                                                        >
+                                                            <TrashIcon className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+
+                                {/* Bottom Spacer */}
+                                {paddingBottom > 0 && (
+                                    <tr style={{ height: paddingBottom }}>
+                                        <td colSpan={orderedTableHeaders.length + 1} />
+                                    </tr>
+                                )}
+                            </>
                         ) : (
                              <tr><td colSpan={orderedTableHeaders.length + 1} className="text-center py-20 text-slate-400">Không tìm thấy sản phẩm nào.</td></tr>
                         )}
