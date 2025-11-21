@@ -8,6 +8,7 @@ import { CreatorList } from './components/CreatorList';
 import { SyncIcon, LinkIcon, SheetIcon, EditIcon, CogIcon, PlusIcon, TrashIcon, FirebaseIcon, GoogleIcon, LogoutIcon, MailIcon, LockClosedIcon, SpinnerIcon, IdentificationIcon } from './components/Icons';
 import CustomDropdown from './components/CustomDropdown';
 import { ProductModal } from './components/ProductModal';
+import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 
 // Declare firebase and XLSX globally as they're loaded from script tags
 declare const firebase: any;
@@ -261,6 +262,9 @@ const App: React.FC = () => {
     const [creators, setCreators] = useState<Creator[]>([]);
     const [isCreatorLoading, setIsCreatorLoading] = useState<boolean>(false);
     const [activeViewDataTab, setActiveViewDataTab] = useState<ViewDataTab>('products');
+    
+    // Global User Settings
+    const [calculatorPresets, setCalculatorPresets] = useState<number[]>([7, 10, 12, 15, 20, 25]);
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isSyncing, setIsSyncing] = useState<boolean>(false);
@@ -287,6 +291,9 @@ const App: React.FC = () => {
     const [productPendingDeletion, setProductPendingDeletion] = useState<Product | null>(null);
     const [isDeletingProduct, setIsDeletingProduct] = useState(false);
 
+    // Toast State
+    const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
 
     // Firebase state
     const [db, setDb] = useState<any | null>(null);
@@ -295,6 +302,16 @@ const App: React.FC = () => {
 
     const activeDealList = useMemo(() => dealLists.find(dl => dl.id === activeDealListId), [dealLists, activeDealListId]);
     
+    const addToast = useCallback((message: string, type: ToastType = 'info') => {
+        const id = Math.random().toString(36).substring(2, 9);
+        setToasts(prev => [...prev, { id, message, type }]);
+    }, []);
+
+    const removeToast = useCallback((id: string) => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+    }, []);
+
+
     // Global Hotkey Listener
     useEffect(() => {
         const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -369,11 +386,21 @@ const App: React.FC = () => {
             }
         }, (error: any) => {
             console.error("Firestore deal lists snapshot error:", error);
-            setError("Không thể tải danh sách deals. Vui lòng kiểm tra lại quy tắc bảo mật Firestore.");
+            addToast("Không thể tải danh sách deals.", 'error');
+        });
+        
+        // Fetch User Settings (Calculator Presets)
+        const userDocRef = db.collection('users').doc(user.uid);
+        userDocRef.get().then((doc: any) => {
+             if (doc.exists && doc.data().calculatorPresets) {
+                 setCalculatorPresets(doc.data().calculatorPresets);
+             }
+        }).catch((error: any) => {
+             console.error("Error fetching user settings:", error);
         });
     
         return () => unsubscribe();
-    }, [user, db]);
+    }, [user, db, addToast]);
 
     // Effect for fetching products when active deal list changes
     useEffect(() => {
@@ -394,12 +421,12 @@ const App: React.FC = () => {
             setIsLoading(false);
         }, (error: any) => {
             console.error("Firestore products snapshot error:", error);
-            setError("Không thể tải dữ liệu sản phẩm.");
+            addToast("Không thể tải dữ liệu sản phẩm.", 'error');
             setIsLoading(false);
         });
 
         return () => unsubscribe();
-    }, [user, db, activeDealListId]);
+    }, [user, db, activeDealListId, addToast]);
     
     // Effect for fetching creators
     useEffect(() => {
@@ -416,12 +443,12 @@ const App: React.FC = () => {
             setIsCreatorLoading(false);
         }, (error: any) => {
             console.error("Firestore creators snapshot error:", error);
-            setError("Không thể tải danh sách creator.");
+            addToast("Không thể tải danh sách creator.", 'error');
             setIsCreatorLoading(false);
         });
 
         return () => unsubscribe();
-    }, [user, db]);
+    }, [user, db, addToast]);
 
 
     const handleGoogleSignIn = () => {
@@ -465,14 +492,13 @@ const App: React.FC = () => {
 
     const handleSync = useCallback(async (dealList: DealList) => {
         if (!user || !db || !dealList.sheetUrl) {
-            setError("Không thể đồng bộ: URL sheet không tồn tại hoặc người dùng chưa đăng nhập.");
+            addToast("Không thể đồng bộ: URL sheet không tồn tại hoặc chưa đăng nhập.", 'error');
             return;
         }
         setIsSyncing(true);
-        setError(null);
         const csvUrl = getCsvUrl(dealList.sheetUrl);
         if (!csvUrl) {
-             setError("URL không hợp lệ.");
+             addToast("URL không hợp lệ.", 'error');
              setIsSyncing(false);
              return;
         }
@@ -480,12 +506,13 @@ const App: React.FC = () => {
         try {
             const fetchedProducts = await fetchProductsFromSheet(csvUrl, dealList.columnMapping);
             await syncProductsToFirestore(dealList.id, fetchedProducts);
+            addToast(`Đã đồng bộ thành công ${fetchedProducts.length} sản phẩm!`, 'success');
         } catch (err: any) {
-            setError(`Lỗi đồng bộ: ${err.message}`);
+            addToast(`Lỗi đồng bộ: ${err.message}`, 'error');
         } finally {
             setIsSyncing(false);
         }
-    }, [user, db, syncProductsToFirestore]);
+    }, [user, db, syncProductsToFirestore, addToast]);
 
     const handleFetchAndMap = useCallback(async (url: string) => {
         setIsLoading(true);
@@ -607,12 +634,12 @@ const App: React.FC = () => {
     
     const handleEditList = useCallback((dealList: DealList) => {
         if (dealList.source === 'excel') {
-            alert("Không thể chỉnh sửa nguồn dữ liệu của deal list nhập từ Excel. Vui lòng nhập lại file mới nếu cần cập nhật.");
+            addToast("Không thể chỉnh sửa nguồn dữ liệu Excel. Hãy nhập file mới.", 'info');
             return;
         }
         setEditingDealList(dealList);
         setAppState('CONNECT_SHEET');
-    }, []);
+    }, [addToast]);
     
     const handleConfirmDelete = useCallback(async () => {
         if (!listPendingDeletion || !user || !db) {
@@ -645,15 +672,16 @@ const App: React.FC = () => {
                 sessionStorage.removeItem('activeDealListId');
             }
 
+            addToast(`Đã xóa danh sách "${listPendingDeletion.name}"`, 'success');
             setListPendingDeletion(null); // Close modal on success
         } catch (err: any) {
             console.error("Lỗi khi xóa deal list:", err);
-            setError(`Không thể xóa: ${err.message}`);
+            addToast(`Không thể xóa: ${err.message}`, 'error');
             setListPendingDeletion(null);
         } finally {
             setIsDeleting(false);
         }
-    }, [listPendingDeletion, user, db, activeDealListId]);
+    }, [listPendingDeletion, user, db, activeDealListId, addToast]);
     
     const handleConnectSheetSubmit = useCallback((e: React.FormEvent) => {
         e.preventDefault();
@@ -726,26 +754,30 @@ const App: React.FC = () => {
             }).filter(p => p.id && p.name && p.displayPrice > 0);
             
             await syncProductsToFirestore(dealListId, productsToSync);
+            addToast("Đã nhập dữ liệu Excel thành công!", 'success');
             setTempExcelData(null);
         } else if (finalDealListData.source === 'google-sheet') {
             const fullDealListObject: DealList = { id: dealListId, ...finalDealListData, lastSynced: null };
             await handleSync(fullDealListObject);
         }
-    }, [user, db, editingDealList, tempMapping, handleSync, tempExcelData, syncProductsToFirestore]);
+    }, [user, db, editingDealList, tempMapping, handleSync, tempExcelData, syncProductsToFirestore, addToast]);
 
     const handleAddCreator = async (name: string, tiktokId: string, assignedDealListIds: string[]) => {
         if (!user || !db) throw new Error("Người dùng chưa đăng nhập.");
         await db.collection('users').doc(user.uid).collection('creators').add({ name, tiktokId, assignedDealListIds });
+        addToast("Đã thêm Creator thành công!", 'success');
     };
 
     const handleUpdateCreator = async (id: string, name: string, tiktokId: string, assignedDealListIds: string[]) => {
         if (!user || !db) throw new Error("Người dùng chưa đăng nhập.");
         await db.collection('users').doc(user.uid).collection('creators').doc(id).update({ name, tiktokId, assignedDealListIds });
+        addToast("Đã cập nhật Creator!", 'success');
     };
 
     const handleDeleteCreator = async (id: string) => {
         if (!user || !db) throw new Error("Người dùng chưa đăng nhập.");
         await db.collection('users').doc(user.uid).collection('creators').doc(id).delete();
+        addToast("Đã xóa Creator!", 'success');
     };
 
     // Handlers for Products
@@ -759,15 +791,17 @@ const App: React.FC = () => {
             if (editingProduct && editingProduct.docId) {
                 // Update existing
                 await productsRef.doc(editingProduct.docId).update(productData);
+                addToast("Cập nhật sản phẩm thành công!", 'success');
             } else {
                 // Add new
                 await productsRef.add(productData);
+                addToast("Thêm sản phẩm mới thành công!", 'success');
             }
             setIsProductModalOpen(false);
             setEditingProduct(null);
         } catch (e: any) {
             console.error("Error saving product:", e);
-            alert("Lỗi lưu sản phẩm: " + e.message);
+            addToast("Lỗi lưu sản phẩm: " + e.message, 'error');
         } finally {
             setIsSavingProduct(false);
         }
@@ -780,15 +814,32 @@ const App: React.FC = () => {
         try {
              const productsRef = db.collection('users').doc(user.uid).collection('dealLists').doc(activeDealListId).collection('products');
              await productsRef.doc(productPendingDeletion.docId).delete();
+             addToast(`Đã xóa sản phẩm "${productPendingDeletion.name}"`, 'success');
              setProductPendingDeletion(null);
              if (selectedProduct?.docId === productPendingDeletion.docId) {
                  setSelectedProduct(null);
              }
         } catch (e: any) {
              console.error("Error deleting product:", e);
-             alert("Lỗi xóa sản phẩm: " + e.message);
+             addToast("Lỗi xóa sản phẩm: " + e.message, 'error');
         } finally {
             setIsDeletingProduct(false);
+        }
+    };
+    
+    const handleSavePresets = async (newPresets: number[]) => {
+        if(!user || !db) return;
+        
+        // Optimistic UI update
+        setCalculatorPresets(newPresets);
+        
+        try {
+            // Save to the user's main document
+            await db.collection('users').doc(user.uid).set({ calculatorPresets: newPresets }, { merge: true });
+            addToast("Đã lưu cài đặt phím tắt!", 'success');
+        } catch(e: any) {
+            console.error("Error saving settings:", e);
+            addToast("Không thể lưu cài đặt: " + e.message, 'error');
         }
     };
 
@@ -1042,6 +1093,8 @@ const App: React.FC = () => {
 
         return (
             <div className="h-screen w-screen flex flex-col bg-slate-50 font-sans overflow-hidden relative">
+                <ToastContainer toasts={toasts} removeToast={removeToast} />
+
                 {/* Modern Vivid Gradient Background */}
                 <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-violet-200 mix-blend-multiply filter blur-[80px] opacity-40 animate-pulse"></div>
                 <div className="absolute bottom-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-fuchsia-200 mix-blend-multiply filter blur-[80px] opacity-40 animate-pulse animation-delay-2000"></div>
@@ -1112,6 +1165,8 @@ const App: React.FC = () => {
                                     products={products}
                                     onProductSelect={setSelectedProduct}
                                     onFocusSearch={() => searchInputRef.current?.focus()}
+                                    presetVouchers={calculatorPresets}
+                                    onSavePresets={handleSavePresets}
                                 />
                             </div>
                             <div className="flex-1 h-full flex flex-col bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl shadow-slate-200/50 border border-white/60 overflow-hidden">

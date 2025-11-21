@@ -29,6 +29,24 @@ const DEFAULT_COLUMN_WIDTHS: Record<ColumnKey, number> = {
     gift: 250,
 };
 
+const TableSkeleton: React.FC<{ columnsCount: number }> = ({ columnsCount }) => {
+    return (
+        <>
+            {[...Array(8)].map((_, i) => (
+                <tr key={i} className="border-b border-slate-50">
+                    {[...Array(columnsCount)].map((_, j) => (
+                        <td key={j} className="px-6 py-4">
+                            <div className={`h-4 bg-slate-100 rounded animate-pulse ${j === 0 ? 'w-3/4' : 'w-1/2'}`}></div>
+                        </td>
+                    ))}
+                     <td className="px-4 py-4">
+                        <div className="h-4 w-8 bg-slate-100 rounded animate-pulse ml-auto"></div>
+                     </td>
+                </tr>
+            ))}
+        </>
+    );
+};
 
 interface ColumnSettingsModalProps {
     isOpen: boolean;
@@ -433,12 +451,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
                         {isLoading ? (
-                            <tr><td colSpan={orderedTableHeaders.length + 1} className="text-center py-20 text-slate-400">
-                                <div className="flex flex-col items-center justify-center gap-2">
-                                    <div className="w-8 h-8 border-2 border-violet-200 border-t-violet-600 rounded-full animate-spin"/>
-                                    <span>Đang tải dữ liệu...</span>
-                                </div>
-                            </td></tr>
+                            <TableSkeleton columnsCount={orderedTableHeaders.length} />
                         ) : sortedProducts.length > 0 ? (
                             sortedProducts.map((product, index) => {
                                 const isSelected = index === selectedIndex;

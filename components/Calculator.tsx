@@ -52,6 +52,9 @@ interface CalculatorProps {
     products: Product[];
     onProductSelect: (product: Product | null) => void;
     onFocusSearch?: () => void;
+    // New props for persistent settings
+    presetVouchers: number[];
+    onSavePresets: (presets: number[]) => void;
 }
 
 interface HistoryItem {
@@ -64,7 +67,15 @@ interface HistoryItem {
 
 const ALL_POSSIBLE_VOUCHERS = Array.from({ length: 19 }, (_, i) => i + 7); // 7 to 25
 
-export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealListName, products, onProductSelect, onFocusSearch }) => {
+export const Calculator: React.FC<CalculatorProps> = ({ 
+    selectedProduct, 
+    dealListName, 
+    products, 
+    onProductSelect, 
+    onFocusSearch,
+    presetVouchers,
+    onSavePresets
+}) => {
     const [productId, setProductId] = useState('');
     const [exclusiveId, setExclusiveId] = useState('');
     const [productName, setProductName] = useState('');
@@ -98,15 +109,6 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
     const [isMinOrderFocused, setIsMinOrderFocused] = useState(false);
     const [isMaxDiscountFocused, setIsMaxDiscountFocused] = useState(false);
 
-
-    const [presetVouchers, setPresetVouchers] = useState<number[]>(() => {
-        try {
-            const saved = localStorage.getItem('presetVouchers');
-            return saved ? JSON.parse(saved) : [7, 10, 12, 15, 20, 25];
-        } catch {
-            return [7, 10, 12, 15, 20, 25];
-        }
-    });
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [tempSelectedPresets, setTempSelectedPresets] = useState<number[]>([]);
     
@@ -486,8 +488,7 @@ export const Calculator: React.FC<CalculatorProps> = ({ selectedProduct, dealLis
     };
 
     const savePresets = () => {
-        setPresetVouchers(tempSelectedPresets);
-        localStorage.setItem('presetVouchers', JSON.stringify(tempSelectedPresets));
+        onSavePresets(tempSelectedPresets);
         setIsSettingsOpen(false);
     };
 
