@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Product, ColumnMapping, DealList, FirebaseConfig, Creator } from './types';
-import { fetchProductsFromSheet, fetchSheetPreviewAndHeaders, forwardFillData } from './services/googleSheetService';
+import { fetchProductsFromSheet, fetchSheetPreviewAndHeaders } from './services/googleSheetService';
 import { Calculator } from './components/Calculator';
 import { ProductTable } from './components/ProductTable';
 import { CreatorList } from './components/CreatorList';
@@ -579,8 +579,8 @@ const App: React.FC = () => {
                 setSheetHeaders(headers);
                 setSheetPreview(previewData);
 
-                // Apply forward fill here for the Excel data to handle merged cells
-                const filledJson = forwardFillData(json);
+                // Don't apply forward fill, use raw data
+                const filledJson = json;
                 setTempExcelData(filledJson);
                 
                 const listName = file.name.replace(/\.(xlsx|xls|csv)$/i, '');
@@ -751,7 +751,7 @@ const App: React.FC = () => {
                     product.gift = String(row[finalMapping.gift] || '');
                 }
                 return product;
-            }).filter(p => p.id && p.name && p.displayPrice > 0);
+            }).filter(p => p.name && p.displayPrice > 0); // Allow items without ID
             
             await syncProductsToFirestore(dealListId, productsToSync);
             addToast("Đã nhập dữ liệu Excel thành công!", 'success');

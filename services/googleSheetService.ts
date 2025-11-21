@@ -100,36 +100,6 @@ const parseCSV = (csvText: string): { data: Record<string, string>[], headers: s
   return { data, headers, headerIndex };
 };
 
-// Implements "Forward Fill" logic to handle merged cells.
-// If a cell is empty, it inherits the value from the row above it.
-export const forwardFillData = (data: any[]): any[] => {
-    if (data.length === 0) return data;
-    
-    const filledData: any[] = [];
-    let lastRow: any = null;
-  
-    for (let i = 0; i < data.length; i++) {
-      const currentRow = { ...data[i] };
-      
-      if (lastRow) {
-          // Attempt to fill empty fields in the current row with values from the last row
-          Object.keys(lastRow).forEach(key => {
-               const val = currentRow[key];
-               // Check if current is "empty" (undefined, null, or empty string)
-               const isEmpty = val === undefined || val === null || (typeof val === 'string' && val.trim() === '');
-               
-               if (isEmpty) {
-                   currentRow[key] = lastRow[key];
-               }
-          });
-      }
-  
-      filledData.push(currentRow);
-      lastRow = currentRow; // Update lastRow to be the current processed row so fills propagate
-    }
-    return filledData;
-  };
-
 export const fetchSheetPreviewAndHeaders = async (sheetUrl: string): Promise<{ headers: string[]; previewData: string[][] }> => {
   try {
     const url = `${sheetUrl}&v=${new Date().getTime()}`; // Append cache-buster
@@ -227,8 +197,8 @@ export const fetchProductsFromSheet = async (sheetUrl: string, mapping: ColumnMa
     const csvText = await response.text();
     const { data: rawData } = parseCSV(csvText);
 
-    // Apply forward fill to handle merged cells (NoSQL-like structure where parent info is in top row)
-    const data = forwardFillData(rawData);
+    // Use raw data directly to avoid auto-filling IDs
+    const data = rawData;
 
     return data.map(row => {
         const product: Product = {
@@ -250,7 +220,7 @@ export const fetchProductsFromSheet = async (sheetUrl: string, mapping: ColumnMa
         }
         
         return product;
-    }).filter(p => p.id && p.name && p.displayPrice > 0); // Filter out rows without essential data
+    }).filter(p => p.name && p.displayPrice > 0); // Filter out rows without essential data, allowing missing ID
   } catch (error) {
     console.error("Failed to fetch or parse Google Sheet data:", error);
     throw error;
