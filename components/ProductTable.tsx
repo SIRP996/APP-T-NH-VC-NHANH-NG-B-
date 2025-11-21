@@ -501,7 +501,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                                             key={`${product.docId || product.id}-${realIndex}`} 
                                             onClick={() => onProductSelect(product)} 
                                             onMouseEnter={() => setSelectedIndex(realIndex)}
-                                            className={`cursor-pointer transition-all duration-200 group border-b border-slate-800/30 last:border-none h-[58px] ${isSelected ? 'bg-primary-500/20 ring-1 ring-inset ring-primary-500/40 shadow-lg z-10 relative' : 'hover:bg-slate-800/60 hover:shadow-[inset_0_0_20px_rgba(255,255,255,0.03)]'}`}
+                                            className={`cursor-pointer transition-all duration-200 group border-b border-slate-800/30 last:border-none h-[58px] ${isSelected ? 'bg-primary-500/20 ring-1 ring-inset ring-primary-500/40 shadow-lg z-10 relative' : 'hover:bg-slate-800/90 hover:shadow-glow-inset hover:shadow-[inset_0_0_0_1px_rgba(var(--primary-500),0.3)]'}`}
                                         >
                                             {orderedTableHeaders.map(({ key }) => (
                                                 <td key={key} className={`px-6 py-4 text-sm ${cellClassMap[key]} truncate ${isSelected ? 'text-white' : 'group-hover:text-white'} transition-colors`} title={String(product[key])}>

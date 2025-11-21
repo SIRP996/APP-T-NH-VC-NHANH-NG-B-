@@ -178,7 +178,7 @@ const LoginScreen: React.FC<{
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="Email"
                             required
-                            className="w-full pl-10 pr-3 py-3 border border-slate-700 bg-slate-950/50 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:bg-slate-900 transition-all outline-none text-sm font-medium text-white placeholder:text-slate-600"
+                            className="w-full pl-10 pr-3 py-3 border border-slate-700 bg-slate-950/50 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:bg-slate-900 transition-all outline-none text-sm font-medium text-white placeholder:text-slate-600 hover:bg-slate-900/80 hover:shadow-glow-hover hover:border-primary-500/40"
                         />
                     </div>
 
@@ -193,7 +193,7 @@ const LoginScreen: React.FC<{
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="Mật khẩu"
                                 required
-                                className="w-full pl-10 pr-3 py-3 border border-slate-700 bg-slate-950/50 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:bg-slate-900 transition-all outline-none text-sm font-medium text-white placeholder:text-slate-600"
+                                className="w-full pl-10 pr-3 py-3 border border-slate-700 bg-slate-950/50 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:bg-slate-900 transition-all outline-none text-sm font-medium text-white placeholder:text-slate-600 hover:bg-slate-900/80 hover:shadow-glow-hover hover:border-primary-500/40"
                             />
                         </div>
                     )}
@@ -204,7 +204,7 @@ const LoginScreen: React.FC<{
                     <button
                         type="submit"
                         disabled={isLoading || !isFirebaseReady}
-                        className="w-full py-3 px-4 border border-transparent rounded-xl shadow-lg shadow-primary-900/50 text-sm font-bold text-white bg-gradient-to-r from-primary-600 to-secondary-600 hover:from-primary-500 hover:to-secondary-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+                        className="w-full py-3 px-4 border border-transparent rounded-xl shadow-lg shadow-primary-900/50 text-sm font-bold text-white bg-gradient-to-r from-primary-600 to-secondary-600 hover:from-primary-500 hover:to-secondary-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] hover:shadow-glow-lg"
                     >
                         {isLoading ? 'Đang xử lý...' : buttonText}
                     </button>
@@ -236,7 +236,7 @@ const LoginScreen: React.FC<{
                 <button
                     onClick={onGoogleSignIn}
                     disabled={!isFirebaseReady}
-                    className="w-full inline-flex justify-center items-center gap-3 py-3 px-4 border border-slate-700 rounded-xl shadow-sm bg-slate-800 text-sm font-bold text-slate-200 hover:bg-slate-700 hover:border-slate-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="w-full inline-flex justify-center items-center gap-3 py-3 px-4 border border-slate-700 rounded-xl shadow-sm bg-slate-800 text-sm font-bold text-slate-200 hover:bg-slate-700 hover:border-slate-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-glow-sm"
                 >
                     <GoogleIcon className="w-5 h-5" />
                     Tiếp tục với Google
@@ -878,7 +878,7 @@ const App: React.FC = () => {
 
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {dealLists.map(dl => (
-                        <div key={dl.id} className="bg-slate-900/40 backdrop-blur-lg p-6 rounded-3xl shadow-glass border border-white/5 hover:border-primary-400/50 hover:bg-slate-800/80 hover:shadow-glow-hover hover:-translate-y-1 transition-all duration-300 group flex flex-col justify-between h-60 relative overflow-hidden">
+                        <div key={dl.id} className="bg-slate-900/40 backdrop-blur-lg p-6 rounded-3xl shadow-glass border border-white/5 hover:border-primary-500/40 hover:bg-slate-800 hover:shadow-glow-card hover:-translate-y-1 transition-all duration-300 group flex flex-col justify-between h-60 relative overflow-hidden">
                              <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity pointer-events-none">
                                  {dl.source === 'excel' ? <SheetIcon className="w-32 h-32 text-green-400"/> : <LinkIcon className="w-32 h-32 text-primary-400"/>}
                              </div>
@@ -897,7 +897,7 @@ const App: React.FC = () => {
                             </div>
                             
                             <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5 relative z-10">
-                                <button onClick={() => handleSetActiveDealList(dl.id)} className="flex-1 py-2.5 bg-white text-slate-950 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all shadow-lg active:scale-95">Vào xem</button>
+                                <button onClick={() => handleSetActiveDealList(dl.id)} className="flex-1 py-2.5 bg-white text-slate-950 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all shadow-lg active:scale-95 hover:shadow-glow-sm">Vào xem</button>
                                 <button onClick={() => handleEditList(dl)} className="p-2.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors" disabled={dl.source === 'excel'}><EditIcon className="w-5 h-5"/></button>
                                 <button 
                                     onClick={() => setListPendingDeletion(dl)}
@@ -909,16 +909,16 @@ const App: React.FC = () => {
                         </div>
                     ))}
                     
-                     <div className="bg-white/5 backdrop-blur-sm p-6 rounded-3xl border-2 border-dashed border-slate-700 hover:border-primary-500/50 hover:bg-white/10 transition-all flex flex-col items-center justify-center h-60 gap-4 group cursor-default hover:shadow-glow-hover hover:-translate-y-1 duration-300">
-                        <div className="w-14 h-14 rounded-full bg-slate-800 shadow-lg flex items-center justify-center text-slate-400 group-hover:text-white group-hover:bg-primary-600 transition-all">
+                     <div className="bg-white/5 backdrop-blur-sm p-6 rounded-3xl border-2 border-dashed border-slate-700 hover:border-primary-500/50 hover:bg-white/10 transition-all flex flex-col items-center justify-center h-60 gap-4 group cursor-default hover:shadow-glow-card hover:-translate-y-1 duration-300">
+                        <div className="w-14 h-14 rounded-full bg-slate-800 shadow-lg flex items-center justify-center text-slate-400 group-hover:text-white group-hover:bg-primary-600 transition-all group-hover:shadow-glow-sm">
                              <PlusIcon className="w-7 h-7" />
                         </div>
                         <p className="text-sm font-bold text-slate-400 group-hover:text-white">Tạo danh sách mới</p>
                         <div className="flex gap-2 w-full px-4">
-                             <button onClick={handleAddNewList} className="flex-1 py-2 bg-slate-800 border border-slate-700 rounded-xl text-[11px] font-bold text-slate-300 hover:border-primary-500 hover:text-white shadow-sm transition-all">
+                             <button onClick={handleAddNewList} className="flex-1 py-2 bg-slate-800 border border-slate-700 rounded-xl text-[11px] font-bold text-slate-300 hover:border-primary-500 hover:text-white shadow-sm transition-all hover:shadow-glow-sm">
                                 Google Sheet
                             </button>
-                             <button onClick={() => fileInputRef.current?.click()} className="flex-1 py-2 bg-slate-800 border border-slate-700 rounded-xl text-[11px] font-bold text-slate-300 hover:border-emerald-500 hover:text-white shadow-sm transition-all">
+                             <button onClick={() => fileInputRef.current?.click()} className="flex-1 py-2 bg-slate-800 border border-slate-700 rounded-xl text-[11px] font-bold text-slate-300 hover:border-emerald-500 hover:text-white shadow-sm transition-all hover:shadow-glow-sm">
                                 Excel File
                             </button>
                         </div>
@@ -956,7 +956,7 @@ const App: React.FC = () => {
                             onChange={(e) => setEditingDealList(prev => ({...prev, name: e.target.value}))}
                             placeholder="Ví dụ: Deal tháng 11"
                             required
-                            className="block w-full px-4 py-3.5 rounded-xl border border-slate-700 bg-slate-950 focus:bg-slate-900 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm font-medium text-white placeholder:text-slate-600"
+                            className="block w-full px-4 py-3.5 rounded-xl border border-slate-700 bg-slate-950 focus:bg-slate-900 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm font-medium text-white placeholder:text-slate-600 hover:border-primary-500/40 hover:bg-slate-900/80 hover:shadow-glow-hover"
                         />
                     </div>
                     <div>
@@ -968,7 +968,7 @@ const App: React.FC = () => {
                             onChange={(e) => setEditingDealList(prev => ({...prev, sheetUrl: e.target.value}))}
                             placeholder="https://docs.google.com/spreadsheets/d/..."
                             required
-                            className="block w-full px-4 py-3.5 rounded-xl border border-slate-700 bg-slate-950 focus:bg-slate-900 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm font-medium text-white placeholder:text-slate-600"
+                            className="block w-full px-4 py-3.5 rounded-xl border border-slate-700 bg-slate-950 focus:bg-slate-900 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm font-medium text-white placeholder:text-slate-600 hover:border-primary-500/40 hover:bg-slate-900/80 hover:shadow-glow-hover"
                         />
                         <p className="mt-3 text-xs text-blue-300 bg-blue-900/20 p-3.5 rounded-xl flex gap-2 items-start border border-blue-800/50">
                             <span>ℹ️</span>
@@ -979,7 +979,7 @@ const App: React.FC = () => {
                     
                     <div className="grid grid-cols-2 gap-4 pt-4">
                         <button type="button" onClick={() => setAppState('MANAGE_LISTS')} className="px-4 py-3.5 border border-slate-600 rounded-xl text-sm font-bold text-slate-300 bg-transparent hover:bg-slate-800 transition-colors">Hủy bỏ</button>
-                        <button type="submit" disabled={isLoading} className="px-4 py-3.5 rounded-xl shadow-lg shadow-primary-900/20 text-sm font-bold text-white bg-primary-600 hover:bg-primary-500 disabled:opacity-50 transition-all">
+                        <button type="submit" disabled={isLoading} className="px-4 py-3.5 rounded-xl shadow-lg shadow-primary-900/20 text-sm font-bold text-white bg-primary-600 hover:bg-primary-500 disabled:opacity-50 transition-all hover:shadow-glow-lg">
                             {isLoading ? 'Đang kiểm tra...' : 'Tiếp tục'}
                         </button>
                     </div>
@@ -998,7 +998,7 @@ const App: React.FC = () => {
                     </div>
                     <div className="flex gap-3">
                          <button onClick={() => setAppState('MANAGE_LISTS')} className="px-5 py-2.5 text-sm font-bold text-slate-300 bg-transparent border border-slate-600 rounded-xl hover:bg-slate-800">Hủy</button>
-                        <button onClick={handleMappingSave} className="px-6 py-2.5 text-sm font-bold text-white bg-primary-600 rounded-xl shadow-lg shadow-primary-900/20 hover:bg-primary-500 transition-all">Lưu & Đồng bộ</button>
+                        <button onClick={handleMappingSave} className="px-6 py-2.5 text-sm font-bold text-white bg-primary-600 rounded-xl shadow-lg shadow-primary-900/20 hover:bg-primary-500 transition-all hover:shadow-glow-lg">Lưu & Đồng bộ</button>
                     </div>
                 </div>
 
@@ -1016,7 +1016,7 @@ const App: React.FC = () => {
                                     <div 
                                         key={config.key} 
                                         onClick={() => setActiveMappingKey(config.key)} 
-                                        className={`p-4 rounded-xl cursor-pointer border transition-all duration-200 ${activeMappingKey === config.key ? 'border-primary-500 bg-primary-500/10 shadow-sm' : 'border-slate-700 hover:border-primary-500/30 bg-slate-950'}`}
+                                        className={`p-4 rounded-xl cursor-pointer border transition-all duration-200 ${activeMappingKey === config.key ? 'border-primary-500 bg-primary-500/10 shadow-sm' : 'border-slate-700 hover:border-primary-500/30 bg-slate-950 hover:shadow-glow-hover'}`}
                                     >
                                         <div className="flex justify-between items-center mb-1.5">
                                             <span className={`text-sm font-bold ${activeMappingKey === config.key ? 'text-primary-300' : 'text-slate-300'}`}>{config.label}</span>
@@ -1121,7 +1121,7 @@ const App: React.FC = () => {
                                 <button 
                                     onClick={() => activeDealList && handleSync(activeDealList)} 
                                     disabled={isSyncing || activeDealList?.source === 'excel'}
-                                    className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-xl text-sm font-bold hover:border-primary-500 hover:text-white hover:shadow-glow-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-xl text-sm font-bold hover:border-primary-500 hover:text-white hover:shadow-glow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
                                 >
                                     <SyncIcon className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
                                     {isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ'}

@@ -37,7 +37,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                     onBlur={onBlur}
                     placeholder={placeholder}
                     autoComplete="off"
-                    className="block w-full px-4 py-3 glass-input rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm font-mono font-medium shadow-sm placeholder:text-slate-600 hover:border-primary-400 hover:shadow-glow-hover hover:bg-slate-900/80"
+                    className="block w-full px-4 py-3 glass-input rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm font-mono font-medium shadow-sm placeholder:text-slate-600 hover:border-primary-500/40 hover:shadow-glow-hover hover:bg-slate-900/80"
                 />
                 {suffix && <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">{suffix}</div>}
             </div>
@@ -513,7 +513,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
                             onChange={handleProductNameChange}
                             placeholder="Chọn hoặc nhập tên..."
                             rows={2}
-                            className="block w-full px-4 py-3 glass-input rounded-xl focus:ring-2 focus:ring-primary-500/50 transition-all text-sm font-medium resize-y shadow-inner placeholder:text-slate-600 min-h-[80px] hover:border-primary-400 hover:shadow-glow-hover hover:bg-slate-900/80"
+                            className="block w-full px-4 py-3 glass-input rounded-xl focus:ring-2 focus:ring-primary-500/50 transition-all text-sm font-medium resize-y shadow-inner placeholder:text-slate-600 min-h-[80px] hover:border-primary-500/40 hover:shadow-glow-hover hover:bg-slate-900/80"
                         />
                     </div>
                      
@@ -625,7 +625,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
                             onFocus={(e) => { setIsVoucherFocused(true); handleInputFocus(e); }}
                             onBlur={() => setIsVoucherFocused(false)}
                             placeholder={voucherType === VoucherType.Percentage ? "Nhập %" : (isQuickPriceInput ? "Nhập số tiền (x1000)" : "Nhập số tiền")}
-                            className="block w-full px-4 py-3 bg-slate-950 border border-slate-700 text-white rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-lg font-bold font-mono shadow-sm text-center placeholder:text-slate-700 hover:border-primary-400 hover:shadow-glow-hover hover:bg-slate-900/80"
+                            className="block w-full px-4 py-3 bg-slate-950 border border-slate-700 text-white rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-lg font-bold font-mono shadow-sm text-center placeholder:text-slate-700 hover:border-primary-500/40 hover:shadow-glow-hover hover:bg-slate-900/80"
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 font-bold text-xs">
                             {voucherType === VoucherType.Percentage ? '%' : 'VND'}
@@ -679,7 +679,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
                                         className={`flex-1 min-w-[2.5rem] py-1.5 rounded-lg text-xs font-bold border transition-all active:scale-95 font-mono ${
                                             voucherValue === String(v) 
                                             ? 'bg-primary-600 text-white border-primary-500 shadow-md shadow-primary-900/20' 
-                                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-primary-500/30 hover:text-primary-300 hover:bg-slate-800'
+                                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-primary-500/30 hover:text-primary-300 hover:bg-slate-800 hover:shadow-glow-hover'
                                         }`}
                                     >
                                         {v}%

@@ -220,7 +220,7 @@ export const CreatorList: React.FC<{
                             <tr><td colSpan={3} className="text-center py-10 text-slate-500">Đang tải danh sách...</td></tr>
                         ) : filteredCreators.length > 0 ? (
                             filteredCreators.map(creator => (
-                                <tr key={creator.id} className="hover:bg-slate-800/60 hover:shadow-[inset_0_0_20px_rgba(255,255,255,0.03)] transition-all duration-200 group">
+                                <tr key={creator.id} className="hover:bg-slate-800/90 hover:shadow-glow-inset hover:shadow-[inset_0_0_0_1px_rgba(var(--primary-500),0.3)] transition-all duration-200 group">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-200 group-hover:text-white">{creator.name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400 font-mono">
                                         <div className="flex items-center gap-2">

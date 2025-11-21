@@ -73,7 +73,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ options, selectedValue,
                 className={`cursor-pointer select-none relative py-2.5 pl-3 pr-3 rounded-lg text-sm transition-colors mb-0.5 ${
                     selectedValue === option.value 
                     ? 'bg-primary-500/10 text-primary-400 font-bold' 
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white font-medium'
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white hover:shadow-glow-inset font-medium'
                 }`}
                 role="option"
                 aria-selected={selectedValue === option.value}
