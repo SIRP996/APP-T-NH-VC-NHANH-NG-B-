@@ -1,6 +1,8 @@
+
+
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Product } from '../types';
-import { SearchIcon, CogIcon, Bars3Icon, PlusIcon, EditIcon, TrashIcon } from './Icons';
+import { SearchIcon, CogIcon, Bars3Icon, PlusIcon, EditIcon, TrashIcon, EyeIcon, EyeSlashIcon } from './Icons';
 
 const SortAscIcon: React.FC<{ className?: string }> = ({ className = "w-3.5 h-3.5 ml-1 text-primary-400" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4h13M3 8h9M3 12h9m-9 4h6m4-11l4-4m0 0l4 4m-4-4v12" /></svg>;
 const SortDescIcon: React.FC<{ className?: string }> = ({ className = "w-3.5 h-3.5 ml-1 text-primary-400" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4h13M3 8h9M3 12h9m-9 4h6m4 5l4-4m0 0l-4-4m4 4V3" /></svg>;
@@ -54,19 +56,22 @@ interface ColumnSettingsModalProps {
     isOpen: boolean;
     onClose: () => void;
     currentOrder: ColumnKey[];
-    onOrderSave: (newOrder: ColumnKey[]) => void;
+    visibleColumns: Set<ColumnKey>;
+    onSave: (newOrder: ColumnKey[], newVisibility: Set<ColumnKey>) => void;
 }
 
-const ColumnSettingsModal: React.FC<ColumnSettingsModalProps> = ({ isOpen, onClose, currentOrder, onOrderSave }) => {
+const ColumnSettingsModal: React.FC<ColumnSettingsModalProps> = ({ isOpen, onClose, currentOrder, visibleColumns, onSave }) => {
     const [tempOrder, setTempOrder] = useState(currentOrder);
+    const [tempVisibility, setTempVisibility] = useState(new Set(visibleColumns));
     const dragItem = useRef<number | null>(null);
     const dragOverItem = useRef<number | null>(null);
 
     useEffect(() => {
         if (isOpen) {
             setTempOrder(currentOrder);
+            setTempVisibility(new Set(visibleColumns));
         }
-    }, [isOpen, currentOrder]);
+    }, [isOpen, currentOrder, visibleColumns]);
 
     const handleDragStart = (_e: React.DragEvent<HTMLLIElement>, index: number) => {
         dragItem.current = index;
@@ -85,16 +90,27 @@ const ColumnSettingsModal: React.FC<ColumnSettingsModalProps> = ({ isOpen, onClo
         dragOverItem.current = null;
     };
 
+    const toggleVisibility = (key: ColumnKey) => {
+        const newSet = new Set(tempVisibility);
+        if (newSet.has(key)) {
+            newSet.delete(key);
+        } else {
+            newSet.add(key);
+        }
+        setTempVisibility(newSet);
+    };
+
     if (!isOpen) return null;
     
+    // Ensure we map over tempOrder to show current sort state
     const orderedColumnLabels = tempOrder.map(key => COLUMN_DEFINITIONS.find(c => c.key === key)!);
 
     return (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200" onClick={onClose}>
             <div className="bg-slate-900 rounded-2xl shadow-2xl p-6 w-full max-w-md border border-white/10 transform transition-all scale-100" onClick={e => e.stopPropagation()}>
                 <h3 className="text-lg font-bold leading-6 text-white mb-1">Tùy chỉnh cột</h3>
-                <p className="text-sm text-slate-400 mb-5">Kéo và thả để sắp xếp thứ tự hiển thị.</p>
-                <ul className="space-y-2 mb-6">
+                <p className="text-sm text-slate-400 mb-5">Kéo thả để sắp xếp hoặc ẩn/hiện cột.</p>
+                <ul className="space-y-2 mb-6 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
                     {orderedColumnLabels.map(({ key, label }, index) => (
                         <li 
                             key={key}
@@ -104,16 +120,26 @@ const ColumnSettingsModal: React.FC<ColumnSettingsModalProps> = ({ isOpen, onClo
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={handleDrop}
                             onDragEnd={() => { dragItem.current = null; dragOverItem.current = null; }}
-                            className="flex items-center p-3 bg-slate-800/50 rounded-xl border border-slate-700 cursor-grab active:cursor-grabbing hover:border-primary-500/50 hover:bg-slate-800 transition-all"
+                            className={`flex items-center p-3 bg-slate-800/50 rounded-xl border border-slate-700 cursor-grab active:cursor-grabbing hover:bg-slate-800 transition-all ${!tempVisibility.has(key) ? 'opacity-60 bg-slate-900/30 border-dashed' : 'hover:border-primary-500/50'}`}
                         >
-                            <Bars3Icon className="w-5 h-5 text-slate-500 mr-3"/>
-                            <span className="text-sm font-medium text-slate-200">{label}</span>
+                             <button 
+                                onClick={(e) => { e.stopPropagation(); toggleVisibility(key); }}
+                                className={`mr-3 p-1.5 rounded-lg transition-colors ${tempVisibility.has(key) ? 'text-primary-400 bg-primary-500/10 hover:bg-primary-500/20' : 'text-slate-600 hover:text-slate-400 hover:bg-slate-800'}`}
+                                title={tempVisibility.has(key) ? "Đang hiện (Click để ẩn)" : "Đang ẩn (Click để hiện)"}
+                             >
+                                 {tempVisibility.has(key) ? <EyeIcon className="w-4 h-4" /> : <EyeSlashIcon className="w-4 h-4" />}
+                             </button>
+                            <Bars3Icon className="w-5 h-5 text-slate-600 mr-3"/>
+                            <span className={`text-sm font-medium ${tempVisibility.has(key) ? 'text-slate-200' : 'text-slate-500'}`}>{label}</span>
                         </li>
                     ))}
                 </ul>
                 <div className="flex justify-between items-center pt-4 border-t border-slate-800">
                      <button
-                        onClick={() => setTempOrder(DEFAULT_COLUMN_ORDER)}
+                        onClick={() => {
+                            setTempOrder(DEFAULT_COLUMN_ORDER);
+                            setTempVisibility(new Set(DEFAULT_COLUMN_ORDER));
+                        }}
                         className="text-sm font-medium text-slate-500 hover:text-white transition-colors"
                     >
                         Về mặc định
@@ -126,7 +152,7 @@ const ColumnSettingsModal: React.FC<ColumnSettingsModalProps> = ({ isOpen, onClo
                             Hủy
                         </button>
                         <button
-                            onClick={() => onOrderSave(tempOrder)}
+                            onClick={() => onSave(tempOrder, tempVisibility)}
                             className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-xl hover:bg-primary-500 shadow-lg shadow-primary-900/20"
                         >
                             Lưu thay đổi
@@ -163,6 +189,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection } | null>({ key: 'name', direction: 'asc' });
 
     const [columnOrder, setColumnOrder] = useState<ColumnKey[]>(DEFAULT_COLUMN_ORDER);
+    const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(new Set(DEFAULT_COLUMN_ORDER));
     const [columnWidths, setColumnWidths] = useState<Record<ColumnKey, number>>(DEFAULT_COLUMN_WIDTHS);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
@@ -195,11 +222,13 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 
     useEffect(() => {
         if (activeDealListId) {
+            // Load Order
             const savedOrder = localStorage.getItem(`column-order-${activeDealListId}`);
             if (savedOrder) {
                 try {
                     const parsedOrder = JSON.parse(savedOrder) as ColumnKey[];
                     const validKeys = new Set(COLUMN_DEFINITIONS.map(c => c.key));
+                    // If saved order has same length and valid keys, use it
                     if (parsedOrder.length === validKeys.size && parsedOrder.every(key => validKeys.has(key))) {
                          setColumnOrder(parsedOrder);
                     } else {
@@ -212,6 +241,20 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                 setColumnOrder(DEFAULT_COLUMN_ORDER);
             }
 
+            // Load Visibility
+            const savedVisibility = localStorage.getItem(`column-visibility-${activeDealListId}`);
+            if (savedVisibility) {
+                try {
+                    const parsedVisibility = JSON.parse(savedVisibility);
+                    setVisibleColumns(new Set(parsedVisibility));
+                } catch (e) {
+                    setVisibleColumns(new Set(DEFAULT_COLUMN_ORDER));
+                }
+            } else {
+                setVisibleColumns(new Set(DEFAULT_COLUMN_ORDER));
+            }
+
+            // Load Widths
             const savedWidths = localStorage.getItem(`column-widths-${activeDealListId}`);
             let initialWidths = DEFAULT_COLUMN_WIDTHS;
             if (savedWidths) {
@@ -224,6 +267,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
             setColumnWidths(initialWidths);
         } else {
             setColumnOrder(DEFAULT_COLUMN_ORDER);
+            setVisibleColumns(new Set(DEFAULT_COLUMN_ORDER));
             setColumnWidths(DEFAULT_COLUMN_WIDTHS);
         }
     }, [activeDealListId]);
@@ -231,9 +275,10 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     useEffect(() => {
         if (activeDealListId) {
             localStorage.setItem(`column-order-${activeDealListId}`, JSON.stringify(columnOrder));
+            localStorage.setItem(`column-visibility-${activeDealListId}`, JSON.stringify(Array.from(visibleColumns)));
             localStorage.setItem(`column-widths-${activeDealListId}`, JSON.stringify(columnWidths));
         }
-    }, [columnOrder, columnWidths, activeDealListId]);
+    }, [columnOrder, columnWidths, visibleColumns, activeDealListId]);
 
 
     const filteredProducts = useMemo(() => {
@@ -369,8 +414,10 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     };
 
     const orderedTableHeaders = useMemo(() => {
-        return columnOrder.map(key => COLUMN_DEFINITIONS.find(c => c.key === key)!);
-    }, [columnOrder]);
+        return columnOrder
+            .filter(key => visibleColumns.has(key))
+            .map(key => COLUMN_DEFINITIONS.find(c => c.key === key)!);
+    }, [columnOrder, visibleColumns]);
 
     const cellClassMap: Record<ColumnKey, string> = {
         name: 'font-medium text-slate-200 text-[14px]',
@@ -443,8 +490,10 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                 isOpen={isSettingsModalOpen}
                 onClose={() => setIsSettingsModalOpen(false)}
                 currentOrder={columnOrder}
-                onOrderSave={(newOrder) => {
+                visibleColumns={visibleColumns}
+                onSave={(newOrder, newVisibility) => {
                     setColumnOrder(newOrder);
+                    setVisibleColumns(newVisibility);
                     setIsSettingsModalOpen(false);
                 }}
             />
