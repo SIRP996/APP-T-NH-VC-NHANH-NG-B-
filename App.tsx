@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Product, ColumnMapping, DealList, FirebaseConfig, Creator } from './types';
-import { fetchProductsFromSheet, fetchSheetPreviewAndHeaders } from './services/googleSheetService';
+import { fetchProductsFromSheet, fetchSheetPreviewAndHeaders, forwardFillData } from './services/googleSheetService';
 import { Calculator } from './components/Calculator';
 import { ProductTable } from './components/ProductTable';
 import { CreatorList } from './components/CreatorList';
 import { SyncIcon, LinkIcon, SheetIcon, EditIcon, CogIcon, PlusIcon, TrashIcon, FirebaseIcon, GoogleIcon, LogoutIcon, MailIcon, LockClosedIcon, SpinnerIcon, IdentificationIcon } from './components/Icons';
 import CustomDropdown from './components/CustomDropdown';
+import { ProductModal } from './components/ProductModal';
 
 // Declare firebase and XLSX globally as they're loaded from script tags
 declare const firebase: any;
@@ -59,6 +60,42 @@ const DeleteConfirmationModal: React.FC<{
                 </p>
                 <p className="mt-1 text-sm text-slate-500">
                     Tất cả dữ liệu sản phẩm liên quan cũng sẽ bị xóa vĩnh viễn. Thao tác này không thể hoàn tác.
+                </p>
+                <div className="mt-6 flex justify-end gap-3">
+                    <button
+                        onClick={onClose}
+                        disabled={isDeleting}
+                        className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-50"
+                    >
+                        Hủy
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={isDeleting}
+                        className="px-4 py-2 w-28 text-sm font-medium text-white bg-red-600 border border-transparent rounded-xl hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-wait flex items-center justify-center shadow-lg shadow-red-200"
+                    >
+                        {isDeleting ? <SpinnerIcon className="w-5 h-5" /> : 'Xóa'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const DeleteProductConfirmationModal: React.FC<{
+    product: Product | null;
+    onClose: () => void;
+    onConfirm: () => void;
+    isDeleting: boolean;
+}> = ({ product, onClose, onConfirm, isDeleting }) => {
+    if (!product) return null;
+
+    return (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300" onClick={onClose}>
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md m-4 animate-in fade-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                <h3 className="text-lg font-bold text-slate-900">Xác nhận xóa sản phẩm</h3>
+                <p className="mt-2 text-sm text-slate-600">
+                    Bạn có chắc chắn muốn xóa sản phẩm <strong className="font-semibold text-slate-900">{product.name}</strong> (ID: {product.id})?
                 </p>
                 <div className="mt-6 flex justify-end gap-3">
                     <button
@@ -243,6 +280,13 @@ const App: React.FC = () => {
     const [listPendingDeletion, setListPendingDeletion] = useState<DealList | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
+    // Product Editing State
+    const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+    const [isSavingProduct, setIsSavingProduct] = useState(false);
+    const [productPendingDeletion, setProductPendingDeletion] = useState<Product | null>(null);
+    const [isDeletingProduct, setIsDeletingProduct] = useState(false);
+
 
     // Firebase state
     const [db, setDb] = useState<any | null>(null);
@@ -341,7 +385,11 @@ const App: React.FC = () => {
         setIsLoading(true);
         const productsRef = db.collection('users').doc(user.uid).collection('dealLists').doc(activeDealListId).collection('products');
         const unsubscribe = productsRef.onSnapshot((snapshot: any) => {
-            const fetchedProducts = snapshot.docs.map((doc: any) => doc.data());
+            // Important: Include doc.id as docId so we can update/delete specific documents later
+            const fetchedProducts = snapshot.docs.map((doc: any) => ({
+                ...doc.data(),
+                docId: doc.id
+            }));
             setProducts(fetchedProducts);
             setIsLoading(false);
         }, (error: any) => {
@@ -503,7 +551,10 @@ const App: React.FC = () => {
                 
                 setSheetHeaders(headers);
                 setSheetPreview(previewData);
-                setTempExcelData(json);
+
+                // Apply forward fill here for the Excel data to handle merged cells
+                const filledJson = forwardFillData(json);
+                setTempExcelData(filledJson);
                 
                 const listName = file.name.replace(/\.(xlsx|xls|csv)$/i, '');
                 setEditingDealList({ name: listName, source: 'excel' });
@@ -696,6 +747,51 @@ const App: React.FC = () => {
         if (!user || !db) throw new Error("Người dùng chưa đăng nhập.");
         await db.collection('users').doc(user.uid).collection('creators').doc(id).delete();
     };
+
+    // Handlers for Products
+    const handleSaveProduct = async (productData: Omit<Product, 'docId'>) => {
+        if (!user || !db || !activeDealListId) return;
+        
+        setIsSavingProduct(true);
+        try {
+            const productsRef = db.collection('users').doc(user.uid).collection('dealLists').doc(activeDealListId).collection('products');
+            
+            if (editingProduct && editingProduct.docId) {
+                // Update existing
+                await productsRef.doc(editingProduct.docId).update(productData);
+            } else {
+                // Add new
+                await productsRef.add(productData);
+            }
+            setIsProductModalOpen(false);
+            setEditingProduct(null);
+        } catch (e: any) {
+            console.error("Error saving product:", e);
+            alert("Lỗi lưu sản phẩm: " + e.message);
+        } finally {
+            setIsSavingProduct(false);
+        }
+    };
+
+    const handleDeleteProductConfirm = async () => {
+        if (!user || !db || !activeDealListId || !productPendingDeletion || !productPendingDeletion.docId) return;
+        
+        setIsDeletingProduct(true);
+        try {
+             const productsRef = db.collection('users').doc(user.uid).collection('dealLists').doc(activeDealListId).collection('products');
+             await productsRef.doc(productPendingDeletion.docId).delete();
+             setProductPendingDeletion(null);
+             if (selectedProduct?.docId === productPendingDeletion.docId) {
+                 setSelectedProduct(null);
+             }
+        } catch (e: any) {
+             console.error("Error deleting product:", e);
+             alert("Lỗi xóa sản phẩm: " + e.message);
+        } finally {
+            setIsDeletingProduct(false);
+        }
+    };
+
 
     const renderLoading = () => (
         <div className="flex items-center justify-center h-screen bg-slate-900">
@@ -1054,6 +1150,15 @@ const App: React.FC = () => {
                                                 isLoading={isLoading} 
                                                 activeDealListId={activeDealListId}
                                                 searchInputRef={searchInputRef}
+                                                onAddProduct={() => {
+                                                    setEditingProduct(null);
+                                                    setIsProductModalOpen(true);
+                                                }}
+                                                onEditProduct={(p) => {
+                                                    setEditingProduct(p);
+                                                    setIsProductModalOpen(true);
+                                                }}
+                                                onDeleteProduct={(p) => setProductPendingDeletion(p)}
                                              />
                                         </div>
                                     )}
@@ -1084,6 +1189,22 @@ const App: React.FC = () => {
                         </div>
                     )}
                 </main>
+                
+                {/* Modals */}
+                <ProductModal 
+                    isOpen={isProductModalOpen} 
+                    onClose={() => setIsProductModalOpen(false)} 
+                    onSave={handleSaveProduct}
+                    product={editingProduct}
+                    isSaving={isSavingProduct}
+                />
+
+                <DeleteProductConfirmationModal 
+                    product={productPendingDeletion}
+                    onClose={() => setProductPendingDeletion(null)}
+                    onConfirm={handleDeleteProductConfirm}
+                    isDeleting={isDeletingProduct}
+                />
             </div>
         );
     }

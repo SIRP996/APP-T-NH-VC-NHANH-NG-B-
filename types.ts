@@ -1,7 +1,8 @@
 
 
 export interface Product {
-  id: string;
+  docId?: string; // Firestore Document ID
+  id: string; // Product SKU/ID from User
   exclusiveId?: string;
   modelId?: string;
   name: string;

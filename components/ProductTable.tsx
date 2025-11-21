@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Product } from '../types';
-import { SearchIcon, CogIcon, Bars3Icon } from './Icons';
+import { SearchIcon, CogIcon, Bars3Icon, PlusIcon, EditIcon, TrashIcon } from './Icons';
 
 const SortAscIcon: React.FC<{ className?: string }> = ({ className = "w-3.5 h-3.5 ml-1 text-violet-600" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4h13M3 8h9M3 12h9m-9 4h6m4-11l4-4m0 0l4 4m-4-4v12" /></svg>;
 const SortDescIcon: React.FC<{ className?: string }> = ({ className = "w-3.5 h-3.5 ml-1 text-violet-600" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4h13M3 8h9M3 12h9m-9 4h6m4 5l4-4m0 0l-4-4m4 4V3" /></svg>;
@@ -124,9 +124,21 @@ interface ProductTableProps {
     isLoading: boolean;
     activeDealListId: string | null;
     searchInputRef?: React.RefObject<HTMLInputElement>;
+    onAddProduct?: () => void;
+    onEditProduct?: (product: Product) => void;
+    onDeleteProduct?: (product: Product) => void;
 }
 
-export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductSelect, isLoading, activeDealListId, searchInputRef }) => {
+export const ProductTable: React.FC<ProductTableProps> = ({ 
+    products, 
+    onProductSelect, 
+    isLoading, 
+    activeDealListId, 
+    searchInputRef,
+    onAddProduct,
+    onEditProduct,
+    onDeleteProduct
+}) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection } | null>({ key: 'name', direction: 'asc' });
 
@@ -349,6 +361,17 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
                             className="w-full pl-11 pr-4 py-2.5 border border-slate-200 bg-white/70 rounded-2xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all shadow-sm font-medium"
                         />
                     </div>
+                    
+                    {onAddProduct && (
+                         <button 
+                            onClick={onAddProduct}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 shadow-lg shadow-slate-200 transition-all hover:scale-105 active:scale-95"
+                        >
+                            <PlusIcon className="w-5 h-5" />
+                            <span className="hidden sm:inline">Thêm</span>
+                        </button>
+                    )}
+
                     <button 
                         onClick={() => setIsSettingsModalOpen(true)} 
                         className="p-2.5 text-slate-500 hover:text-violet-600 rounded-xl hover:bg-violet-50 transition-colors flex-shrink-0 border border-slate-200 hover:border-violet-100" 
@@ -402,11 +425,15 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
                                     </div>
                                 </th>
                             ))}
+                            {/* Action Column */}
+                            <th scope="col" className="px-4 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider w-24 sticky right-0 bg-white/90 backdrop-blur-md z-20 shadow-[-10px_0_20px_-10px_rgba(0,0,0,0.05)]">
+                                Actions
+                            </th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
                         {isLoading ? (
-                            <tr><td colSpan={orderedTableHeaders.length} className="text-center py-20 text-slate-400">
+                            <tr><td colSpan={orderedTableHeaders.length + 1} className="text-center py-20 text-slate-400">
                                 <div className="flex flex-col items-center justify-center gap-2">
                                     <div className="w-8 h-8 border-2 border-violet-200 border-t-violet-600 rounded-full animate-spin"/>
                                     <span>Đang tải dữ liệu...</span>
@@ -417,7 +444,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
                                 const isSelected = index === selectedIndex;
                                 return (
                                     <tr 
-                                        key={`${product.id}-${index}`} 
+                                        key={`${product.docId || product.id}-${index}`} 
                                         onClick={() => onProductSelect(product)} 
                                         onMouseEnter={() => setSelectedIndex(index)} // Sync hover with selection
                                         className={`cursor-pointer transition-colors group border-b border-slate-50 last:border-none ${isSelected ? 'bg-violet-50/60 ring-1 ring-inset ring-violet-200' : 'hover:bg-violet-50/30'}`}
@@ -427,11 +454,35 @@ export const ProductTable: React.FC<ProductTableProps> = ({ products, onProductS
                                                 {key === 'displayPrice' || key === 'finalPrice' ? formatCurrency(Number(product[key])) : product[key]}
                                             </td>
                                         ))}
+                                        
+                                        {/* Action Buttons */}
+                                        <td className="px-4 py-4 text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-slate-50 transition-colors z-10 shadow-[-10px_0_20px_-10px_rgba(0,0,0,0.05)]">
+                                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                {onEditProduct && (
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); onEditProduct(product); }}
+                                                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                        title="Chỉnh sửa"
+                                                    >
+                                                        <EditIcon className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                {onDeleteProduct && (
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); onDeleteProduct(product); }}
+                                                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                        title="Xóa"
+                                                    >
+                                                        <TrashIcon className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
                                     </tr>
                                 );
                             })
                         ) : (
-                             <tr><td colSpan={orderedTableHeaders.length} className="text-center py-20 text-slate-400">Không tìm thấy sản phẩm nào.</td></tr>
+                             <tr><td colSpan={orderedTableHeaders.length + 1} className="text-center py-20 text-slate-400">Không tìm thấy sản phẩm nào.</td></tr>
                         )}
                     </tbody>
                 </table>
