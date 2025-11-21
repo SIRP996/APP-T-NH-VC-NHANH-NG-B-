@@ -1,24 +1,23 @@
 
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Creator, DealList } from '../types';
 import { SearchIcon, CopyIcon, CheckIcon, PlusIcon, EditIcon, TrashIcon, SpinnerIcon } from './Icons';
 
-// Reusable Input Component for Modals
 const ModalInput: React.FC<{ label: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder: string; required?: boolean }> = ({ label, value, onChange, placeholder, required }) => (
     <div>
-        <label className="block text-sm font-medium text-slate-700">{label}</label>
+        <label className="block text-sm font-medium text-slate-300">{label}</label>
         <input
             type="text"
             value={value}
             onChange={e => onChange(e)}
             placeholder={placeholder}
             required={required}
-            className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="mt-1 block w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-white placeholder:text-slate-600"
         />
     </div>
 );
 
-// Add/Edit Modal
 const CreatorModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
@@ -59,26 +58,26 @@ const CreatorModal: React.FC<{
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50" onClick={onClose}>
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md m-4" onClick={e => e.stopPropagation()}>
-                <h3 className="text-lg font-bold text-slate-900">{creator ? 'Chỉnh sửa Creator' : 'Thêm Creator Mới'}</h3>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50" onClick={onClose}>
+            <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-xl p-6 w-full max-w-md m-4" onClick={e => e.stopPropagation()}>
+                <h3 className="text-lg font-bold text-white">{creator ? 'Chỉnh sửa Creator' : 'Thêm Creator Mới'}</h3>
                 <form onSubmit={handleSubmit} className="mt-4 space-y-4">
                     <ModalInput label="Tên KOL" value={name} onChange={e => setName(e.target.value)} placeholder="Nhập tên KOL..." required />
                     <ModalInput label="ID Kênh TikTok" value={tiktokId} onChange={e => setTiktokId(e.target.value)} placeholder="Nhập ID kênh..." required />
                     
                     <div className="mt-4">
-                        <label className="block text-sm font-medium text-slate-700">Gán Deal Lists</label>
-                        <div className="mt-2 max-h-40 overflow-y-auto space-y-2 rounded-md border p-3 bg-slate-50">
+                        <label className="block text-sm font-medium text-slate-300">Gán Deal Lists</label>
+                        <div className="mt-2 max-h-40 overflow-y-auto space-y-2 rounded-md border border-slate-800 p-3 bg-slate-950">
                             {dealLists.length > 0 ? (
                                 dealLists.map(list => (
-                                    <label key={list.id} className="flex items-center gap-3 cursor-pointer p-2 rounded hover:bg-slate-100">
+                                    <label key={list.id} className="flex items-center gap-3 cursor-pointer p-2 rounded hover:bg-slate-900">
                                         <input
                                             type="checkbox"
                                             checked={assignedIds.includes(list.id)}
                                             onChange={() => handleDealListToggle(list.id)}
-                                            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                            className="h-4 w-4 rounded border-slate-700 bg-slate-900 text-primary-600 focus:ring-primary-500"
                                         />
-                                        <span className="text-sm text-slate-700">{list.name}</span>
+                                        <span className="text-sm text-slate-300">{list.name}</span>
                                     </label>
                                 ))
                             ) : (
@@ -88,8 +87,8 @@ const CreatorModal: React.FC<{
                     </div>
 
                     <div className="mt-6 flex justify-end gap-3">
-                        <button type="button" onClick={onClose} disabled={isSaving} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50">Hủy</button>
-                        <button type="submit" disabled={isSaving} className="px-4 py-2 w-28 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center">
+                        <button type="button" onClick={onClose} disabled={isSaving} className="px-4 py-2 text-sm font-medium text-slate-300 bg-transparent border border-slate-700 rounded-lg hover:bg-slate-800 disabled:opacity-50">Hủy</button>
+                        <button type="submit" disabled={isSaving} className="px-4 py-2 w-28 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-500 disabled:opacity-50 flex items-center justify-center">
                             {isSaving ? <SpinnerIcon /> : 'Lưu'}
                         </button>
                     </div>
@@ -99,7 +98,6 @@ const CreatorModal: React.FC<{
     );
 };
 
-// Delete Confirmation Modal
 const DeleteCreatorModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
@@ -109,13 +107,13 @@ const DeleteCreatorModal: React.FC<{
 }> = ({ isOpen, onClose, onConfirm, creator, isDeleting }) => {
     if (!isOpen) return null;
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50" onClick={onClose}>
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md m-4" onClick={e => e.stopPropagation()}>
-                <h3 className="text-lg font-bold text-slate-900">Xác nhận xóa</h3>
-                <p className="mt-2 text-sm text-slate-800">Bạn có chắc chắn muốn xóa creator <strong className="font-semibold">{creator?.name}</strong>?</p>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50" onClick={onClose}>
+            <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-xl p-6 w-full max-w-md m-4" onClick={e => e.stopPropagation()}>
+                <h3 className="text-lg font-bold text-white">Xác nhận xóa</h3>
+                <p className="mt-2 text-sm text-slate-400">Bạn có chắc chắn muốn xóa creator <strong className="font-semibold text-white">{creator?.name}</strong>?</p>
                 <div className="mt-6 flex justify-end gap-3">
-                    <button onClick={onClose} disabled={isDeleting} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50">Hủy</button>
-                    <button onClick={onConfirm} disabled={isDeleting} className="px-4 py-2 w-28 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 flex items-center justify-center">
+                    <button onClick={onClose} disabled={isDeleting} className="px-4 py-2 text-sm font-medium text-slate-300 bg-transparent border border-slate-700 rounded-lg hover:bg-slate-800 disabled:opacity-50">Hủy</button>
+                    <button onClick={onConfirm} disabled={isDeleting} className="px-4 py-2 w-28 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center">
                         {isDeleting ? <SpinnerIcon /> : 'Xóa'}
                     </button>
                 </div>
@@ -124,7 +122,6 @@ const DeleteCreatorModal: React.FC<{
     );
 }
 
-// Main Component
 export const CreatorList: React.FC<{
     creators: Creator[];
     isLoading: boolean;
@@ -189,56 +186,56 @@ export const CreatorList: React.FC<{
     };
 
     return (
-        <div className="bg-white shadow-lg rounded-xl border border-slate-200 w-full h-full flex flex-col">
-            <div className="p-4 border-b border-slate-200 flex justify-between items-center gap-4">
+        <div className="bg-transparent w-full h-full flex flex-col">
+            <div className="p-4 border-b border-slate-800 flex justify-between items-center gap-4">
                 <div className="relative flex-grow">
                     <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                        <SearchIcon className="w-5 h-5 text-slate-400" />
+                        <SearchIcon className="w-5 h-5 text-slate-500" />
                     </span>
                     <input
                         type="text"
                         placeholder="Tìm theo tên KOL..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md bg-white text-slate-900 focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-400"
+                        className="w-full pl-10 pr-4 py-2 border border-slate-800 rounded-lg bg-slate-950/50 text-white focus:ring-1 focus:ring-primary-500 focus:border-primary-500 placeholder-slate-600"
                     />
                 </div>
                 <button
                     onClick={() => handleOpenModal()}
-                    className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 flex-shrink-0"
+                    className="flex items-center gap-2 px-3 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-500 flex-shrink-0"
                 >
                     <PlusIcon className="w-5 h-5" />
                     Thêm mới
                 </button>
             </div>
-            <div className="flex-grow overflow-auto">
-                <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50 sticky top-0 z-10">
+            <div className="flex-grow overflow-auto custom-scrollbar">
+                <table className="min-w-full divide-y divide-slate-800/50">
+                    <thead className="bg-slate-900/50 sticky top-0 z-10">
                         <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Tên KOL</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">ID Kênh TikTok</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Tên KOL</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">ID Kênh TikTok</th>
                             <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-slate-200">
+                    <tbody className="divide-y divide-slate-800/50">
                         {isLoading ? (
                             <tr><td colSpan={3} className="text-center py-10 text-slate-500">Đang tải danh sách...</td></tr>
                         ) : filteredCreators.length > 0 ? (
                             filteredCreators.map(creator => (
-                                <tr key={creator.id} className="hover:bg-indigo-50 transition-colors">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{creator.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 font-mono">
+                                <tr key={creator.id} className="hover:bg-white/5 transition-colors">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-200">{creator.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400 font-mono">
                                         <div className="flex items-center gap-2">
                                             <span>{creator.tiktokId}</span>
-                                            <button onClick={() => handleCopy(creator.tiktokId)} className="p-1.5 rounded-md hover:bg-indigo-100 text-slate-600 hover:text-indigo-700">
-                                                {copiedId === creator.tiktokId ? <CheckIcon className="w-4 h-4 text-green-600" /> : <CopyIcon className="w-4 h-4" />}
+                                            <button onClick={() => handleCopy(creator.tiktokId)} className="p-1.5 rounded-md hover:bg-primary-500/20 text-slate-500 hover:text-primary-400">
+                                                {copiedId === creator.tiktokId ? <CheckIcon className="w-4 h-4 text-green-400" /> : <CopyIcon className="w-4 h-4" />}
                                             </button>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div className="flex items-center justify-end gap-2">
-                                            <button onClick={() => handleOpenModal(creator)} className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-slate-100 rounded-md"><EditIcon className="w-4 h-4"/></button>
-                                            <button onClick={() => setDeletingCreator(creator)} className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-slate-100 rounded-md"><TrashIcon className="w-4 h-4"/></button>
+                                            <button onClick={() => handleOpenModal(creator)} className="p-1.5 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-md"><EditIcon className="w-4 h-4"/></button>
+                                            <button onClick={() => setDeletingCreator(creator)} className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-md"><TrashIcon className="w-4 h-4"/></button>
                                         </div>
                                     </td>
                                 </tr>

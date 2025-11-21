@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Product, VoucherType } from '../types';
 import { CalculatorIcon, CogIcon, CopyIcon, CheckIcon } from './Icons';
@@ -9,7 +10,7 @@ const formatCurrency = (value: number) => {
 };
 
 interface InputFieldProps {
-    label?: string; // Made optional since we might render label externally
+    label?: string;
     id: string;
     value: string;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -25,7 +26,7 @@ interface InputFieldProps {
 const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
     ({ label, id, value, onChange, placeholder, type = "text", onKeyDown, onFocus, onBlur, suffix, className }, ref) => (
         <div className={`group ${className}`}>
-            {label && <label htmlFor={id} className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">{label}</label>}
+            {label && <label htmlFor={id} className="block text-xs font-semibold text-slate-400 mb-1.5 ml-1 uppercase tracking-wide">{label}</label>}
             <div className="relative transition-all duration-300">
                 <input
                     ref={ref}
@@ -38,7 +39,7 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                     onBlur={onBlur}
                     placeholder={placeholder}
                     autoComplete="off"
-                    className="block w-full px-4 py-3 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 focus:bg-white transition-all text-sm font-semibold shadow-sm placeholder:text-slate-400 placeholder:font-normal hover:border-violet-200"
+                    className="block w-full px-4 py-3 glass-input rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm font-mono font-medium shadow-sm placeholder:text-slate-600 hover:border-slate-600"
                 />
                 {suffix && <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">{suffix}</div>}
             </div>
@@ -52,7 +53,6 @@ interface CalculatorProps {
     products: Product[];
     onProductSelect: (product: Product | null) => void;
     onFocusSearch?: () => void;
-    // New props for persistent settings
     presetVouchers: number[];
     onSavePresets: (presets: number[]) => void;
 }
@@ -84,14 +84,12 @@ export const Calculator: React.FC<CalculatorProps> = ({
     const [voucherType, setVoucherType] = useState<VoucherType>(VoucherType.Percentage);
     const [voucherValue, setVoucherValue] = useState('');
     
-    // New states for conditional vouchers
     const [minOrderValue, setMinOrderValue] = useState('');
     const [maxDiscountValue, setMaxDiscountValue] = useState('');
 
     const [result, setResult] = useState<number | null>(null);
-    const [appliedPlatformDiscount, setAppliedPlatformDiscount] = useState<number>(0); // To show user how much platform actually paid
+    const [appliedPlatformDiscount, setAppliedPlatformDiscount] = useState<number>(0); 
     
-    // History State
     const [history, setHistory] = useState<HistoryItem[]>([]);
 
     const voucherInputRef = useRef<HTMLInputElement>(null);
@@ -102,7 +100,6 @@ export const Calculator: React.FC<CalculatorProps> = ({
     const [isExclusiveIdCopied, setIsExclusiveIdCopied] = useState(false);
     const [currentTime, setCurrentTime] = useState(new Date());
     
-    // Quick Input States
     const [isQuickPriceInput, setIsQuickPriceInput] = useState(true);
     const [isDesiredPriceFocused, setIsDesiredPriceFocused] = useState(false);
     const [isVoucherFocused, setIsVoucherFocused] = useState(false);
@@ -122,7 +119,6 @@ export const Calculator: React.FC<CalculatorProps> = ({
             setDesiredPrice(''); 
             setAppliedPlatformDiscount(0);
             
-            // Auto-focus desired price input when product is selected
             setTimeout(() => {
                 desiredPriceInputRef.current?.focus();
             }, 50);
@@ -256,7 +252,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
                     result: sellerVoucher,
                     timestamp: new Date()
                 };
-                return [newItem, ...prev].slice(0, 5);
+                return [newItem, ...prev].slice(5);
             });
         }
 
@@ -316,8 +312,6 @@ export const Calculator: React.FC<CalculatorProps> = ({
     };
 
     // --- Quick Input Handlers & Memoized Values ---
-
-    // 1. Desired Price Logic
     const desiredPriceValue = useMemo(() => {
         if (!desiredPrice) return '';
         const numericValue = parseInt(desiredPrice, 10);
@@ -346,16 +340,11 @@ export const Calculator: React.FC<CalculatorProps> = ({
         }
     };
 
-    // 2. Voucher Value Logic (Fixed missing x1000 and lag)
     const voucherDisplayValue = useMemo(() => {
         if (!voucherValue) return '';
-        
-        // Percentage Mode: always return raw
         if (voucherType === VoucherType.Percentage) {
             return voucherValue;
         }
-
-        // Fixed Mode: apply format logic
         const numericValue = parseInt(voucherValue, 10);
         if (isNaN(numericValue)) return '';
 
@@ -373,7 +362,6 @@ export const Calculator: React.FC<CalculatorProps> = ({
         if (voucherType === VoucherType.Percentage) {
             setVoucherValue(numericString);
         } else {
-            // Fixed (VND) Logic with x1000 support
             if (isQuickPriceInput) {
                 const numericValue = parseInt(numericString, 10);
                 if (isNaN(numericValue)) {
@@ -387,8 +375,6 @@ export const Calculator: React.FC<CalculatorProps> = ({
         }
     };
 
-
-    // 3. Min Order Logic
     const minOrderDisplayValue = useMemo(() => {
         if (!minOrderValue) return '';
         const numericValue = parseInt(minOrderValue, 10);
@@ -417,7 +403,6 @@ export const Calculator: React.FC<CalculatorProps> = ({
         }
     };
 
-    // 4. Max Discount Logic
     const maxDiscountDisplayValue = useMemo(() => {
         if (!maxDiscountValue) return '';
         const numericValue = parseInt(maxDiscountValue, 10);
@@ -500,37 +485,37 @@ export const Calculator: React.FC<CalculatorProps> = ({
 
 
     return (
-        <div className="bg-white/80 backdrop-blur-lg p-6 rounded-3xl shadow-2xl border border-white/50 h-full flex flex-col relative overflow-hidden">
+        <div className="glass-panel p-6 rounded-3xl shadow-2xl h-full flex flex-col relative overflow-hidden">
              {/* Header Card */}
-             <div className="flex justify-between items-center mb-6 flex-shrink-0">
+             <div className="flex justify-between items-center mb-6 flex-shrink-0 border-b border-slate-800/50 pb-4">
                 <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-xl shadow-lg shadow-violet-200">
-                        <CalculatorIcon className="w-5 h-5 text-white" />
+                    <div className="p-2.5 bg-primary-500/20 rounded-xl border border-primary-500/20">
+                        <CalculatorIcon className="w-5 h-5 text-primary-500" />
                     </div>
                     <div>
-                        <h2 className="text-lg font-black text-slate-900 tracking-tight leading-tight">Tính giá nhanh</h2>
-                        <p className="text-xs font-bold text-slate-400">{dealListName}</p>
+                        <h2 className="text-lg font-bold text-slate-100 tracking-tight leading-tight">Tính giá nhanh</h2>
+                        <p className="text-xs font-mono text-slate-500">{dealListName}</p>
                     </div>
                 </div>
                 {/* Clock */}
-                <div className="bg-slate-50 px-4 py-2 rounded-2xl font-mono text-2xl font-black text-slate-700 tracking-widest shadow-inner">
+                <div className="glass-input px-3 py-1.5 rounded-lg font-mono text-lg font-bold text-primary-300 tracking-widest shadow-inner">
                     {formattedTime}
                 </div>
             </div>
 
             {/* SCROLLABLE BODY AREA */}
-            <div className="flex-grow overflow-y-auto custom-scrollbar space-y-5 pr-2 pb-2">
+            <div className="flex-grow overflow-y-auto custom-scrollbar space-y-5 pr-1 pb-2">
                 
                  {/* Product Info Section */}
                  <div className="space-y-3">
                     <div className="relative">
-                        <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Sản phẩm đang chọn</label>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1.5 ml-1 uppercase tracking-wide">Sản phẩm đang chọn</label>
                         <textarea
                             value={productName}
                             onChange={handleProductNameChange}
-                            placeholder="Chọn hoặc nhập ID..."
+                            placeholder="Chọn hoặc nhập tên..."
                             rows={2}
-                            className="block w-full px-4 py-3 bg-slate-50 border-0 text-slate-900 rounded-xl focus:ring-2 focus:ring-violet-500 transition-all text-sm font-semibold resize-y shadow-inner placeholder:text-slate-400 min-h-[80px]"
+                            className="block w-full px-4 py-3 glass-input rounded-xl focus:ring-2 focus:ring-primary-500/50 transition-all text-sm font-medium resize-y shadow-inner placeholder:text-slate-600 min-h-[80px]"
                         />
                     </div>
                      
@@ -540,32 +525,32 @@ export const Calculator: React.FC<CalculatorProps> = ({
                             {productId && (
                                 <div 
                                     onClick={handleCopyId}
-                                    className="flex-1 bg-slate-50 rounded-xl px-3 py-2 border border-slate-100 flex items-center justify-between cursor-pointer group hover:border-violet-200 hover:bg-violet-50 transition-all"
+                                    className="flex-1 bg-slate-900/50 rounded-xl px-3 py-2 border border-slate-700 flex items-center justify-between cursor-pointer group hover:border-primary-500/50 hover:bg-primary-900/10 transition-all"
                                 >
                                     <div className="overflow-hidden">
-                                         <span className="text-[10px] font-bold text-slate-400 block mb-0.5 uppercase tracking-wider">ID Sản phẩm</span>
-                                         <span className="text-xs font-bold text-slate-800 font-mono truncate block">{productId}</span>
+                                         <span className="text-[10px] font-bold text-slate-500 block mb-0.5 uppercase tracking-wider">ID Sản phẩm</span>
+                                         <span className="text-xs font-mono font-bold text-slate-200 truncate block">{productId}</span>
                                     </div>
-                                     {isIdCopied ? <CheckIcon className="w-4 h-4 text-green-500" /> : <CopyIcon className="w-4 h-4 text-slate-300 group-hover:text-violet-500" />}
+                                     {isIdCopied ? <CheckIcon className="w-4 h-4 text-green-400" /> : <CopyIcon className="w-4 h-4 text-slate-600 group-hover:text-primary-400" />}
                                 </div>
                             )}
                              {exclusiveId && (
                                 <div 
                                     onClick={handleCopyExclusiveId}
-                                    className="flex-1 bg-fuchsia-50 rounded-xl px-3 py-2 border border-fuchsia-100 flex items-center justify-between cursor-pointer group hover:border-fuchsia-300 transition-all"
+                                    className="flex-1 bg-secondary-900/10 rounded-xl px-3 py-2 border border-secondary-500/20 flex items-center justify-between cursor-pointer group hover:border-secondary-500/50 hover:bg-secondary-900/20 transition-all"
                                 >
                                     <div className="overflow-hidden">
-                                         <span className="text-[10px] font-bold text-fuchsia-500 block mb-0.5 uppercase tracking-wider">ID Độc quyền</span>
-                                         <span className="text-xs font-bold text-fuchsia-800 font-mono truncate block">{exclusiveId}</span>
+                                         <span className="text-[10px] font-bold text-secondary-400 block mb-0.5 uppercase tracking-wider">ID Độc quyền</span>
+                                         <span className="text-xs font-mono font-bold text-secondary-200 truncate block">{exclusiveId}</span>
                                     </div>
-                                     {isExclusiveIdCopied ? <CheckIcon className="w-4 h-4 text-green-500" /> : <CopyIcon className="w-4 h-4 text-fuchsia-300 group-hover:text-fuchsia-600" />}
+                                     {isExclusiveIdCopied ? <CheckIcon className="w-4 h-4 text-green-400" /> : <CopyIcon className="w-4 h-4 text-secondary-600 group-hover:text-secondary-400" />}
                                 </div>
                             )}
                         </div>
                     )}
                 </div>
 
-                <hr className="border-slate-100" />
+                <div className="h-px bg-slate-800/50 w-full"></div>
 
                 {/* Price Inputs */}
                 <div className="space-y-4">
@@ -574,7 +559,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
                         id="currentPrice"
                         value={currentPrice ? formatCurrency(parseInt(currentPrice)) : ''}
                         onChange={(e) => setCurrentPrice(e.target.value.replace(/[^0-9]/g, ''))}
-                        suffix={<span className="text-slate-400 text-xs font-bold">VND</span>}
+                        suffix={<span className="text-slate-500 text-xs font-bold font-mono">VND</span>}
                         onKeyDown={handleKeyDown}
                         onFocus={handleInputFocus}
                     />
@@ -582,15 +567,14 @@ export const Calculator: React.FC<CalculatorProps> = ({
                     {/* Separated Logic for Desired Price */}
                     <div>
                         <div className="flex justify-between items-center mb-1.5 ml-1">
-                            <label htmlFor="desiredPrice" className="block text-sm font-bold text-slate-700">Giá cuối mong muốn</label>
+                            <label htmlFor="desiredPrice" className="block text-xs font-semibold text-slate-400 uppercase tracking-wide">Giá cuối mong muốn</label>
                             
-                            {/* Toggle Switch moved to Header */}
                             <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setIsQuickPriceInput(!isQuickPriceInput)} title="Bật/Tắt nhập nhanh (x1000)">
-                                 <span className={`text-[10px] uppercase font-bold transition-colors ${isQuickPriceInput ? 'text-violet-600' : 'text-slate-400 group-hover:text-slate-600'}`}>
-                                    Nhập nhanh (x1000)
+                                 <span className={`text-[10px] uppercase font-bold transition-colors ${isQuickPriceInput ? 'text-primary-400' : 'text-slate-600 group-hover:text-slate-500'}`}>
+                                    x1000
                                 </span>
-                                <div className={`w-8 h-4 rounded-full relative transition-colors ${isQuickPriceInput ? 'bg-violet-600' : 'bg-slate-300'}`}>
-                                    <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-all ${isQuickPriceInput ? 'left-4.5' : 'left-0.5'}`} />
+                                <div className={`w-7 h-3.5 rounded-full relative transition-colors ${isQuickPriceInput ? 'bg-primary-600' : 'bg-slate-700'}`}>
+                                    <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white shadow-sm transition-all ${isQuickPriceInput ? 'left-4' : 'left-0.5'}`} />
                                 </div>
                             </div>
                         </div>
@@ -606,27 +590,27 @@ export const Calculator: React.FC<CalculatorProps> = ({
                             }}
                             onBlur={() => setIsDesiredPriceFocused(false)}
                             onKeyDown={handleDesiredPriceKeyDown}
-                            placeholder={isQuickPriceInput ? "Ví dụ: 100 (sẽ là 100.000)" : "Nhập số tiền đầy đủ"}
-                            suffix={<span className="text-slate-400 text-xs font-bold">VND</span>}
+                            placeholder={isQuickPriceInput ? "100 -> 100.000" : "Nhập số tiền"}
+                            suffix={<span className="text-slate-500 text-xs font-bold font-mono">VND</span>}
                             className="shadow-sm"
                         />
                     </div>
                 </div>
 
                 {/* Voucher Inputs */}
-                <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-100 space-y-4">
+                <div className="bg-slate-900/30 p-4 rounded-2xl border border-white/5 space-y-4">
                     <div className="flex justify-between items-center">
-                        <label className="text-sm font-bold text-slate-700 ml-1">Voucher sàn</label>
-                         <div className="flex bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+                        <label className="text-xs font-semibold text-slate-400 ml-1 uppercase tracking-wide">Voucher sàn</label>
+                         <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
                             <button
                                 onClick={() => setVoucherType(VoucherType.Percentage)}
-                                className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${voucherType === VoucherType.Percentage ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
+                                className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${voucherType === VoucherType.Percentage ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
                             >
                                 %
                             </button>
                             <button
                                 onClick={() => setVoucherType(VoucherType.Fixed)}
-                                className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${voucherType === VoucherType.Fixed ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
+                                className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${voucherType === VoucherType.Fixed ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
                             >
                                 VND
                             </button>
@@ -643,9 +627,9 @@ export const Calculator: React.FC<CalculatorProps> = ({
                             onFocus={(e) => { setIsVoucherFocused(true); handleInputFocus(e); }}
                             onBlur={() => setIsVoucherFocused(false)}
                             placeholder={voucherType === VoucherType.Percentage ? "Nhập %" : (isQuickPriceInput ? "Nhập số tiền (x1000)" : "Nhập số tiền")}
-                            className="block w-full px-4 py-3 bg-white border border-slate-200 text-slate-900 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all text-lg font-bold shadow-sm text-center placeholder:text-slate-300"
+                            className="block w-full px-4 py-3 bg-slate-950 border border-slate-700 text-white rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-lg font-bold font-mono shadow-sm text-center placeholder:text-slate-700"
                         />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 font-bold text-xs">
                             {voucherType === VoucherType.Percentage ? '%' : 'VND'}
                         </span>
                     </div>
@@ -661,10 +645,10 @@ export const Calculator: React.FC<CalculatorProps> = ({
                                     onFocus={(e) => { setIsMinOrderFocused(true); handleInputFocus(e); }}
                                     onBlur={() => setIsMinOrderFocused(false)}
                                     onKeyDown={handleKeyDown}
-                                    placeholder={isQuickPriceInput ? "Đơn tối thiểu (x1k)" : "Đơn tối thiểu"}
-                                    className="block w-full pl-3 pr-8 py-2 bg-white border border-slate-200 text-slate-900 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 text-xs font-medium shadow-sm placeholder:text-slate-400"
+                                    placeholder="Min (x1k)"
+                                    className="block w-full pl-3 pr-8 py-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl focus:ring-1 focus:ring-primary-500 text-xs font-mono shadow-sm placeholder:text-slate-700"
                                 />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] font-bold pointer-events-none">MIN</span>
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-600 text-[9px] font-bold pointer-events-none">MIN</span>
                             </div>
                             <div className="relative">
                                 <input
@@ -674,10 +658,10 @@ export const Calculator: React.FC<CalculatorProps> = ({
                                     onFocus={(e) => { setIsMaxDiscountFocused(true); handleInputFocus(e); }}
                                     onBlur={() => setIsMaxDiscountFocused(false)}
                                     onKeyDown={handleKeyDown}
-                                    placeholder={isQuickPriceInput ? "Giảm tối đa (x1k)" : "Giảm tối đa"}
-                                    className="block w-full pl-3 pr-8 py-2 bg-white border border-slate-200 text-slate-900 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-violet-500 text-xs font-medium shadow-sm placeholder:text-slate-400"
+                                    placeholder="Max (x1k)"
+                                    className="block w-full pl-3 pr-8 py-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl focus:ring-1 focus:ring-primary-500 text-xs font-mono shadow-sm placeholder:text-slate-700"
                                 />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] font-bold pointer-events-none">MAX</span>
+                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-600 text-[9px] font-bold pointer-events-none">MAX</span>
                             </div>
                         </div>
                     )}
@@ -686,18 +670,18 @@ export const Calculator: React.FC<CalculatorProps> = ({
                      {voucherType === VoucherType.Percentage && (
                         <div>
                             <div className="flex justify-between items-center mb-2 px-1">
-                                <span className="text-xs font-bold text-slate-500">Chọn nhanh</span>
-                                <button onClick={toggleSettings} className="text-slate-400 hover:text-violet-600 transition-colors"><CogIcon className="w-4 h-4" /></button>
+                                <span className="text-[10px] font-bold text-slate-500 uppercase">Chọn nhanh</span>
+                                <button onClick={toggleSettings} className="text-slate-600 hover:text-primary-400 transition-colors"><CogIcon className="w-3.5 h-3.5" /></button>
                             </div>
                             <div className="flex flex-wrap gap-2">
                                 {presetVouchers.map(v => (
                                     <button
                                         key={v}
                                         onClick={() => handlePresetClick(v)}
-                                        className={`flex-1 min-w-[3rem] py-1.5 rounded-lg text-xs font-bold border transition-all active:scale-95 ${
+                                        className={`flex-1 min-w-[2.5rem] py-1.5 rounded-lg text-xs font-bold border transition-all active:scale-95 font-mono ${
                                             voucherValue === String(v) 
-                                            ? 'bg-slate-800 text-white border-slate-800 shadow-md' 
-                                            : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300 hover:text-violet-600 hover:shadow-sm'
+                                            ? 'bg-primary-600 text-white border-primary-500 shadow-md shadow-primary-900/20' 
+                                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-primary-500/30 hover:text-primary-300'
                                         }`}
                                     >
                                         {v}%
@@ -712,29 +696,29 @@ export const Calculator: React.FC<CalculatorProps> = ({
                 {history.length > 0 && (
                     <div className="pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
                          <div className="flex items-center gap-2 mb-2 px-1 mt-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-violet-400"></div>
-                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Lịch sử</span>
-                            <div className="h-px bg-slate-100 flex-grow"></div>
+                            <div className="w-1 h-1 rounded-full bg-primary-500"></div>
+                            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wide">Lịch sử</span>
+                            <div className="h-px bg-slate-800 flex-grow"></div>
                          </div>
                          <div className="space-y-2">
                             {history.map((item) => (
                                 <div 
                                     key={item.id}
-                                    className="bg-white hover:bg-violet-50/50 rounded-xl p-2.5 border border-slate-100 transition-colors flex justify-between items-center group cursor-pointer shadow-sm"
+                                    className="bg-slate-900/40 hover:bg-slate-800/60 rounded-xl p-2.5 border border-white/5 transition-colors flex justify-between items-center group cursor-pointer"
                                     onClick={() => {
                                          navigator.clipboard.writeText(String(Math.round(item.result)));
                                     }}
                                     title="Click để sao chép kết quả"
                                 >
                                     <div className="flex-1 min-w-0 mr-3">
-                                        <div className="text-xs font-bold text-slate-700 truncate">{item.productName}</div>
-                                        <div className="flex items-center gap-1 text-[10px] text-slate-400">
+                                        <div className="text-xs font-medium text-slate-300 truncate">{item.productName}</div>
+                                        <div className="flex items-center gap-1 text-[10px] text-slate-500 font-mono">
                                             <span>Mong muốn: {formatCurrency(item.desiredPrice)}</span>
-                                            <span>•</span>
+                                            <span className="text-slate-700">•</span>
                                             <span>{item.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute:'2-digit' })}</span>
                                         </div>
                                     </div>
-                                    <div className="font-bold text-violet-700 text-sm bg-violet-50 px-2 py-1 rounded-lg border border-violet-100 group-hover:border-violet-200">
+                                    <div className="font-bold font-mono text-primary-300 text-sm bg-primary-500/10 px-2 py-1 rounded-lg border border-primary-500/20 group-hover:border-primary-500/40">
                                         {formatCurrency(item.result)}
                                     </div>
                                 </div>
@@ -745,55 +729,55 @@ export const Calculator: React.FC<CalculatorProps> = ({
 
             </div>
 
-             {/* Footer / Result (Redesigned as a Premium Card) */}
-            <div className="mt-auto pt-4 border-t border-slate-100 flex-shrink-0 bg-white/50 backdrop-blur-sm z-10 -mx-6 -mb-6 px-6 pb-6">
+             {/* Footer / Result */}
+            <div className="mt-auto pt-4 border-t border-slate-800 flex-shrink-0 z-10 -mx-6 -mb-6 px-6 pb-6 bg-[#0f172a]">
                 <button
                     onClick={handleCalculation}
-                    className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold text-base shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 mb-4"
+                    className="w-full py-3.5 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-bold text-base shadow-lg shadow-primary-900/30 hover:shadow-primary-600/40 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 mb-4"
                 >
                     Tính giá ngay
                 </button>
 
                  {result !== null && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-                        <div className="bg-gradient-to-br from-violet-600 via-fuchsia-600 to-indigo-600 rounded-2xl p-0.5 shadow-2xl shadow-fuchsia-200">
-                            <div className="bg-white/10 backdrop-blur-md rounded-[14px] p-5 border border-white/20 relative overflow-hidden">
-                                {/* Mesh Gradient Background inside card */}
-                                <div className="absolute top-[-50%] right-[-50%] w-full h-full bg-fuchsia-500/30 blur-3xl rounded-full"></div>
+                        <div className="bg-gradient-to-br from-primary-600 via-secondary-600 to-primary-600 rounded-2xl p-[1px] shadow-2xl shadow-primary-900/50">
+                            <div className="bg-slate-950/90 backdrop-blur-md rounded-[15px] p-5 relative overflow-hidden">
+                                {/* Glow */}
+                                <div className="absolute top-[-50%] right-[-50%] w-full h-full bg-primary-500/20 blur-3xl rounded-full"></div>
                                 
                                 <div className="relative z-10">
                                     {/* Platform Contribution Info */}
                                     {(minOrderValue || maxDiscountValue) && appliedPlatformDiscount > 0 && (
-                                        <div className="mb-3 pb-3 border-b border-white/20 text-indigo-100 text-xs font-medium flex justify-between items-center">
-                                            <span>Voucher sàn tài trợ</span>
-                                            <span className="font-bold text-white text-sm bg-white/20 px-2 py-0.5 rounded">{formatCurrency(appliedPlatformDiscount)} đ</span>
+                                        <div className="mb-3 pb-3 border-b border-white/10 text-primary-200 text-xs font-medium flex justify-between items-center">
+                                            <span>Sàn tài trợ</span>
+                                            <span className="font-bold font-mono text-white text-sm bg-white/10 px-2 py-0.5 rounded border border-white/5">{formatCurrency(appliedPlatformDiscount)}</span>
                                         </div>
                                     )}
                                      {(parseFloat(maxDiscountValue.replace(/[^0-9]/g, '')) > 0 && appliedPlatformDiscount === parseFloat(maxDiscountValue.replace(/[^0-9]/g, ''))) && (
-                                        <div className="text-[10px] text-yellow-300 mb-2 font-bold flex items-center gap-1">
+                                        <div className="text-[10px] text-yellow-500 mb-2 font-bold flex items-center gap-1">
                                             <span>⚠️</span> Đã chạm trần giảm tối đa
                                         </div>
                                     )}
 
                                     {(minOrderValue || maxDiscountValue) && appliedPlatformDiscount === 0 && voucherType === VoucherType.Percentage && voucherValue && (
-                                        <div className="mb-3 pb-3 border-b border-white/20 text-red-200 text-xs font-bold flex items-center gap-1">
+                                        <div className="mb-3 pb-3 border-b border-white/10 text-red-400 text-xs font-bold flex items-center gap-1">
                                             <span>⚠️</span> Không đủ điều kiện áp mã sàn
                                         </div>
                                     )}
 
                                     <div className="flex justify-between items-end">
                                         <div>
-                                            <p className="text-violet-100 text-[10px] uppercase font-bold tracking-wider mb-1 opacity-80">Voucher người bán (VND)</p>
-                                            <div className="text-4xl font-black text-white drop-shadow-md tracking-tighter">
-                                                {formatCurrency(result)}
+                                            <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-1">Voucher người bán</p>
+                                            <div className="text-3xl font-black font-mono text-white tracking-tight">
+                                                {formatCurrency(result)} <span className="text-lg text-slate-500 font-medium">đ</span>
                                             </div>
                                         </div>
                                         <button 
                                             onClick={handleCopyResult}
-                                            className="p-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-all border border-white/10 backdrop-blur-md mb-1 shrink-0"
+                                            className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all border border-white/10 mb-1 shrink-0"
                                             title="Sao chép kết quả"
                                         >
-                                             {isCopied ? <CheckIcon className="w-5 h-5 text-green-300" /> : <CopyIcon className="w-5 h-5" />}
+                                             {isCopied ? <CheckIcon className="w-5 h-5 text-green-400" /> : <CopyIcon className="w-5 h-5 text-slate-300" />}
                                         </button>
                                     </div>
                                 </div>
@@ -805,25 +789,25 @@ export const Calculator: React.FC<CalculatorProps> = ({
 
              {/* Settings Modal */}
              {isSettingsOpen && (
-                <div className="absolute inset-0 bg-white z-50 p-6 animate-in fade-in zoom-in-95 duration-200 flex flex-col rounded-3xl">
+                <div className="absolute inset-0 bg-slate-900 z-50 p-6 animate-in fade-in zoom-in-95 duration-200 flex flex-col rounded-3xl border border-white/10">
                     <div className="flex justify-between items-center mb-6">
-                         <h3 className="font-bold text-lg text-slate-900">Cài đặt phím tắt %</h3>
-                         <button onClick={() => setIsSettingsOpen(false)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-slate-600">
+                         <h3 className="font-bold text-lg text-white">Cài đặt phím tắt %</h3>
+                         <button onClick={() => setIsSettingsOpen(false)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-slate-400">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
                          </button>
                     </div>
-                    <p className="text-sm text-slate-500 mb-4">Chọn tối đa 6 mức phần trăm thường dùng:</p>
+                    <p className="text-sm text-slate-400 mb-4">Chọn tối đa 6 mức phần trăm thường dùng:</p>
                     <div className="grid grid-cols-4 gap-3 mb-auto">
                         {ALL_POSSIBLE_VOUCHERS.map(v => (
                             <button
                                 key={v}
                                 onClick={() => handlePresetSelection(v)}
-                                className={`py-3 rounded-xl text-sm font-bold border transition-all ${
+                                className={`py-3 rounded-xl text-sm font-bold border transition-all font-mono ${
                                     tempSelectedPresets.includes(v)
-                                    ? 'bg-violet-600 text-white border-violet-600 shadow-md'
-                                    : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'
+                                    ? 'bg-primary-600 text-white border-primary-500 shadow-md'
+                                    : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-primary-500/50'
                                 }`}
                             >
                                 {v}%
@@ -832,7 +816,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
                     </div>
                     <button 
                         onClick={savePresets}
-                        className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg"
+                        className="w-full py-3 bg-white text-slate-900 rounded-xl font-bold hover:bg-slate-200 transition-all shadow-lg"
                     >
                         Lưu cài đặt
                     </button>

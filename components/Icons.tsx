@@ -130,3 +130,9 @@ export const ChevronDownIcon: React.FC<{ className?: string }> = ({ className = 
         <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
     </svg>
 );
+
+export const SwatchIcon: React.FC<{ className?: string }> = ({ className = "w-6 h-6" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.395m3.42 3.42a15.995 15.995 0 0 0 4.764-4.635l3.61 3.61a9.816 9.816 0 0 1-4.777 4.777l-3.597-3.597a16.134 16.134 0 0 0-3.356-3.356m7.75 7.751a2.25 2.25 0 0 1-2.252-2.251 4.5 4.5 0 0 0-4.5-4.5 2.25 2.25 0 0 1-2.252-2.252" />
+    </svg>
+);

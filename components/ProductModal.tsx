@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
 import { SpinnerIcon } from './Icons';
@@ -21,8 +22,8 @@ const InputField: React.FC<{
     className?: string;
 }> = ({ label, value, onChange, type = "text", placeholder, required, className = "" }) => (
     <div className={className}>
-        <label className="block text-xs font-bold text-slate-700 mb-1.5 ml-1">
-            {label} {required && <span className="text-red-500">*</span>}
+        <label className="block text-xs font-bold text-slate-400 mb-1.5 ml-1 uppercase">
+            {label} {required && <span className="text-red-400">*</span>}
         </label>
         <input
             type={type}
@@ -30,7 +31,7 @@ const InputField: React.FC<{
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
             required={required}
-            className="w-full px-4 py-3 bg-slate-100 text-slate-900 border border-transparent rounded-xl focus:ring-2 focus:ring-violet-500 focus:bg-white focus:border-violet-500 outline-none transition-all text-sm font-medium placeholder:text-slate-400"
+            className="w-full px-4 py-3 bg-slate-950 text-white border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all text-sm font-medium placeholder:text-slate-600"
         />
     </div>
 );
@@ -43,8 +44,8 @@ const TextAreaField: React.FC<{
     required?: boolean;
 }> = ({ label, value, onChange, placeholder, required }) => (
     <div>
-        <label className="block text-xs font-bold text-slate-700 mb-1.5 ml-1">
-            {label} {required && <span className="text-red-500">*</span>}
+        <label className="block text-xs font-bold text-slate-400 mb-1.5 ml-1 uppercase">
+            {label} {required && <span className="text-red-400">*</span>}
         </label>
         <textarea
             value={value}
@@ -52,7 +53,7 @@ const TextAreaField: React.FC<{
             placeholder={placeholder}
             required={required}
             rows={3}
-            className="w-full px-4 py-3 bg-slate-100 text-slate-900 border border-transparent rounded-xl focus:ring-2 focus:ring-violet-500 focus:bg-white focus:border-violet-500 outline-none transition-all text-sm font-medium resize-none placeholder:text-slate-400"
+            className="w-full px-4 py-3 bg-slate-950 text-white border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all text-sm font-medium resize-none placeholder:text-slate-600"
         />
     </div>
 );
@@ -110,17 +111,17 @@ export const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onS
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
             <div 
-                className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200 relative" 
+                className="bg-slate-900 border border-white/10 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200 relative" 
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="px-8 py-6 flex justify-between items-center border-b border-slate-100">
-                    <h3 className="text-xl font-black text-slate-900 tracking-tight">
+                <div className="px-8 py-6 flex justify-between items-center border-b border-slate-800">
+                    <h3 className="text-xl font-black text-white tracking-tight">
                         {product ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'}
                     </h3>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-100">
+                    <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -190,19 +191,19 @@ export const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onS
                 </form>
 
                 {/* Footer */}
-                <div className="px-8 py-6 flex justify-end gap-3 bg-slate-50 border-t border-slate-100">
+                <div className="px-8 py-6 flex justify-end gap-3 bg-slate-900/50 border-t border-slate-800">
                     <button 
                         type="button" 
                         onClick={onClose} 
                         disabled={isSaving}
-                        className="px-6 py-3 text-sm font-bold text-slate-600 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 disabled:opacity-50 transition-all shadow-sm hover:shadow"
+                        className="px-6 py-3 text-sm font-bold text-slate-300 bg-transparent border border-slate-700 rounded-2xl hover:bg-slate-800 disabled:opacity-50 transition-all"
                     >
                         Hủy
                     </button>
                     <button 
                         onClick={handleSubmit}
                         disabled={isSaving}
-                        className="px-6 py-3 text-sm font-bold text-white bg-[#8B5CF6] rounded-2xl hover:bg-[#7C3AED] disabled:opacity-50 shadow-lg shadow-violet-200 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        className="px-6 py-3 text-sm font-bold text-white bg-primary-600 rounded-2xl hover:bg-primary-500 disabled:opacity-50 shadow-lg shadow-primary-900/40 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
                     >
                         {isSaving && <SpinnerIcon className="w-4 h-4" />}
                         {product ? 'Lưu thay đổi' : 'Thêm sản phẩm'}
