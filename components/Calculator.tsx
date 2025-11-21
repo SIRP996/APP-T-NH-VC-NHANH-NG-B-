@@ -678,8 +678,8 @@ export const Calculator: React.FC<CalculatorProps> = ({
                                         onClick={() => handlePresetClick(v)}
                                         className={`flex-1 min-w-[2.5rem] py-1.5 rounded-lg text-xs font-bold border transition-all active:scale-95 font-mono ${
                                             voucherValue === String(v) 
-                                            ? 'bg-primary-600 text-white border-primary-500 shadow-md shadow-primary-900/20' 
-                                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-primary-500/30 hover:text-primary-300 hover:bg-slate-800 hover:shadow-glow-hover'
+                                            ? 'bg-primary-600 text-white border-primary-500 shadow-glow-sm' 
+                                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-primary-500/50 hover:text-primary-300 hover:bg-primary-900/20 hover:shadow-glow-hover'
                                         }`}
                                     >
                                         {v}%
@@ -804,8 +804,8 @@ export const Calculator: React.FC<CalculatorProps> = ({
                                 onClick={() => handlePresetSelection(v)}
                                 className={`py-3 rounded-xl text-sm font-bold border transition-all font-mono ${
                                     tempSelectedPresets.includes(v)
-                                    ? 'bg-primary-600 text-white border-primary-500 shadow-md'
-                                    : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-primary-500/50'
+                                    ? 'bg-primary-600 text-white border-primary-500 shadow-glow-sm'
+                                    : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-primary-500/50 hover:text-primary-300 hover:bg-primary-900/20 hover:shadow-glow-hover'
                                 }`}
                             >
                                 {v}%
