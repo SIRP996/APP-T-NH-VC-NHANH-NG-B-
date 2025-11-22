@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Product, ColumnMapping, DealList, FirebaseConfig, Creator } from './types';
 import { fetchProductsFromSheet, fetchSheetPreviewAndHeaders } from './services/googleSheetService';
@@ -1179,7 +1178,22 @@ const App: React.FC = () => {
                     <div className="flex flex-grow min-h-0 overflow-hidden relative">
                          {activeDealListId ? (
                             <>
-                                {/* Left Content: Table / Creator List */}
+                                {/* Left Sidebar: Calculator (Inspector Panel) */}
+                                <div className={`h-full border-r border-white/5 bg-slate-950/20 backdrop-blur-sm flex flex-col z-10 transition-all duration-300 ease-in-out overflow-hidden ${isInspectorOpen ? 'w-[400px] opacity-100 translate-x-0' : 'w-0 opacity-0 -translate-x-full'}`}>
+                                    <div className="w-[400px] h-full"> {/* Fixed width container to prevent content squishing during animation */}
+                                        <Calculator 
+                                            selectedProduct={selectedProduct} 
+                                            dealListName={activeDealList?.name || ''} 
+                                            products={products}
+                                            onProductSelect={setSelectedProduct}
+                                            onFocusSearch={() => searchInputRef.current?.focus()}
+                                            presetVouchers={calculatorPresets}
+                                            onSavePresets={handleSavePresets}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Right Content: Table / Creator List */}
                                 <div className="flex-1 min-w-0 h-full flex flex-col bg-transparent overflow-hidden relative z-0">
                                      <div className="flex-shrink-0 border-b border-white/5 px-6 pt-4 bg-slate-900/10">
                                         <nav className="flex space-x-4" aria-label="Tabs">
@@ -1241,21 +1255,6 @@ const App: React.FC = () => {
                                                 />
                                             </div>
                                         )}
-                                    </div>
-                                </div>
-
-                                {/* Right Sidebar: Calculator (Inspector Panel) */}
-                                <div className={`h-full border-l border-white/5 bg-slate-950/20 backdrop-blur-sm flex flex-col z-10 transition-all duration-300 ease-in-out overflow-hidden ${isInspectorOpen ? 'w-[400px] opacity-100 translate-x-0' : 'w-0 opacity-0 translate-x-full'}`}>
-                                    <div className="w-[400px] h-full"> {/* Fixed width container to prevent content squishing during animation */}
-                                        <Calculator 
-                                            selectedProduct={selectedProduct} 
-                                            dealListName={activeDealList?.name || ''} 
-                                            products={products}
-                                            onProductSelect={setSelectedProduct}
-                                            onFocusSearch={() => searchInputRef.current?.focus()}
-                                            presetVouchers={calculatorPresets}
-                                            onSavePresets={handleSavePresets}
-                                        />
                                     </div>
                                 </div>
                             </>
