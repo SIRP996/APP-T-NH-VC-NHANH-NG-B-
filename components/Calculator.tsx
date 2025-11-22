@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Product, VoucherType } from '../types';
-import { CalculatorIcon, CogIcon, CopyIcon, CheckIcon, LockClosedIcon } from './Icons';
+import { CalculatorIcon, CogIcon, CopyIcon, CheckIcon, LockClosedIcon, Square2StackIcon } from './Icons';
 
 const formatCurrency = (value: number) => {
     if (isNaN(value) || !isFinite(value)) return "0";
@@ -102,6 +102,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
     const prevProductIdRef = useRef<string | null>(null);
 
     const [isCopied, setIsCopied] = useState(false);
+    const [isBothCopied, setIsBothCopied] = useState(false);
     const [isIdCopied, setIsIdCopied] = useState(false);
     const [isExclusiveIdCopied, setIsExclusiveIdCopied] = useState(false);
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -503,6 +504,28 @@ export const Calculator: React.FC<CalculatorProps> = ({
             });
         }
     };
+
+    const handleCopyBoth = async () => {
+        if (result !== null && productId) {
+            try {
+                // 1. Copy ID First
+                await navigator.clipboard.writeText(productId);
+                
+                // 2. Short Delay to ensure Windows Clipboard History treats them as separate entries
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // 3. Copy Voucher Price
+                const textToCopy = String(Math.round(result));
+                await navigator.clipboard.writeText(textToCopy);
+
+                setIsBothCopied(true);
+                setTimeout(() => setIsBothCopied(false), 2000);
+            } catch (err) {
+                console.error('Failed to copy', err);
+            }
+        }
+    };
+
      const handleCopyId = () => {
         if (productId) {
             navigator.clipboard.writeText(productId).then(() => {
@@ -853,13 +876,28 @@ export const Calculator: React.FC<CalculatorProps> = ({
                                                 {formatCurrency(result)} <span className="text-lg text-slate-500 font-medium">đ</span>
                                             </div>
                                         </div>
-                                        <button 
-                                            onClick={handleCopyResult}
-                                            className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all border border-white/10 mb-1 shrink-0"
-                                            title="Sao chép kết quả"
-                                        >
-                                             {isCopied ? <CheckIcon className="w-5 h-5 text-green-400" /> : <CopyIcon className="w-5 h-5 text-slate-300" />}
-                                        </button>
+                                        
+                                        <div className="flex gap-2 mb-1">
+                                            {/* Copy Both Button */}
+                                            {productId && (
+                                                <button
+                                                    onClick={handleCopyBoth}
+                                                    className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all border border-white/10 shrink-0"
+                                                    title="Copy ID & Giá (Win+V)"
+                                                >
+                                                    {isBothCopied ? <CheckIcon className="w-5 h-5 text-green-400" /> : <Square2StackIcon className="w-5 h-5 text-slate-300" />}
+                                                </button>
+                                            )}
+                                            
+                                            {/* Copy Result Only Button */}
+                                            <button 
+                                                onClick={handleCopyResult}
+                                                className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all border border-white/10 shrink-0"
+                                                title="Sao chép giá"
+                                            >
+                                                 {isCopied ? <CheckIcon className="w-5 h-5 text-green-400" /> : <CopyIcon className="w-5 h-5 text-slate-300" />}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
