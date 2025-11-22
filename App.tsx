@@ -5,7 +5,7 @@ import { fetchProductsFromSheet, fetchSheetPreviewAndHeaders } from './services/
 import { Calculator } from './components/Calculator';
 import { ProductTable } from './components/ProductTable';
 import { CreatorList } from './components/CreatorList';
-import { SyncIcon, LinkIcon, SheetIcon, EditIcon, CogIcon, PlusIcon, TrashIcon, FirebaseIcon, GoogleIcon, LogoutIcon, MailIcon, LockClosedIcon, SpinnerIcon, IdentificationIcon, SwatchIcon, SidebarIcon } from './components/Icons';
+import { SyncIcon, LinkIcon, SheetIcon, EditIcon, CogIcon, PlusIcon, TrashIcon, FirebaseIcon, GoogleIcon, LogoutIcon, MailIcon, LockClosedIcon, SpinnerIcon, IdentificationIcon, SwatchIcon, SidebarIcon, CheckIcon, ChevronDownIcon } from './components/Icons';
 import CustomDropdown from './components/CustomDropdown';
 import { ProductModal } from './components/ProductModal';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
@@ -25,7 +25,7 @@ const firebaseConfig: FirebaseConfig = {
 
 type AppState = 'LOADING' | 'LOGIN' | 'MANAGE_LISTS' | 'CONNECT_SHEET' | 'MAP_COLUMNS' | 'VIEW_DATA';
 type ViewDataTab = 'products' | 'creators';
-type Theme = 'violet' | 'green' | 'grey';
+type Theme = 'violet' | 'green' | 'grey' | 'neon-blue';
 
 
 const MAPPING_CONFIG: { key: keyof ColumnMapping; label: string; keywords: string[], required: boolean }[] = [
@@ -42,6 +42,65 @@ const getCsvUrl = (url: string): string | null => {
     const match = url.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
     return match ? `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv` : null;
 };
+
+// --- Theme Selector Component ---
+const ThemeSelector: React.FC<{ currentTheme: Theme, onChange: (t: Theme) => void }> = ({ currentTheme, onChange }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    const themes: { id: Theme, name: string, color: string }[] = [
+        { id: 'violet', name: 'Tím mộng mơ', color: 'bg-violet-600' },
+        { id: 'green', name: 'Xanh lá', color: 'bg-emerald-500' },
+        { id: 'grey', name: 'Xám Apple', color: 'bg-zinc-500' },
+        { id: 'neon-blue', name: 'Đen Neon', color: 'bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.6)]' },
+    ];
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    return (
+        <div className="relative" ref={containerRef}>
+            <button 
+                onClick={() => setIsOpen(!isOpen)}
+                className={`flex items-center gap-2 p-2.5 rounded-full backdrop-blur-md border transition-all ${isOpen ? 'bg-primary-500/20 text-primary-400 border-primary-500/50' : 'bg-slate-900/50 text-slate-400 hover:text-white hover:bg-slate-800 border-white/5'}`}
+                title="Đổi giao diện"
+            >
+                <SwatchIcon className="w-5 h-5" />
+                {isOpen && <ChevronDownIcon className="w-4 h-4" />}
+            </button>
+
+            {isOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-slate-900 rounded-xl border border-slate-700 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 z-50 p-2">
+                    <div className="text-xs font-bold text-slate-500 px-2 py-1 mb-1 uppercase tracking-wider">Chọn màu</div>
+                    <div className="space-y-1">
+                        {themes.map(t => (
+                            <button
+                                key={t.id}
+                                onClick={() => {
+                                    onChange(t.id);
+                                    setIsOpen(false);
+                                }}
+                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${currentTheme === t.id ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full ${t.color}`}></div>
+                                <span className="flex-grow text-left">{t.name}</span>
+                                {currentTheme === t.id && <CheckIcon className="w-3.5 h-3.5 text-primary-400" />}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 
 const DeleteConfirmationModal: React.FC<{
     dealList: DealList | null;
@@ -327,17 +386,11 @@ const App: React.FC = () => {
             document.documentElement.setAttribute('data-theme', 'green');
         } else if (theme === 'grey') {
             document.documentElement.setAttribute('data-theme', 'grey');
+        } else if (theme === 'neon-blue') {
+            document.documentElement.setAttribute('data-theme', 'neon-blue');
         }
         localStorage.setItem('theme', theme);
     }, [theme]);
-
-    const toggleTheme = useCallback(() => {
-        setTheme(prev => {
-            if (prev === 'violet') return 'green';
-            if (prev === 'green') return 'grey';
-            return 'violet';
-        });
-    }, []);
 
 
     useEffect(() => {
@@ -853,13 +906,7 @@ const App: React.FC = () => {
                 <div className="flex justify-between items-center mb-10">
                     <h1 className="text-4xl font-black text-white tracking-tight drop-shadow-lg">Quản lý Deal Lists</h1>
                     <div className="flex items-center gap-3">
-                        <button 
-                            onClick={toggleTheme}
-                            className="p-2.5 rounded-full bg-slate-900/50 text-slate-300 hover:text-white hover:bg-slate-800 backdrop-blur-md shadow-lg border border-white/10 transition-all"
-                            title="Chuyển giao diện"
-                        >
-                            <SwatchIcon className="w-5 h-5" />
-                        </button>
+                        <ThemeSelector currentTheme={theme} onChange={setTheme} />
                         
                         {user && (
                             <div className="flex items-center gap-3 bg-slate-900/50 backdrop-blur-md px-4 py-2 rounded-full shadow-lg border border-white/10">
@@ -1147,13 +1194,7 @@ const App: React.FC = () => {
                             </div>
                             
                             <div className="flex items-center gap-3">
-                                <button 
-                                    onClick={toggleTheme}
-                                    className="p-2.5 rounded-full bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700 backdrop-blur-md border border-white/5 transition-all"
-                                    title="Chuyển giao diện"
-                                >
-                                    <SwatchIcon className="w-5 h-5" />
-                                </button>
+                                <ThemeSelector currentTheme={theme} onChange={setTheme} />
 
                                 {user && (
                                     <div className="flex items-center gap-4 flex-shrink-0 pr-2">
