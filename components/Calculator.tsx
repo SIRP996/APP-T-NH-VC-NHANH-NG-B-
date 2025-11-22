@@ -145,13 +145,9 @@ export const Calculator: React.FC<CalculatorProps> = ({
                 setAppliedPlatformDiscount(0);
             }
             
-            // LOGIC FOR DESIRED PRICE
+            // LOGIC FOR DESIRED PRICE & INPUT FOCUS
             if (useFinalPrice) {
                 // If Toggle is ON: We ALWAYS try to fill with finalPrice.
-                // This applies when:
-                // 1. Switching to a new product (isNewProduct = true)
-                // 2. Turning the toggle ON manually (isNewProduct = false, but useFinalPrice changed to true)
-                
                 if (selectedProduct.finalPrice) {
                     const rawFinal = String(selectedProduct.finalPrice).replace(/[^0-9]/g, '');
                     setDesiredPrice(rawFinal);
@@ -159,6 +155,15 @@ export const Calculator: React.FC<CalculatorProps> = ({
                     // If product has no final price, clear it if it's a new selection
                     if (isNewProduct) setDesiredPrice('');
                 }
+
+                // New Logic: If switching products and using final price -> Focus Voucher Input
+                if (isNewProduct) {
+                    setTimeout(() => {
+                        voucherInputRef.current?.focus();
+                        voucherInputRef.current?.select();
+                    }, 50);
+                }
+
             } else {
                 // If Toggle is OFF:
                 if (isNewProduct) {
@@ -169,7 +174,6 @@ export const Calculator: React.FC<CalculatorProps> = ({
                     }, 50);
                 }
                 // If we just turned the toggle OFF (isNewProduct = false), do NOT clear the price.
-                // Let the user edit the existing value.
             }
             
             prevProductIdRef.current = selectedProduct.id;
@@ -187,7 +191,6 @@ export const Calculator: React.FC<CalculatorProps> = ({
              prevProductIdRef.current = null;
              
              // NOTE: We do NOT reset useFinalPrice here. 
-             // This ensures the toggle stays ON even if you deselect or search.
         }
     }, [selectedProduct, useFinalPrice]); 
 
