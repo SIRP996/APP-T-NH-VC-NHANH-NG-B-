@@ -1,10 +1,12 @@
+
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Product, ColumnMapping, DealList, FirebaseConfig, Creator } from './types';
 import { fetchProductsFromSheet, fetchSheetPreviewAndHeaders } from './services/googleSheetService';
 import { Calculator } from './components/Calculator';
 import { ProductTable } from './components/ProductTable';
 import { CreatorList } from './components/CreatorList';
-import { SyncIcon, LinkIcon, SheetIcon, EditIcon, CogIcon, PlusIcon, TrashIcon, FirebaseIcon, GoogleIcon, LogoutIcon, MailIcon, LockClosedIcon, SpinnerIcon, IdentificationIcon, SwatchIcon } from './components/Icons';
+import { SyncIcon, LinkIcon, SheetIcon, EditIcon, CogIcon, PlusIcon, TrashIcon, FirebaseIcon, GoogleIcon, LogoutIcon, MailIcon, LockClosedIcon, SpinnerIcon, IdentificationIcon, SwatchIcon, SidebarIcon } from './components/Icons';
 import CustomDropdown from './components/CustomDropdown';
 import { ProductModal } from './components/ProductModal';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
@@ -1086,6 +1088,7 @@ const App: React.FC = () => {
     const ViewData = () => {
         const creatorOptions = useMemo(() => creators.map(c => ({ value: c.id, label: c.name })), [creators]);
         const dealListOptions = useMemo(() => dealLists.map(dl => ({ value: dl.id, label: dl.name })), [dealLists]);
+        const [isInspectorOpen, setIsInspectorOpen] = useState(true);
 
         return (
             <div className="h-screen w-screen flex flex-col font-sans overflow-hidden relative bg-[#020617] p-6">
@@ -1120,16 +1123,26 @@ const App: React.FC = () => {
                                     onSelect={(value) => handleSetActiveDealList(value)}
                                     placeholder="Chọn Deal List"
                                 />
-
+                                
                                 {activeDealList && (
-                                    <button 
-                                        onClick={() => activeDealList && handleSync(activeDealList)} 
-                                        disabled={isSyncing || activeDealList?.source === 'excel'}
-                                        className="flex items-center gap-2 px-4 py-2.5 bg-slate-800/80 border border-slate-700 text-slate-300 rounded-xl text-sm font-bold hover:border-primary-500 hover:text-white hover:shadow-glow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
-                                    >
-                                        <SyncIcon className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                                        {isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ'}
-                                    </button>
+                                    <>
+                                        <button 
+                                            onClick={() => activeDealList && handleSync(activeDealList)} 
+                                            disabled={isSyncing || activeDealList?.source === 'excel'}
+                                            className="flex items-center gap-2 px-4 py-2.5 bg-slate-800/80 border border-slate-700 text-slate-300 rounded-xl text-sm font-bold hover:border-primary-500 hover:text-white hover:shadow-glow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                                        >
+                                            <SyncIcon className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                                            {isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ'}
+                                        </button>
+
+                                        <button
+                                            onClick={() => setIsInspectorOpen(!isInspectorOpen)}
+                                            className={`p-2.5 rounded-xl transition-all border ${isInspectorOpen ? 'bg-primary-500/10 text-primary-400 border-primary-500/20' : 'bg-slate-800/50 text-slate-400 border-slate-700 hover:text-white'}`}
+                                            title={isInspectorOpen ? 'Ẩn công cụ tính' : 'Hiện công cụ tính'}
+                                        >
+                                            <SidebarIcon className="w-5 h-5" />
+                                        </button>
+                                    </>
                                 )}
                                 <div className="flex-grow"></div>
                             </div>
@@ -1163,24 +1176,11 @@ const App: React.FC = () => {
                     </header>
 
                     {/* Main Content Area (Split View) */}
-                    <div className="flex flex-grow min-h-0 overflow-hidden">
+                    <div className="flex flex-grow min-h-0 overflow-hidden relative">
                          {activeDealListId ? (
                             <>
-                                {/* Left Sidebar: Calculator */}
-                                <div className="w-[400px] min-w-[360px] max-w-[420px] h-full border-r border-white/5 bg-slate-950/20 backdrop-blur-sm flex flex-col z-10">
-                                    <Calculator 
-                                        selectedProduct={selectedProduct} 
-                                        dealListName={activeDealList?.name || ''} 
-                                        products={products}
-                                        onProductSelect={setSelectedProduct}
-                                        onFocusSearch={() => searchInputRef.current?.focus()}
-                                        presetVouchers={calculatorPresets}
-                                        onSavePresets={handleSavePresets}
-                                    />
-                                </div>
-
-                                {/* Right Content: Table / Creator List */}
-                                <div className="flex-1 h-full flex flex-col bg-transparent overflow-hidden relative z-0">
+                                {/* Left Content: Table / Creator List */}
+                                <div className="flex-1 min-w-0 h-full flex flex-col bg-transparent overflow-hidden relative z-0">
                                      <div className="flex-shrink-0 border-b border-white/5 px-6 pt-4 bg-slate-900/10">
                                         <nav className="flex space-x-4" aria-label="Tabs">
                                             <button
@@ -1241,6 +1241,21 @@ const App: React.FC = () => {
                                                 />
                                             </div>
                                         )}
+                                    </div>
+                                </div>
+
+                                {/* Right Sidebar: Calculator (Inspector Panel) */}
+                                <div className={`h-full border-l border-white/5 bg-slate-950/20 backdrop-blur-sm flex flex-col z-10 transition-all duration-300 ease-in-out overflow-hidden ${isInspectorOpen ? 'w-[400px] opacity-100 translate-x-0' : 'w-0 opacity-0 translate-x-full'}`}>
+                                    <div className="w-[400px] h-full"> {/* Fixed width container to prevent content squishing during animation */}
+                                        <Calculator 
+                                            selectedProduct={selectedProduct} 
+                                            dealListName={activeDealList?.name || ''} 
+                                            products={products}
+                                            onProductSelect={setSelectedProduct}
+                                            onFocusSearch={() => searchInputRef.current?.focus()}
+                                            presetVouchers={calculatorPresets}
+                                            onSavePresets={handleSavePresets}
+                                        />
                                     </div>
                                 </div>
                             </>

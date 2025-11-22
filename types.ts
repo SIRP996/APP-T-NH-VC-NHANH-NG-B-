@@ -45,9 +45,16 @@ export interface FirebaseConfig {
   appId: string;
 }
 
+export type CreatorPlatform = 'tiktok' | 'instagram' | 'youtube' | 'facebook' | 'other';
+export type CreatorStatus = 'active' | 'inactive' | 'pending';
+
 export interface Creator {
   id: string;
   name: string;
-  tiktokId: string;
+  tiktokId: string; // Keep for backward compatibility, can be used as main handle
+  platform?: CreatorPlatform;
+  status?: CreatorStatus;
+  phone?: string;
+  notes?: string;
   assignedDealListIds?: string[];
 }

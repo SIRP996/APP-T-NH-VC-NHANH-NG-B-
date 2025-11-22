@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Product } from '../types';
 import { SearchIcon, CogIcon, Bars3Icon, PlusIcon, EditIcon, TrashIcon, EyeIcon, EyeSlashIcon } from './Icons';
@@ -197,6 +195,9 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     const tableContainerRef = useRef<HTMLDivElement>(null);
     const [scrollTop, setScrollTop] = useState(0);
     const [containerHeight, setContainerHeight] = useState(600); 
+    
+    // Tooltip State - Improved Logic
+    const [nameTooltip, setNameTooltip] = useState<{ text: string; top: number; left: number; width: number } | null>(null);
 
     const totalProducts = products.length;
     const totalSKUs = useMemo(() => new Set(products.map(p => p.id)).size, [products]);
@@ -218,6 +219,8 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 
     const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
         setScrollTop(e.currentTarget.scrollTop);
+        // Close tooltip on scroll
+        setNameTooltip(null);
     }, []);
 
     useEffect(() => {
@@ -437,7 +440,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     const paddingBottom = (sortedProducts.length - endIndex) * ROW_HEIGHT;
     
     return (
-        <div className="w-full h-full flex flex-col overflow-hidden bg-transparent">
+        <div className="w-full h-full flex flex-col overflow-hidden bg-transparent relative">
             <div className="p-5 border-b border-white/5 bg-transparent z-20 sticky top-0">
                 <div className="flex items-center gap-4">
                     <div className="relative flex-grow group">
@@ -553,7 +556,28 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                                             className={`cursor-pointer transition-all duration-200 group border-b border-slate-800/30 last:border-none h-[58px] ${isSelected ? 'bg-primary-500/20 ring-1 ring-inset ring-primary-500/40 shadow-lg z-10 relative' : 'hover:bg-slate-800/90 hover:shadow-glow-inset hover:shadow-[inset_0_0_0_1px_rgba(var(--primary-500),0.3)]'}`}
                                         >
                                             {orderedTableHeaders.map(({ key }) => (
-                                                <td key={key} className={`px-6 py-4 text-sm ${cellClassMap[key]} truncate ${isSelected ? 'text-white' : 'group-hover:text-white'} transition-colors`} title={String(product[key])}>
+                                                <td key={key} 
+                                                    className={`px-6 py-4 text-sm ${cellClassMap[key]} truncate ${isSelected ? 'text-white' : 'group-hover:text-white'} transition-colors`} 
+                                                    onMouseEnter={(e) => {
+                                                        if (key === 'name') {
+                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                            const spaceBelow = window.innerHeight - rect.bottom;
+                                                            const isBottom = spaceBelow < 200;
+                                                            // Calculate center position but constrain to screen width
+                                                            const leftPos = Math.min(rect.left + 20, window.innerWidth - 320); // Ensure tooltip doesn't go off screen right
+                                                            
+                                                            setNameTooltip({
+                                                                text: String(product[key]),
+                                                                top: isBottom ? rect.top - 10 : rect.bottom + 10,
+                                                                left: leftPos,
+                                                                width: Math.max(300, rect.width) // Make tooltip at least 300px wide
+                                                            });
+                                                        }
+                                                    }}
+                                                    onMouseLeave={() => {
+                                                        if (key === 'name') setNameTooltip(null);
+                                                    }}
+                                                >
                                                     {key === 'displayPrice' || key === 'finalPrice' ? formatCurrency(Number(product[key])) : product[key]}
                                                 </td>
                                             ))}
@@ -598,6 +622,25 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                     </tbody>
                 </table>
             </div>
+            
+            {/* Popup / Tooltip - Moved outside scroll container for proper layering */}
+            {nameTooltip && (
+                <div 
+                    className="fixed z-[9999] bg-slate-900 border border-slate-700 text-white text-sm font-medium rounded-xl shadow-2xl p-4 pointer-events-none animate-in fade-in zoom-in-95 duration-150"
+                    style={{ 
+                        top: nameTooltip.top, 
+                        left: nameTooltip.left,
+                        maxWidth: '400px',
+                        minWidth: '300px',
+                        transform: 'translateY(-50%)' // Center vertically relative to cursor if needed, or adjust based on logic
+                    }}
+                >
+                    <div className="absolute -inset-1 bg-primary-500/20 blur-md rounded-xl -z-10"></div>
+                    <div className="font-medium leading-relaxed text-slate-200">
+                        {nameTooltip.text}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
