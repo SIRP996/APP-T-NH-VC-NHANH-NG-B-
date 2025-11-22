@@ -1,6 +1,7 @@
+
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Product, VoucherType } from '../types';
-import { CalculatorIcon, CogIcon, CopyIcon, CheckIcon } from './Icons';
+import { CalculatorIcon, CogIcon, CopyIcon, CheckIcon, LockClosedIcon } from './Icons';
 
 const formatCurrency = (value: number) => {
     if (isNaN(value) || !isFinite(value)) return "0";
@@ -19,10 +20,12 @@ interface InputFieldProps {
     onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
     suffix?: React.ReactNode;
     className?: string;
+    readOnly?: boolean;
+    disabled?: boolean;
 }
 
 const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
-    ({ label, id, value, onChange, placeholder, type = "text", onKeyDown, onFocus, onBlur, suffix, className }, ref) => (
+    ({ label, id, value, onChange, placeholder, type = "text", onKeyDown, onFocus, onBlur, suffix, className, readOnly, disabled }, ref) => (
         <div className={`group ${className}`}>
             {label && <label htmlFor={id} className="block text-xs font-semibold text-slate-400 mb-1.5 ml-1 uppercase tracking-wide">{label}</label>}
             <div className="relative transition-all duration-300">
@@ -36,8 +39,10 @@ const InputField = React.forwardRef<HTMLInputElement, InputFieldProps>(
                     onFocus={onFocus}
                     onBlur={onBlur}
                     placeholder={placeholder}
+                    readOnly={readOnly}
+                    disabled={disabled}
                     autoComplete="off"
-                    className="block w-full px-4 py-3 glass-input rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm font-mono font-medium shadow-sm placeholder:text-slate-600 hover:border-primary-500/40 hover:shadow-glow-hover hover:bg-slate-900/80"
+                    className={`block w-full px-4 py-3 glass-input rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm font-mono font-medium shadow-sm placeholder:text-slate-600 hover:border-primary-500/40 hover:shadow-glow-hover hover:bg-slate-900/80 ${readOnly || disabled ? 'bg-slate-900/50 text-slate-400 cursor-not-allowed border-slate-800' : ''}`}
                 />
                 {suffix && <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">{suffix}</div>}
             </div>
@@ -92,6 +97,9 @@ export const Calculator: React.FC<CalculatorProps> = ({
 
     const voucherInputRef = useRef<HTMLInputElement>(null);
     const desiredPriceInputRef = useRef<HTMLInputElement>(null);
+    
+    // Ref to track the previous product to distinguish between "switching products" and "toggling switch"
+    const prevProductIdRef = useRef<string | null>(null);
 
     const [isCopied, setIsCopied] = useState(false);
     const [isIdCopied, setIsIdCopied] = useState(false);
@@ -99,6 +107,15 @@ export const Calculator: React.FC<CalculatorProps> = ({
     const [currentTime, setCurrentTime] = useState(new Date());
     
     const [isQuickPriceInput, setIsQuickPriceInput] = useState(true);
+    
+    // Initialize useFinalPrice from localStorage to persist user preference
+    const [useFinalPrice, setUseFinalPrice] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('calculator_useFinalPrice') === 'true';
+        }
+        return false;
+    });
+
     const [isDesiredPriceFocused, setIsDesiredPriceFocused] = useState(false);
     const [isVoucherFocused, setIsVoucherFocused] = useState(false);
     const [isMinOrderFocused, setIsMinOrderFocused] = useState(false);
@@ -107,20 +124,58 @@ export const Calculator: React.FC<CalculatorProps> = ({
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [tempSelectedPresets, setTempSelectedPresets] = useState<number[]>([]);
     
+    // Handler for toggling Final Price mode
+    const handleToggleFinalPrice = () => {
+        const newState = !useFinalPrice;
+        setUseFinalPrice(newState);
+        localStorage.setItem('calculator_useFinalPrice', String(newState));
+    };
+
     useEffect(() => {
         if (selectedProduct) {
-            setProductId(selectedProduct.id);
-            setExclusiveId(selectedProduct.exclusiveId || '');
-            setProductName(selectedProduct.name);
-            setCurrentPrice(String(selectedProduct.displayPrice));
-            setResult(null); 
-            setDesiredPrice(''); 
-            setAppliedPlatformDiscount(0);
+            const isNewProduct = prevProductIdRef.current !== selectedProduct.id;
             
-            setTimeout(() => {
-                desiredPriceInputRef.current?.focus();
-            }, 50);
+            // Always update basic info regardless of toggle state
+            if (isNewProduct) {
+                setProductId(selectedProduct.id);
+                setExclusiveId(selectedProduct.exclusiveId || '');
+                setProductName(selectedProduct.name);
+                setCurrentPrice(String(selectedProduct.displayPrice));
+                setResult(null); 
+                setAppliedPlatformDiscount(0);
+            }
+            
+            // LOGIC FOR DESIRED PRICE
+            if (useFinalPrice) {
+                // If Toggle is ON: We ALWAYS try to fill with finalPrice.
+                // This applies when:
+                // 1. Switching to a new product (isNewProduct = true)
+                // 2. Turning the toggle ON manually (isNewProduct = false, but useFinalPrice changed to true)
+                
+                if (selectedProduct.finalPrice) {
+                    const rawFinal = String(selectedProduct.finalPrice).replace(/[^0-9]/g, '');
+                    setDesiredPrice(rawFinal);
+                } else {
+                    // If product has no final price, clear it if it's a new selection
+                    if (isNewProduct) setDesiredPrice('');
+                }
+            } else {
+                // If Toggle is OFF:
+                if (isNewProduct) {
+                    // Only clear input if we actually switched products
+                    setDesiredPrice('');
+                    setTimeout(() => {
+                        desiredPriceInputRef.current?.focus();
+                    }, 50);
+                }
+                // If we just turned the toggle OFF (isNewProduct = false), do NOT clear the price.
+                // Let the user edit the existing value.
+            }
+            
+            prevProductIdRef.current = selectedProduct.id;
+
         } else {
+             // Reset everything when no product is selected
              setProductId('');
              setExclusiveId('');
              setProductName('');
@@ -129,8 +184,12 @@ export const Calculator: React.FC<CalculatorProps> = ({
              setVoucherValue('');
              setResult(null);
              setAppliedPlatformDiscount(0);
+             prevProductIdRef.current = null;
+             
+             // NOTE: We do NOT reset useFinalPrice here. 
+             // This ensures the toggle stays ON even if you deselect or search.
         }
-    }, [selectedProduct]);
+    }, [selectedProduct, useFinalPrice]); 
 
     useEffect(() => {
         const timerId = setInterval(() => {
@@ -315,14 +374,16 @@ export const Calculator: React.FC<CalculatorProps> = ({
         const numericValue = parseInt(desiredPrice, 10);
         if (isNaN(numericValue)) return '';
     
-        if (isQuickPriceInput && isDesiredPriceFocused) {
+        if (!useFinalPrice && isQuickPriceInput && isDesiredPriceFocused) {
             return String(Math.round(numericValue / 1000));
         } else {
             return formatCurrencyForInput(desiredPrice);
         }
-    }, [desiredPrice, isQuickPriceInput, isDesiredPriceFocused]);
+    }, [desiredPrice, isQuickPriceInput, isDesiredPriceFocused, useFinalPrice]);
     
     const handleDesiredPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (useFinalPrice) return; // Prevent editing when using final price from data
+        
         const rawValue = e.target.value;
         const numericString = parseInput(rawValue);
 
@@ -565,9 +626,24 @@ export const Calculator: React.FC<CalculatorProps> = ({
                     {/* Separated Logic for Desired Price */}
                     <div>
                         <div className="flex justify-between items-center mb-1.5 ml-1">
-                            <label htmlFor="desiredPrice" className="block text-xs font-semibold text-slate-400 uppercase tracking-wide">Giá cuối mong muốn</label>
+                            <div className="flex items-center gap-2">
+                                <label htmlFor="desiredPrice" className="block text-xs font-semibold text-slate-400 uppercase tracking-wide">Giá cuối mong muốn</label>
+                                
+                                {/* Use Final Price Toggle */}
+                                <div className="flex items-center gap-2 ml-2 bg-slate-900/50 px-2 py-0.5 rounded-full border border-slate-800/50" title="Tự động điền giá cuối từ dữ liệu sản phẩm (Giữ trạng thái khi đổi sản phẩm)">
+                                    <span className={`text-[9px] font-bold uppercase transition-colors ${useFinalPrice ? 'text-emerald-400' : 'text-slate-600'}`}>
+                                        Dùng giá cuối
+                                    </span>
+                                    <div 
+                                        onClick={handleToggleFinalPrice}
+                                        className={`w-6 h-3.5 rounded-full relative transition-colors cursor-pointer ${useFinalPrice ? 'bg-emerald-600' : 'bg-slate-700'}`}
+                                    >
+                                        <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white shadow-sm transition-all ${useFinalPrice ? 'left-3' : 'left-0.5'}`} />
+                                    </div>
+                                </div>
+                            </div>
                             
-                            <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setIsQuickPriceInput(!isQuickPriceInput)} title="Bật/Tắt nhập nhanh (x1000)">
+                            <div className={`flex items-center gap-2 cursor-pointer group ${useFinalPrice ? 'opacity-50 pointer-events-none' : ''}`} onClick={() => setIsQuickPriceInput(!isQuickPriceInput)} title="Bật/Tắt nhập nhanh (x1000)">
                                  <span className={`text-[10px] uppercase font-bold transition-colors ${isQuickPriceInput ? 'text-primary-400' : 'text-slate-600 group-hover:text-slate-500'}`}>
                                     x1000
                                 </span>
@@ -583,14 +659,18 @@ export const Calculator: React.FC<CalculatorProps> = ({
                             value={desiredPriceValue}
                             onChange={handleDesiredPriceChange}
                             onFocus={(e) => {
-                                setIsDesiredPriceFocused(true);
-                                handleInputFocus(e);
+                                if (!useFinalPrice) {
+                                    setIsDesiredPriceFocused(true);
+                                    handleInputFocus(e);
+                                }
                             }}
                             onBlur={() => setIsDesiredPriceFocused(false)}
                             onKeyDown={handleDesiredPriceKeyDown}
-                            placeholder={isQuickPriceInput ? "100 -> 100.000" : "Nhập số tiền"}
-                            suffix={<span className="text-slate-500 text-xs font-bold font-mono">VND</span>}
-                            className="shadow-sm"
+                            readOnly={useFinalPrice}
+                            disabled={useFinalPrice}
+                            placeholder={useFinalPrice ? (selectedProduct?.finalPrice ? "" : "Sản phẩm không có giá cuối") : (isQuickPriceInput ? "100 -> 100.000" : "Nhập số tiền")}
+                            suffix={useFinalPrice ? <LockClosedIcon className="w-4 h-4 text-emerald-500/50" /> : <span className="text-slate-500 text-xs font-bold font-mono">VND</span>}
+                            className={`shadow-sm ${useFinalPrice ? 'opacity-90' : ''}`}
                         />
                     </div>
                 </div>
