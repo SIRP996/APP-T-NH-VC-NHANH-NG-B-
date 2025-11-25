@@ -48,11 +48,11 @@ const ThemeSelector: React.FC<{ currentTheme: Theme, onChange: (t: Theme) => voi
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const themes: { id: Theme, name: string, color: string }[] = [
-        { id: 'violet', name: 'Tím mộng mơ', color: 'bg-violet-600' },
-        { id: 'green', name: 'Xanh lá', color: 'bg-emerald-500' },
-        { id: 'grey', name: 'Xám Apple', color: 'bg-zinc-500' },
-        { id: 'neon-blue', name: 'Đen Neon', color: 'bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.6)]' },
+    const themes: { id: Theme, name: string, color: string, border: string }[] = [
+        { id: 'violet', name: 'Tím mộng mơ', color: 'bg-violet-500', border: 'border-violet-400' },
+        { id: 'green', name: 'Xanh lá', color: 'bg-emerald-500', border: 'border-emerald-400' },
+        { id: 'grey', name: 'Xám Apple', color: 'bg-zinc-500', border: 'border-zinc-400' },
+        { id: 'neon-blue', name: 'Đen & Xanh Neon', color: 'bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.8)]', border: 'border-cyan-400' },
     ];
 
     useEffect(() => {
@@ -65,21 +65,24 @@ const ThemeSelector: React.FC<{ currentTheme: Theme, onChange: (t: Theme) => voi
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    const currentThemeInfo = themes.find(t => t.id === currentTheme) || themes[0];
+
     return (
         <div className="relative" ref={containerRef}>
             <button 
                 onClick={() => setIsOpen(!isOpen)}
-                className={`flex items-center gap-2 p-2.5 rounded-full backdrop-blur-md border transition-all ${isOpen ? 'bg-primary-500/20 text-primary-400 border-primary-500/50' : 'bg-slate-900/50 text-slate-400 hover:text-white hover:bg-slate-800 border-white/5'}`}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl backdrop-blur-md border transition-all duration-200 ${isOpen ? 'bg-slate-700/80 border-slate-500' : 'bg-slate-800/50 border-white/10 hover:bg-slate-700 hover:border-white/20'}`}
                 title="Đổi giao diện"
             >
-                <SwatchIcon className="w-5 h-5" />
-                {isOpen && <ChevronDownIcon className="w-4 h-4" />}
+                <div className={`w-3.5 h-3.5 rounded-full ${currentThemeInfo.color}`}></div>
+                <span className="text-sm font-medium text-slate-200 hidden sm:inline-block">{currentThemeInfo.name}</span>
+                <ChevronDownIcon className="w-4 h-4 text-slate-400" />
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-slate-900 rounded-xl border border-slate-700 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 z-50 p-2">
-                    <div className="text-xs font-bold text-slate-500 px-2 py-1 mb-1 uppercase tracking-wider">Chọn màu</div>
-                    <div className="space-y-1">
+                <div className="absolute right-0 mt-2 w-56 bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-slate-700 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 z-[100] p-1.5">
+                    <div className="text-[10px] font-bold text-slate-500 px-3 py-2 uppercase tracking-wider">Giao diện</div>
+                    <div className="space-y-0.5">
                         {themes.map(t => (
                             <button
                                 key={t.id}
@@ -87,11 +90,15 @@ const ThemeSelector: React.FC<{ currentTheme: Theme, onChange: (t: Theme) => voi
                                     onChange(t.id);
                                     setIsOpen(false);
                                 }}
-                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${currentTheme === t.id ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group ${
+                                    currentTheme === t.id 
+                                    ? 'bg-slate-800 text-white shadow-sm ring-1 ring-white/10' 
+                                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                                }`}
                             >
-                                <div className={`w-4 h-4 rounded-full ${t.color}`}></div>
+                                <div className={`w-4 h-4 rounded-full ${t.color} ${currentTheme === t.id ? 'scale-110' : 'opacity-70 group-hover:opacity-100'} transition-all`}></div>
                                 <span className="flex-grow text-left">{t.name}</span>
-                                {currentTheme === t.id && <CheckIcon className="w-3.5 h-3.5 text-primary-400" />}
+                                {currentTheme === t.id && <CheckIcon className="w-4 h-4 text-primary-400" />}
                             </button>
                         ))}
                     </div>
@@ -216,7 +223,7 @@ const LoginScreen: React.FC<{
     const switchModeText = mode === 'login' ? 'Chưa có tài khoản?' : 'Đã có tài khoản?';
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-[#020617] p-4 relative overflow-hidden">
+        <div className="flex items-center justify-center min-h-screen bg-[#0f172a] p-4 relative overflow-hidden">
              <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-primary-600/20 rounded-full mix-blend-overlay filter blur-[100px] animate-pulse-slow"></div>
             <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-secondary-500/10 rounded-full mix-blend-overlay filter blur-[100px] animate-pulse-slow animation-delay-2000"></div>
 
@@ -887,7 +894,7 @@ const App: React.FC = () => {
 
 
     const renderLoading = () => (
-        <div className="flex items-center justify-center h-screen bg-[#020617]">
+        <div className="flex items-center justify-center h-screen bg-[#0f172a]">
             <div className="text-center">
                 <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary-500 mx-auto mb-4"></div>
                 <h2 className="text-xl font-semibold text-white tracking-tight">Đang tải...</h2>
@@ -1137,7 +1144,7 @@ const App: React.FC = () => {
         const [isInspectorOpen, setIsInspectorOpen] = useState(true);
 
         return (
-            <div className="h-screen w-screen flex flex-col font-sans overflow-hidden relative bg-[#020617] p-6">
+            <div className="h-screen w-screen flex flex-col font-sans overflow-hidden relative bg-[#0f172a] p-6">
                 <ToastContainer toasts={toasts} removeToast={removeToast} />
 
                 <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-primary-600 mix-blend-screen filter blur-[120px] opacity-10 animate-pulse-slow"></div>
