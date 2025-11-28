@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Product, ColumnMapping, DealList, FirebaseConfig, Creator } from './types';
 import { fetchProductsFromSheet, fetchSheetPreviewAndHeaders } from './services/googleSheetService';
@@ -41,6 +40,47 @@ const MAPPING_CONFIG: { key: keyof ColumnMapping; label: string; keywords: strin
 const getCsvUrl = (url: string): string | null => {
     const match = url.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
     return match ? `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv` : null;
+};
+
+// --- Shortcuts Modal ---
+const ShortcutsModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+    if (!isOpen) return null;
+
+    const shortcuts = [
+        { key: '/', description: 'Tìm kiếm sản phẩm' },
+        { key: 'Esc', description: 'Thoát ô nhập liệu / Đóng' },
+        { key: 'Enter', description: 'Chọn sản phẩm / Tính giá' },
+        { key: '↑ / ↓', description: 'Di chuyển trong danh sách' },
+        { key: 'Tab', description: 'Chuyển ô nhập liệu' },
+    ];
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] animate-in fade-in" onClick={onClose}>
+            <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6 w-full max-w-sm m-4" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        <span className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center">⌨️</span>
+                        Phím tắt
+                    </h3>
+                    <button onClick={onClose} className="p-1 rounded-full text-slate-500 hover:text-white hover:bg-slate-800 transition-colors">
+                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div className="space-y-3">
+                    {shortcuts.map((s, i) => (
+                        <div key={i} className="flex justify-between items-center p-3 bg-slate-950/50 rounded-xl border border-slate-800/50">
+                            <span className="text-sm font-medium text-slate-300">{s.description}</span>
+                            <kbd className="px-2.5 py-1.5 bg-slate-800 rounded-lg text-xs font-bold font-mono text-slate-200 border-b-2 border-slate-950 shadow-sm min-w-[30px] text-center">
+                                {s.key}
+                            </kbd>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
 };
 
 // --- Theme Selector Component ---
@@ -352,6 +392,8 @@ const App: React.FC = () => {
     const [isSavingProduct, setIsSavingProduct] = useState(false);
     const [productPendingDeletion, setProductPendingDeletion] = useState<Product | null>(null);
     const [isDeletingProduct, setIsDeletingProduct] = useState(false);
+    
+    const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
 
     const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
@@ -1146,6 +1188,7 @@ const App: React.FC = () => {
         return (
             <div className="h-screen w-screen flex flex-col font-sans overflow-hidden relative bg-[#0f172a] p-6">
                 <ToastContainer toasts={toasts} removeToast={removeToast} />
+                <ShortcutsModal isOpen={isShortcutsModalOpen} onClose={() => setIsShortcutsModalOpen(false)} />
 
                 <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-primary-600 mix-blend-screen filter blur-[120px] opacity-10 animate-pulse-slow"></div>
                 <div className="absolute bottom-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-secondary-500 mix-blend-screen filter blur-[120px] opacity-10 animate-pulse-slow animation-delay-2000"></div>
@@ -1201,6 +1244,15 @@ const App: React.FC = () => {
                             </div>
                             
                             <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setIsShortcutsModalOpen(true)}
+                                    className="p-2 text-slate-500 hover:text-white hover:bg-white/10 rounded-full transition-colors hidden sm:block"
+                                    title="Phím tắt"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                                    </svg>
+                                </button>
                                 <ThemeSelector currentTheme={theme} onChange={setTheme} />
 
                                 {user && (

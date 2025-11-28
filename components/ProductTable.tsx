@@ -1,6 +1,18 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Product } from '../types';
-import { SearchIcon, CogIcon, Bars3Icon, PlusIcon, EditIcon, TrashIcon, EyeIcon, EyeSlashIcon } from './Icons';
+import { SearchIcon, CogIcon, Bars3Icon, PlusIcon, EditIcon, TrashIcon, EyeIcon, EyeSlashIcon, SwatchIcon } from './Icons';
+
+// New Icons for Density
+const DensityNormalIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+    </svg>
+);
+const DensityCompactIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />
+    </svg>
+);
 
 const SortAscIcon: React.FC<{ className?: string }> = ({ className = "w-3.5 h-3.5 ml-1 text-primary-400" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4h13M3 8h9M3 12h9m-9 4h6m4-11l4-4m0 0l4 4m-4-4v12" /></svg>;
 const SortDescIcon: React.FC<{ className?: string }> = ({ className = "w-3.5 h-3.5 ml-1 text-primary-400" }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4h13M3 8h9M3 12h9m-9 4h6m4 5l4-4m0 0l-4-4m4 4V3" /></svg>;
@@ -8,6 +20,7 @@ const SortDescIcon: React.FC<{ className?: string }> = ({ className = "w-3.5 h-3
 type ColumnKey = keyof Pick<Product, 'name' | 'id' | 'exclusiveId' | 'displayPrice' | 'finalPrice' | 'gift'>;
 type SortKey = ColumnKey;
 type SortDirection = 'asc' | 'desc';
+type Density = 'normal' | 'compact';
 
 const COLUMN_DEFINITIONS: { key: ColumnKey; label: string }[] = [
     { key: 'name', label: 'Tên Sản phẩm' },
@@ -28,20 +41,19 @@ const DEFAULT_COLUMN_WIDTHS: Record<ColumnKey, number> = {
     gift: 250,
 };
 
-const ROW_HEIGHT = 58; 
 const BUFFER_ROWS = 5;
 
-const TableSkeleton: React.FC<{ columnsCount: number }> = ({ columnsCount }) => {
+const TableSkeleton: React.FC<{ columnsCount: number; rowHeight: number }> = ({ columnsCount, rowHeight }) => {
     return (
         <>
             {[...Array(10)].map((_, i) => (
-                <tr key={i} className="border-b border-slate-800/50 h-[58px]">
+                <tr key={i} className={`border-b border-slate-800/50`} style={{ height: rowHeight }}>
                     {[...Array(columnsCount)].map((_, j) => (
-                        <td key={j} className="px-6 py-4">
+                        <td key={j} className="px-6 py-2">
                             <div className={`h-4 bg-slate-800 rounded animate-pulse ${j === 0 ? 'w-3/4' : 'w-1/2'}`}></div>
                         </td>
                     ))}
-                     <td className="px-4 py-4">
+                     <td className="px-4 py-2">
                         <div className="h-4 w-8 bg-slate-800 rounded animate-pulse ml-auto"></div>
                      </td>
                 </tr>
@@ -190,6 +202,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(new Set(DEFAULT_COLUMN_ORDER));
     const [columnWidths, setColumnWidths] = useState<Record<ColumnKey, number>>(DEFAULT_COLUMN_WIDTHS);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+    const [density, setDensity] = useState<Density>('normal');
 
     const [selectedIndex, setSelectedIndex] = useState<number>(-1);
     const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -198,6 +211,8 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     
     // Tooltip State - Improved Logic
     const [nameTooltip, setNameTooltip] = useState<{ text: string; top: number; left: number; width: number } | null>(null);
+
+    const rowHeight = density === 'normal' ? 58 : 40;
 
     const totalProducts = products.length;
     const totalSKUs = useMemo(() => new Set(products.map(p => p.id)).size, [products]);
@@ -330,8 +345,8 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     useEffect(() => {
         if (selectedIndex >= 0 && tableContainerRef.current) {
             const currentScroll = tableContainerRef.current.scrollTop;
-            const itemTop = selectedIndex * ROW_HEIGHT;
-            const itemBottom = itemTop + ROW_HEIGHT;
+            const itemTop = selectedIndex * rowHeight;
+            const itemBottom = itemTop + rowHeight;
             const viewHeight = tableContainerRef.current.clientHeight;
 
             if (itemTop < currentScroll + 32) { 
@@ -341,7 +356,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                 tableContainerRef.current.scrollTo({ top: itemBottom - viewHeight, behavior: 'auto' });
             }
         }
-    }, [selectedIndex]);
+    }, [selectedIndex, rowHeight]);
 
 
     const requestSort = (key: SortKey) => {
@@ -431,13 +446,17 @@ export const ProductTable: React.FC<ProductTableProps> = ({
         gift: 'text-slate-400 text-xs italic', 
     };
 
-    const totalHeight = sortedProducts.length * ROW_HEIGHT;
-    const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER_ROWS);
-    const endIndex = Math.min(sortedProducts.length, Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + BUFFER_ROWS);
+    const totalHeight = sortedProducts.length * rowHeight;
+    const startIndex = Math.max(0, Math.floor(scrollTop / rowHeight) - BUFFER_ROWS);
+    const endIndex = Math.min(sortedProducts.length, Math.ceil((scrollTop + containerHeight) / rowHeight) + BUFFER_ROWS);
     
     const visibleProducts = sortedProducts.slice(startIndex, endIndex);
-    const paddingTop = startIndex * ROW_HEIGHT;
-    const paddingBottom = (sortedProducts.length - endIndex) * ROW_HEIGHT;
+    const paddingTop = startIndex * rowHeight;
+    const paddingBottom = (sortedProducts.length - endIndex) * rowHeight;
+
+    const toggleDensity = () => {
+        setDensity(prev => prev === 'normal' ? 'compact' : 'normal');
+    };
     
     return (
         <div className="w-full h-full flex flex-col overflow-hidden bg-transparent relative">
@@ -468,13 +487,23 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                         </button>
                     )}
 
-                    <button 
-                        onClick={() => setIsSettingsModalOpen(true)} 
-                        className="p-2.5 text-slate-400 hover:text-white rounded-xl hover:bg-white/5 transition-colors flex-shrink-0 border border-white/5 hover:border-white/10" 
-                        aria-label="Tùy chỉnh cột"
-                    >
-                        <CogIcon className="w-5 h-5" />
-                    </button>
+                    <div className="flex gap-2">
+                         <button 
+                            onClick={toggleDensity}
+                            className="p-2.5 text-slate-400 hover:text-white rounded-xl hover:bg-white/5 transition-colors flex-shrink-0 border border-white/5 hover:border-white/10"
+                            title={density === 'normal' ? "Chuyển sang chế độ thu gọn" : "Chuyển sang chế độ thoải mái"}
+                        >
+                            {density === 'normal' ? <DensityCompactIcon className="w-5 h-5" /> : <DensityNormalIcon className="w-5 h-5" />}
+                        </button>
+
+                        <button 
+                            onClick={() => setIsSettingsModalOpen(true)} 
+                            className="p-2.5 text-slate-400 hover:text-white rounded-xl hover:bg-white/5 transition-colors flex-shrink-0 border border-white/5 hover:border-white/10" 
+                            aria-label="Tùy chỉnh cột"
+                        >
+                            <CogIcon className="w-5 h-5" />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="mt-4 flex gap-4">
@@ -507,13 +536,13 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                 onScroll={handleScroll}
             >
                 <table className="divide-y divide-slate-800/50 table-fixed w-full border-collapse">
-                    <thead className="bg-slate-900/90 backdrop-blur-md sticky top-0 z-10 shadow-sm border-b border-slate-800">
+                    <thead className="bg-slate-900/90 backdrop-blur-md sticky top-0 z-20 shadow-sm border-b border-slate-800">
                         <tr>
                             {orderedTableHeaders.map(({ key, label }) => (
                                  <th 
                                      key={key} 
                                      scope="col" 
-                                     className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider group relative select-none"
+                                     className={`px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider group relative select-none ${key === 'name' ? 'sticky left-0 z-30 bg-slate-900 border-r border-slate-800 shadow-[5px_0_10px_-5px_rgba(0,0,0,0.5)]' : ''}`}
                                      style={{ width: columnWidths[key] ? `${columnWidths[key]}px` : 'auto' }}
                                  >
                                     <button onClick={() => requestSort(key)} className="flex items-center gap-1 hover:text-primary-400 transition-colors w-full">
@@ -521,7 +550,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                                     </button>
                                     <div
                                         onMouseDown={handleResizeMouseDown(key)}
-                                        className="absolute top-1/2 -translate-y-1/2 -right-1 w-4 h-6 cursor-col-resize z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                        className="absolute top-1/2 -translate-y-1/2 -right-1 w-4 h-6 cursor-col-resize z-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                                     >
                                         <div className="w-0.5 h-full bg-primary-500/50 rounded-full" />
                                     </div>
@@ -535,7 +564,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                     </thead>
                     <tbody className="divide-y divide-slate-800/50">
                         {isLoading ? (
-                            <TableSkeleton columnsCount={orderedTableHeaders.length} />
+                            <TableSkeleton columnsCount={orderedTableHeaders.length} rowHeight={rowHeight} />
                         ) : sortedProducts.length > 0 ? (
                             <>
                                 {/* Top Spacer */}
@@ -553,11 +582,12 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                                             key={`${product.docId || product.id}-${realIndex}`} 
                                             onClick={() => onProductSelect(product)} 
                                             onMouseEnter={() => setSelectedIndex(realIndex)}
-                                            className={`cursor-pointer transition-all duration-200 group border-b border-slate-800/30 last:border-none h-[58px] ${isSelected ? 'bg-primary-500/20 ring-1 ring-inset ring-primary-500/40 shadow-lg z-10 relative' : 'hover:bg-slate-800/90 hover:shadow-glow-inset hover:shadow-[inset_0_0_0_1px_rgba(var(--primary-500),0.3)]'}`}
+                                            style={{ height: rowHeight }}
+                                            className={`cursor-pointer transition-all duration-200 group border-b border-slate-800/30 last:border-none ${isSelected ? 'bg-primary-500/20 ring-1 ring-inset ring-primary-500/40 shadow-lg z-10 relative' : 'hover:bg-slate-800/90 hover:shadow-glow-inset hover:shadow-[inset_0_0_0_1px_rgba(var(--primary-500),0.3)]'}`}
                                         >
                                             {orderedTableHeaders.map(({ key }) => (
                                                 <td key={key} 
-                                                    className={`px-6 py-4 text-sm ${cellClassMap[key]} truncate ${isSelected ? 'text-white' : 'group-hover:text-white'} transition-colors`} 
+                                                    className={`px-6 text-sm ${cellClassMap[key]} truncate ${isSelected ? 'text-white' : 'group-hover:text-white'} transition-colors ${key === 'name' ? 'sticky left-0 z-20 bg-slate-900/95 border-r border-slate-800 shadow-[5px_0_10px_-5px_rgba(0,0,0,0.5)]' : ''} ${key === 'name' && isSelected ? '!bg-primary-900/80 !text-white' : ''}`}
                                                     onMouseEnter={(e) => {
                                                         if (key === 'name') {
                                                             const rect = e.currentTarget.getBoundingClientRect();
@@ -583,7 +613,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                                             ))}
                                             
                                             {/* Action Buttons */}
-                                            <td className="px-4 py-4 text-right whitespace-nowrap sticky right-0 bg-slate-900 group-hover:bg-slate-800 transition-colors z-10 shadow-[-10px_0_20px_-10px_rgba(0,0,0,0.2)]">
+                                            <td className="px-4 text-right whitespace-nowrap sticky right-0 bg-slate-900 group-hover:bg-slate-800 transition-colors z-20 shadow-[-10px_0_20px_-10px_rgba(0,0,0,0.2)]">
                                                 <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     {onEditProduct && (
                                                         <button 

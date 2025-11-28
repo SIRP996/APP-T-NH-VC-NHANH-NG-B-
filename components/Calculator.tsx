@@ -1,7 +1,8 @@
 
+
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Product, VoucherType } from '../types';
-import { CalculatorIcon, CogIcon, CopyIcon, CheckIcon, LockClosedIcon, Square2StackIcon } from './Icons';
+import { CalculatorIcon, CogIcon, CopyIcon, CheckIcon, LockClosedIcon, Square2StackIcon, ClockIcon } from './Icons';
 
 const formatCurrency = (value: number) => {
     if (isNaN(value) || !isFinite(value)) return "0";
@@ -70,6 +71,24 @@ interface HistoryItem {
 
 const ALL_POSSIBLE_VOUCHERS = Array.from({ length: 19 }, (_, i) => i + 7); // 7 to 25
 
+// Helper function to calculate rounded time based on <40s logic
+const getRoundedTime = (date: Date): string => {
+    const seconds = date.getSeconds();
+    const newDate = new Date(date); // Clone date to avoid mutation
+    
+    // Logic: If seconds >= 40, round up to next minute
+    if (seconds >= 40) {
+        newDate.setMinutes(newDate.getMinutes() + 1);
+    }
+    
+    // Format to HH:mm
+    return newDate.toLocaleTimeString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    });
+};
+
 export const Calculator: React.FC<CalculatorProps> = ({ 
     selectedProduct, 
     dealListName, 
@@ -102,9 +121,11 @@ export const Calculator: React.FC<CalculatorProps> = ({
     const prevProductIdRef = useRef<string | null>(null);
 
     const [isCopied, setIsCopied] = useState(false);
-    const [isBothCopied, setIsBothCopied] = useState(false);
+    const [isAllCopied, setIsAllCopied] = useState(false);
     const [isIdCopied, setIsIdCopied] = useState(false);
     const [isExclusiveIdCopied, setIsExclusiveIdCopied] = useState(false);
+    const [isTimeCopied, setIsTimeCopied] = useState(false);
+    
     const [currentTime, setCurrentTime] = useState(new Date());
     
     const [isQuickPriceInput, setIsQuickPriceInput] = useState(true);
@@ -223,7 +244,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
         }
     };
 
-
+    // Standard time display for the clock UI (shows seconds for reference)
     const formattedTime = currentTime.toLocaleTimeString('vi-VN', {
         hour: '2-digit',
         minute: '2-digit',
@@ -505,21 +526,29 @@ export const Calculator: React.FC<CalculatorProps> = ({
         }
     };
 
-    const handleCopyBoth = async () => {
+    // Updated Copy function to include Time
+    const handleCopyAllThree = async () => {
         if (result !== null && productId) {
             try {
                 // 1. Copy ID First
                 await navigator.clipboard.writeText(productId);
                 
-                // 2. Short Delay to ensure Windows Clipboard History treats them as separate entries
+                // 2. Delay for Clipboard History
                 await new Promise(resolve => setTimeout(resolve, 300));
                 
                 // 3. Copy Voucher Price
                 const textToCopy = String(Math.round(result));
                 await navigator.clipboard.writeText(textToCopy);
 
-                setIsBothCopied(true);
-                setTimeout(() => setIsBothCopied(false), 2000);
+                // 4. Delay
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                // 5. Copy Rounded Time
+                const timeText = getRoundedTime(currentTime);
+                await navigator.clipboard.writeText(timeText);
+
+                setIsAllCopied(true);
+                setTimeout(() => setIsAllCopied(false), 2000);
             } catch (err) {
                 console.error('Failed to copy', err);
             }
@@ -542,6 +571,14 @@ export const Calculator: React.FC<CalculatorProps> = ({
                 setTimeout(() => setIsExclusiveIdCopied(false), 2000);
             });
         }
+    };
+
+    const handleCopyTime = () => {
+        const timeText = getRoundedTime(currentTime);
+        navigator.clipboard.writeText(timeText).then(() => {
+            setIsTimeCopied(true);
+            setTimeout(() => setIsTimeCopied(false), 2000);
+        });
     };
 
     const toggleSettings = () => setIsSettingsOpen(!isSettingsOpen);
@@ -582,10 +619,27 @@ export const Calculator: React.FC<CalculatorProps> = ({
                         <p className="text-xs font-mono text-slate-500">{dealListName}</p>
                     </div>
                 </div>
-                {/* Clock */}
-                <div className="glass-input px-3 py-1.5 rounded-lg font-mono text-lg font-bold text-primary-300 tracking-widest shadow-inner">
-                    {formattedTime}
-                </div>
+                {/* Clock - Clickable */}
+                <button 
+                    onClick={handleCopyTime}
+                    className="glass-input px-3 py-1.5 rounded-lg font-mono text-lg font-bold text-primary-300 tracking-widest shadow-inner hover:bg-slate-800 transition-colors flex items-center gap-2 group relative overflow-hidden"
+                    title="Click để copy giờ chốt đơn (làm tròn >40s)"
+                >
+                    {isTimeCopied ? (
+                        <span className="flex items-center gap-2 text-emerald-400">
+                            <CheckIcon className="w-5 h-5" />
+                            <span className="font-mono">{formattedTime}</span>
+                        </span>
+                    ) : (
+                        <span className="flex items-center gap-2">
+                             <span className="font-mono">{formattedTime}</span>
+                             <CopyIcon className="w-4 h-4 opacity-50 group-hover:opacity-100" />
+                        </span>
+                    )}
+                    {isTimeCopied && (
+                         <div className="absolute inset-0 bg-emerald-500/10 pointer-events-none" />
+                    )}
+                </button>
             </div>
 
             {/* SCROLLABLE BODY AREA */}
@@ -878,14 +932,14 @@ export const Calculator: React.FC<CalculatorProps> = ({
                                         </div>
                                         
                                         <div className="flex gap-2 mb-1">
-                                            {/* Copy Both Button */}
+                                            {/* Copy All Button */}
                                             {productId && (
                                                 <button
-                                                    onClick={handleCopyBoth}
+                                                    onClick={handleCopyAllThree}
                                                     className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all border border-white/10 shrink-0"
-                                                    title="Copy ID & Giá (Win+V)"
+                                                    title="Copy ID, Giá & Giờ (Win+V)"
                                                 >
-                                                    {isBothCopied ? <CheckIcon className="w-5 h-5 text-green-400" /> : <Square2StackIcon className="w-5 h-5 text-slate-300" />}
+                                                    {isAllCopied ? <CheckIcon className="w-5 h-5 text-green-400" /> : <Square2StackIcon className="w-5 h-5 text-slate-300" />}
                                                 </button>
                                             )}
                                             
@@ -893,9 +947,18 @@ export const Calculator: React.FC<CalculatorProps> = ({
                                             <button 
                                                 onClick={handleCopyResult}
                                                 className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all border border-white/10 shrink-0"
-                                                title="Sao chép giá"
+                                                title="Chỉ sao chép giá"
                                             >
                                                  {isCopied ? <CheckIcon className="w-5 h-5 text-green-400" /> : <CopyIcon className="w-5 h-5 text-slate-300" />}
+                                            </button>
+
+                                             {/* Copy Time Only Button */}
+                                            <button 
+                                                onClick={handleCopyTime}
+                                                className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all border border-white/10 shrink-0"
+                                                title="Chỉ copy Giờ chốt đơn"
+                                            >
+                                                 {isTimeCopied ? <CheckIcon className="w-5 h-5 text-green-400" /> : <ClockIcon className="w-5 h-5 text-slate-300" />}
                                             </button>
                                         </div>
                                     </div>
