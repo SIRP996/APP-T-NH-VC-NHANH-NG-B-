@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Product, ColumnMapping, DealList, FirebaseConfig, Creator } from './types';
-import { fetchProductsFromSheet, fetchSheetPreviewAndHeaders, fillMergedCells, parsePrice, normalizeSheetId, normalizeMultilineString } from './services/googleSheetService';
+import { fetchProductsFromSheet, fetchSheetPreviewAndHeaders } from './services/googleSheetService';
 import { Calculator } from './components/Calculator';
 import { ProductTable } from './components/ProductTable';
 import { CreatorList } from './components/CreatorList';
@@ -817,13 +816,23 @@ const App: React.FC = () => {
         setAppState('VIEW_DATA');
         
         if (finalDealListData.source === 'excel' && tempExcelData) {
-            // Apply fillMergedCells to Excel data
-            const filledData = fillMergedCells(tempExcelData, finalMapping);
+            const parsePrice = (priceValue: any): number => {
+                if (priceValue === null || priceValue === undefined || priceValue === '') {
+                    return 0;
+                }
+                if (typeof priceValue === 'number') {
+                    return Math.round(priceValue);
+                }
+                const cleanedString = String(priceValue).replace(/[.,]/g, '');
+                const number = parseInt(cleanedString, 10);
+                return isNaN(number) ? 0 : number;
+            };
+            const normalizeSheetId = (id: any): string => id ? String(id).trim() : '';
 
-            const productsToSync: Product[] = filledData.map(row => {
+            const productsToSync: Product[] = tempExcelData.map(row => {
                 const product: Product = {
                     id: normalizeSheetId(row[finalMapping.id]),
-                    name: normalizeMultilineString(row[finalMapping.name]),
+                    name: String(row[finalMapping.name] || ''),
                     displayPrice: parsePrice(row[finalMapping.displayPrice]),
                     finalPrice: finalMapping.finalPrice ? String(row[finalMapping.finalPrice] || '') : '',
                     originalPrice: 0,
@@ -835,7 +844,7 @@ const App: React.FC = () => {
                     product.modelId = normalizeSheetId(row[finalMapping.modelId]);
                 }
                 if (finalMapping.gift) {
-                    product.gift = normalizeMultilineString(row[finalMapping.gift]);
+                    product.gift = String(row[finalMapping.gift] || '');
                 }
                 return product;
             }).filter(p => p.name && p.displayPrice > 0); 

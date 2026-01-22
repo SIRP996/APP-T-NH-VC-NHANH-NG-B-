@@ -2,11 +2,8 @@
 import { Product, ColumnMapping } from '../types';
 
 // Helper function to parse currency strings like "245.000" or "279k" into numbers
-export const parsePrice = (priceInput: string | number | undefined | null): number => {
-  if (priceInput === null || priceInput === undefined) return 0;
-  if (typeof priceInput === 'number') return priceInput;
-  
-  const priceStr = String(priceInput);
+const parsePrice = (priceStr: string): number => {
+  if (!priceStr || typeof priceStr !== 'string') return 0;
   
   // Handle multiline cells: take the first line that looks like a value
   const lines = priceStr.split(/\r\n|\n|\r/);
@@ -23,10 +20,8 @@ export const parsePrice = (priceInput: string | number | undefined | null): numb
       cleanStr = cleanStr.slice(0, -1).trim();
   }
 
-  // Remove non-numeric characters except for dots and commas, but be smart about it
   // This handles both "245.000" and "245,000" (removes dots and commas)
-  // Also removes currency symbols like ₫, $, etc.
-  const numericPart = cleanStr.replace(/[^0-9.,]/g, '').replace(/\./g, '').replace(/,/g, '');
+  const numericPart = cleanStr.replace(/\./g, '').replace(/,/g, '');
   const val = parseFloat(numericPart);
   
   return isNaN(val) ? 0 : val * multiplier;
@@ -178,13 +173,39 @@ export const fetchSheetPreviewAndHeaders = async (sheetUrl: string): Promise<{ h
     }
 
     const csvText = await response.text();
+    // Use the robust parser to get preview data correctly
     const { headers: initialHeaders, data, headerIndex } = parseCSV(csvText);
+    
+    // We construct previewData from the parsed rows, but we need raw array of strings for the preview table
+    // Re-parsing rows purely for preview table structure
+    const rows: string[] = [];
+    let currentRow = '';
+    let inQuotedField = false;
+
+    // Quick re-split for preview (reusing the logic or just using the parsed data object?)
+    // Using the 'data' object is harder because we need the raw rows for preview (including the ones before header potentially).
+    // Let's reuse the robust splitting logic just for getting lines.
+    
+    // Actually, parseCSV already returns 'lines' internally logic. 
+    // Let's simplify: We just need to parse the CSV string into lines respecting quotes, then split columns.
+    // The previous implementation of parseCSV did the splitting. We can extract that logic or just use the result of parseCSV headers.
+    
+    // Let's just use the robust parseCSV to get headers, then just take the first few items from the data result?
+    // But preview needs to show the raw rows even before header if possible (though existing UI shows 15 rows).
+    // Let's keep it simple: Use parseCSV to get proper headers, and then for preview, just return the first 15 data rows.
     
     let headers = [...initialHeaders];
     if (headerIndex === -1 || headers.length === 0) {
+         // Fallback logic handled in parseCSV somewhat, but let's be safe
          if (csvText.trim().length === 0) return { headers: [], previewData: [] };
     }
     
+    // To show the exact structure the user sees in Excel, we map the 'data' objects back to arrays
+    // This isn't perfect for "previewing raw rows" but good enough for mapping purposes.
+    // However, to be strictly correct for the "preview table" which might show rows *before* the detected header (unlikely use case but possible),
+    // we should ideally just return the top N rows parsed.
+    
+    // Let's simply take the top 15 rows from the 'data' returned by parseCSV, as that's what matters for mapping.
     const previewDataObjects = data.slice(0, 15);
     const previewData = previewDataObjects.map(obj => {
         return headers.map(h => obj[h] || '');
@@ -199,10 +220,14 @@ export const fetchSheetPreviewAndHeaders = async (sheetUrl: string): Promise<{ h
 };
 
 // Cleans and standardizes product/model IDs from the sheet.
-export const normalizeSheetId = (id: string | number | undefined | null): string => {
-    if (id === null || id === undefined) return '';
-    const idStr = String(id);
-    const parts = idStr.split(/\r\n|\n|\r/);
+// Handles multiple lines (variants) by joining them.
+const normalizeSheetId = (id: string): string => {
+    if (!id || typeof id !== 'string') return '';
+    
+    // Split by newline to handle multiple IDs in one cell (Alt+Enter)
+    const parts = id.split(/\r\n|\n|\r/);
+    
+    // Clean and Deduplicate
     const cleanedParts = Array.from(new Set(parts.map(part => {
         let cleaned = part.trim();
         if (cleaned.startsWith("'")) {
@@ -213,91 +238,29 @@ export const normalizeSheetId = (id: string | number | undefined | null): string
         }
         return cleaned;
     }).filter(p => p !== '')));
+
+    // Join with " / " 
     return cleanedParts.join(' / ');
 };
 
-export const normalizeMultilineString = (val: string | number | undefined | null): string => {
-    if (val === null || val === undefined) return '';
-    const valStr = String(val);
-    const parts = valStr.split(/\r\n|\n|\r/).map(s => s.trim()).filter(s => s);
+// Helper to collapse multiline content into a single line for display (e.g. Names)
+const normalizeMultilineString = (val: string | undefined): string => {
+    if (!val) return '';
+    const parts = val.split(/\r\n|\n|\r/).map(s => s.trim()).filter(s => s);
     return Array.from(new Set(parts)).join(' / ');
 };
 
-const getFirstLine = (val: string | number | undefined | null): string => {
-    if (val === null || val === undefined) return '';
-    const valStr = String(val);
-    const lines = valStr.split(/\r\n|\n|\r/).filter(s => s.trim() !== '');
+// Helper to get the first non-empty line (for Final Price if needed)
+const getFirstLine = (val: string | undefined): string => {
+    if (!val) return '';
+    const lines = val.split(/\r\n|\n|\r/).filter(s => s.trim() !== '');
     return lines.length > 0 ? lines[0] : '';
-};
-
-/**
- * INTELLIGENT DATA FILLING (SQL-like "Window Function" logic)
- * Handles merged cells by filling down values from the previous row
- * if the current row has empty key fields (ID/Name) but has other data (Price).
- */
-export const fillMergedCells = (data: Record<string, any>[], mapping: ColumnMapping): Record<string, any>[] => {
-    let lastId: any = null;
-    let lastName: any = null;
-    let lastExclusiveId: any = null;
-    let lastModelId: any = null;
-    let lastGift: any = null;
-
-    const hasValue = (val: any) => {
-        if (val === null || val === undefined) return false;
-        if (typeof val === 'string') return val.trim() !== '';
-        return true; 
-    };
-
-    return data.map((row) => {
-        // 1. Handle ID Fill Down
-        if (hasValue(row[mapping.id])) {
-            lastId = row[mapping.id];
-        } else if (lastId !== null && hasValue(row[mapping.displayPrice])) {
-            row[mapping.id] = lastId;
-        }
-
-        // 2. Handle Name Fill Down
-        if (hasValue(row[mapping.name])) {
-            lastName = row[mapping.name];
-        } else if (lastName !== null && hasValue(row[mapping.displayPrice])) {
-             row[mapping.name] = lastName;
-        }
-
-        // 3. Handle Exclusive ID Fill Down (Optional)
-        if (mapping.exclusiveId) {
-            if (hasValue(row[mapping.exclusiveId])) {
-                lastExclusiveId = row[mapping.exclusiveId];
-            } else if (lastExclusiveId !== null && hasValue(row[mapping.displayPrice])) {
-                row[mapping.exclusiveId] = lastExclusiveId;
-            }
-        }
-
-        // 4. Handle Model ID Fill Down (Optional)
-        if (mapping.modelId) {
-             if (hasValue(row[mapping.modelId])) {
-                 lastModelId = row[mapping.modelId];
-             } else if (lastModelId !== null && hasValue(row[mapping.displayPrice])) {
-                 row[mapping.modelId] = lastModelId;
-             }
-        }
-        
-        // 5. Handle Gift Fill Down (Optional - Gifts often span multiple products)
-        if (mapping.gift) {
-            if (hasValue(row[mapping.gift])) {
-                lastGift = row[mapping.gift];
-            } else if (lastGift !== null && hasValue(row[mapping.displayPrice])) {
-                row[mapping.gift] = lastGift;
-            }
-        }
-
-        return row;
-    });
 };
 
 
 export const fetchProductsFromSheet = async (sheetUrl: string, mapping: ColumnMapping): Promise<Product[]> => {
   try {
-    const url = `${sheetUrl}&v=${new Date().getTime()}`;
+    const url = `${sheetUrl}&v=${new Date().getTime()}`; // Append cache-buster
     const response = await fetch(url);
     const contentType = response.headers.get('content-type');
 
@@ -311,10 +274,9 @@ export const fetchProductsFromSheet = async (sheetUrl: string, mapping: ColumnMa
     const csvText = await response.text();
     const { data: rawData } = parseCSV(csvText);
 
-    // Apply Intelligent Fill Down for Merged Cells
-    const processedData = fillMergedCells(rawData, mapping);
-
-    return processedData.map(row => {
+    // Treat each row as a single product. 
+    // Cells with multiple lines (Alt+Enter) are normalized into single fields.
+    return rawData.map(row => {
         const rawId = row[mapping.id];
         const rawName = row[mapping.name];
         const rawDisplayPrice = row[mapping.displayPrice];
@@ -325,8 +287,8 @@ export const fetchProductsFromSheet = async (sheetUrl: string, mapping: ColumnMa
             const product: Product = {
                 id: normalizeSheetId(rawId),
                 name: normalizeMultilineString(rawName),
-                displayPrice: parsePrice(rawDisplayPrice), 
-                finalPrice: getFirstLine(rawFinalPrice), 
+                displayPrice: parsePrice(rawDisplayPrice), // Takes first valid price line
+                finalPrice: getFirstLine(rawFinalPrice),   // Takes first line of final price
                 originalPrice: 0,
             };
 
