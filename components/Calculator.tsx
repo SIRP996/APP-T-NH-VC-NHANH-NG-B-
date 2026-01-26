@@ -1,8 +1,7 @@
 
-
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Product, VoucherType } from '../types';
-import { CalculatorIcon, CogIcon, CopyIcon, CheckIcon, LockClosedIcon, Square2StackIcon, ClockIcon } from './Icons';
+import { CalculatorIcon, CogIcon, CopyIcon, CheckIcon, LockClosedIcon, Square2StackIcon, ClockIcon, IdentificationIcon, ClipboardDocumentListIcon } from './Icons';
 
 const formatCurrency = (value: number) => {
     if (isNaN(value) || !isFinite(value)) return "0";
@@ -65,29 +64,28 @@ interface HistoryItem {
     id: number;
     productName: string;
     desiredPrice: number;
-    result: number;
+    resultNormal: number | null;
+    resultVip: number | null;
     timestamp: Date;
 }
 
 const ALL_POSSIBLE_VOUCHERS = Array.from({ length: 19 }, (_, i) => i + 7); // 7 to 25
 
-// Helper function to calculate rounded time based on <40s logic
 const getRoundedTime = (date: Date): string => {
     const seconds = date.getSeconds();
-    const newDate = new Date(date); // Clone date to avoid mutation
-    
-    // Logic: If seconds >= 40, round up to next minute
-    if (seconds >= 40) {
+    const newDate = new Date(date);
+    // Logic: Seconds >= 10 moves to next minute. Seconds < 10 stays at current minute.
+    if (seconds >= 10) {
         newDate.setMinutes(newDate.getMinutes() + 1);
     }
-    
-    // Format to HH:mm
     return newDate.toLocaleTimeString('vi-VN', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: false,
     });
 };
+
+type VoucherSection = 'normal' | 'vip';
 
 export const Calculator: React.FC<CalculatorProps> = ({ 
     selectedProduct, 
@@ -103,34 +101,46 @@ export const Calculator: React.FC<CalculatorProps> = ({
     const [productName, setProductName] = useState('');
     const [currentPrice, setCurrentPrice] = useState('');
     const [desiredPrice, setDesiredPrice] = useState('');
-    const [voucherType, setVoucherType] = useState<VoucherType>(VoucherType.Percentage);
-    const [voucherValue, setVoucherValue] = useState('');
     
-    const [minOrderValue, setMinOrderValue] = useState('');
-    const [maxDiscountValue, setMaxDiscountValue] = useState('');
+    // Config States - Normal
+    const [voucherNormal, setVoucherNormal] = useState('');
+    const [minNormal, setMinNormal] = useState('');
+    const [maxNormal, setMaxNormal] = useState('');
+    
+    // Config States - VIP
+    const [voucherVip, setVoucherVip] = useState('');
+    const [minVip, setMinVip] = useState('');
+    const [maxVip, setMaxVip] = useState('');
 
-    const [result, setResult] = useState<number | null>(null);
-    const [appliedPlatformDiscount, setAppliedPlatformDiscount] = useState<number>(0); 
+    const [activeSection, setActiveSection] = useState<VoucherSection>('normal');
+
+    const [resultNormal, setResultNormal] = useState<number | null>(null);
+    const [platformDiscNormal, setPlatformDiscNormal] = useState<number>(0);
     
+    const [resultVip, setResultVip] = useState<number | null>(null);
+    const [platformDiscVip, setPlatformDiscVip] = useState<number>(0);
+
     const [history, setHistory] = useState<HistoryItem[]>([]);
 
-    const voucherInputRef = useRef<HTMLInputElement>(null);
     const desiredPriceInputRef = useRef<HTMLInputElement>(null);
+    const voucherNormalRef = useRef<HTMLInputElement>(null);
+    const voucherVipRef = useRef<HTMLInputElement>(null);
     
-    // Ref to track the previous product to distinguish between "switching products" and "toggling switch"
     const prevProductIdRef = useRef<string | null>(null);
 
-    const [isCopied, setIsCopied] = useState(false);
-    const [isAllCopied, setIsAllCopied] = useState(false);
+    const [isCopiedNormal, setIsCopiedNormal] = useState(false);
+    const [isCopiedVip, setIsCopiedVip] = useState(false);
     const [isIdCopied, setIsIdCopied] = useState(false);
     const [isExclusiveIdCopied, setIsExclusiveIdCopied] = useState(false);
     const [isTimeCopied, setIsTimeCopied] = useState(false);
+    
+    const [isCopyAllNormal, setIsCopyAllNormal] = useState(false);
+    const [isCopyAllVip, setIsCopyAllVip] = useState(false);
     
     const [currentTime, setCurrentTime] = useState(new Date());
     
     const [isQuickPriceInput, setIsQuickPriceInput] = useState(true);
     
-    // Initialize useFinalPrice from localStorage to persist user preference
     const [useFinalPrice, setUseFinalPrice] = useState(() => {
         if (typeof window !== 'undefined') {
             return localStorage.getItem('calculator_useFinalPrice') === 'true';
@@ -139,14 +149,9 @@ export const Calculator: React.FC<CalculatorProps> = ({
     });
 
     const [isDesiredPriceFocused, setIsDesiredPriceFocused] = useState(false);
-    const [isVoucherFocused, setIsVoucherFocused] = useState(false);
-    const [isMinOrderFocused, setIsMinOrderFocused] = useState(false);
-    const [isMaxDiscountFocused, setIsMaxDiscountFocused] = useState(false);
-
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [tempSelectedPresets, setTempSelectedPresets] = useState<number[]>([]);
     
-    // Handler for toggling Final Price mode
     const handleToggleFinalPrice = () => {
         const newState = !useFinalPrice;
         setUseFinalPrice(newState);
@@ -157,62 +162,60 @@ export const Calculator: React.FC<CalculatorProps> = ({
         if (selectedProduct) {
             const isNewProduct = prevProductIdRef.current !== selectedProduct.id;
             
-            // Always update basic info regardless of toggle state
             if (isNewProduct) {
                 setProductId(selectedProduct.id);
                 setExclusiveId(selectedProduct.exclusiveId || '');
                 setProductName(selectedProduct.name);
                 setCurrentPrice(String(selectedProduct.displayPrice));
-                setResult(null); 
-                setAppliedPlatformDiscount(0);
+                setResultNormal(null);
+                setResultVip(null);
+                setPlatformDiscNormal(0);
+                setPlatformDiscVip(0);
             }
             
-            // LOGIC FOR DESIRED PRICE & INPUT FOCUS
             if (useFinalPrice) {
-                // If Toggle is ON: We ALWAYS try to fill with finalPrice.
                 if (selectedProduct.finalPrice) {
                     const rawFinal = String(selectedProduct.finalPrice).replace(/[^0-9]/g, '');
                     setDesiredPrice(rawFinal);
                 } else {
-                    // If product has no final price, clear it if it's a new selection
                     if (isNewProduct) setDesiredPrice('');
                 }
 
-                // New Logic: If switching products and using final price -> Focus Voucher Input
                 if (isNewProduct) {
                     setTimeout(() => {
-                        voucherInputRef.current?.focus();
-                        voucherInputRef.current?.select();
+                        // Focus on the active section's voucher input
+                        if (activeSection === 'normal') {
+                            voucherNormalRef.current?.focus();
+                            voucherNormalRef.current?.select();
+                        } else {
+                            voucherVipRef.current?.focus();
+                            voucherVipRef.current?.select();
+                        }
                     }, 50);
                 }
 
             } else {
-                // If Toggle is OFF:
                 if (isNewProduct) {
-                    // Only clear input if we actually switched products
                     setDesiredPrice('');
                     setTimeout(() => {
                         desiredPriceInputRef.current?.focus();
                     }, 50);
                 }
-                // If we just turned the toggle OFF (isNewProduct = false), do NOT clear the price.
             }
             
             prevProductIdRef.current = selectedProduct.id;
 
         } else {
-             // Reset everything when no product is selected
              setProductId('');
              setExclusiveId('');
              setProductName('');
              setCurrentPrice('');
              setDesiredPrice('');
-             setVoucherValue('');
-             setResult(null);
-             setAppliedPlatformDiscount(0);
+             setVoucherNormal('');
+             setVoucherVip('');
+             setResultNormal(null);
+             setResultVip(null);
              prevProductIdRef.current = null;
-             
-             // NOTE: We do NOT reset useFinalPrice here. 
         }
     }, [selectedProduct, useFinalPrice]); 
 
@@ -244,7 +247,6 @@ export const Calculator: React.FC<CalculatorProps> = ({
         }
     };
 
-    // Standard time display for the clock UI (shows seconds for reference)
     const formattedTime = currentTime.toLocaleTimeString('vi-VN', {
         hour: '2-digit',
         minute: '2-digit',
@@ -257,7 +259,6 @@ export const Calculator: React.FC<CalculatorProps> = ({
         currentPriceStr: string,
         desiredPriceStr: string,
         voucherValueStr: string,
-        vType: VoucherType,
         minOrderStr: string,
         maxDiscountStr: string
     ): { sellerVoucher: number | null, platformContribution: number } => {
@@ -271,88 +272,89 @@ export const Calculator: React.FC<CalculatorProps> = ({
             return { sellerVoucher: null, platformContribution: 0 };
         }
 
+        if (isNaN(voucher) || voucher >= 100) {
+            return { sellerVoucher: null, platformContribution: 0 };
+        }
+
+        const voucherPercent = voucher / 100;
+        let priceAfterSeller = desired / (1 - voucherPercent);
+        let calculatedDiscount = priceAfterSeller * voucherPercent;
+
+        if (calculatedDiscount > maxDiscount) {
+            priceAfterSeller = desired + maxDiscount;
+            calculatedDiscount = maxDiscount; 
+        }
+
         let sellerVoucher = 0;
         let platformContribution = 0;
 
-        if (vType === VoucherType.Percentage) {
-            if (isNaN(voucher) || voucher >= 100) {
-                return { sellerVoucher: null, platformContribution: 0 };
-            }
-
-            const voucherPercent = voucher / 100;
-            let priceAfterSeller = desired / (1 - voucherPercent);
-            let calculatedDiscount = priceAfterSeller * voucherPercent;
-
-            if (calculatedDiscount > maxDiscount) {
-                priceAfterSeller = desired + maxDiscount;
-                calculatedDiscount = maxDiscount; 
-            }
-
-            if (priceAfterSeller < minOrder) {
-                platformContribution = 0;
-                priceAfterSeller = desired; 
-                sellerVoucher = current - desired;
-            } else {
-                platformContribution = calculatedDiscount;
-                sellerVoucher = current - priceAfterSeller;
-            }
-
+        if (priceAfterSeller < minOrder) {
+            platformContribution = 0;
+            priceAfterSeller = desired; 
+            sellerVoucher = current - desired;
         } else {
-            const platformVoucher = isNaN(voucher) ? 0 : voucher;
-            
-            if ((desired + platformVoucher) < minOrder) {
-                 platformContribution = 0;
-                 sellerVoucher = current - desired;
-            } else {
-                 platformContribution = platformVoucher;
-                 sellerVoucher = current - desired - platformVoucher;
-            }
+            platformContribution = calculatedDiscount;
+            sellerVoucher = current - priceAfterSeller;
         }
 
         return { sellerVoucher, platformContribution };
     };
 
     const handleCalculation = useCallback(() => {
-        const desired = parseFloat(desiredPrice);
-        const { sellerVoucher, platformContribution } = performCalculation(
-            currentPrice, 
-            desiredPrice, 
-            voucherValue, 
-            voucherType,
-            minOrderValue.replace(/[^0-9]/g, ''),
-            maxDiscountValue.replace(/[^0-9]/g, '')
+        // Calculate Normal
+        const normalResult = performCalculation(
+            currentPrice, desiredPrice, voucherNormal, 
+            minNormal.replace(/[^0-9]/g, ''), 
+            maxNormal.replace(/[^0-9]/g, '')
         );
-        setResult(sellerVoucher);
-        setAppliedPlatformDiscount(platformContribution);
+        setResultNormal(normalResult.sellerVoucher);
+        setPlatformDiscNormal(normalResult.platformContribution);
 
-        if (sellerVoucher !== null && !isNaN(sellerVoucher) && !isNaN(desired)) {
+        // Calculate VIP
+        const vipResult = performCalculation(
+            currentPrice, desiredPrice, voucherVip, 
+            minVip.replace(/[^0-9]/g, ''), 
+            maxVip.replace(/[^0-9]/g, '')
+        );
+        setResultVip(vipResult.sellerVoucher);
+        setPlatformDiscVip(vipResult.platformContribution);
+
+        // Add History if at least one result is valid
+        if ((normalResult.sellerVoucher !== null || vipResult.sellerVoucher !== null) && desiredPrice) {
             setHistory(prev => {
                 const newItem: HistoryItem = {
                     id: Date.now(),
                     productName: productName || 'Sản phẩm không tên',
-                    desiredPrice: desired,
-                    result: sellerVoucher,
+                    desiredPrice: parseFloat(desiredPrice),
+                    resultNormal: normalResult.sellerVoucher,
+                    resultVip: vipResult.sellerVoucher,
                     timestamp: new Date()
                 };
                 return [newItem, ...prev].slice(5);
             });
         }
-
-    }, [currentPrice, desiredPrice, voucherValue, voucherType, minOrderValue, maxDiscountValue, productName]);
+    }, [currentPrice, desiredPrice, voucherNormal, minNormal, maxNormal, voucherVip, minVip, maxVip, productName]);
 
     const handlePresetClick = (val: number) => {
         const newVoucherStr = String(val);
-        setVoucherValue(newVoucherStr); 
-        const { sellerVoucher, platformContribution } = performCalculation(
-            currentPrice, 
-            desiredPrice, 
-            newVoucherStr, 
-            VoucherType.Percentage,
-            minOrderValue.replace(/[^0-9]/g, ''),
-            maxDiscountValue.replace(/[^0-9]/g, '')
-        );
-        setResult(sellerVoucher);
-        setAppliedPlatformDiscount(platformContribution);
+        
+        if (activeSection === 'normal') {
+            setVoucherNormal(newVoucherStr);
+            const { sellerVoucher, platformContribution } = performCalculation(
+                currentPrice, desiredPrice, newVoucherStr, 
+                minNormal.replace(/[^0-9]/g, ''), maxNormal.replace(/[^0-9]/g, '')
+            );
+            setResultNormal(sellerVoucher);
+            setPlatformDiscNormal(platformContribution);
+        } else {
+            setVoucherVip(newVoucherStr);
+            const { sellerVoucher, platformContribution } = performCalculation(
+                currentPrice, desiredPrice, newVoucherStr, 
+                minVip.replace(/[^0-9]/g, ''), maxVip.replace(/[^0-9]/g, '')
+            );
+            setResultVip(sellerVoucher);
+            setPlatformDiscVip(platformContribution);
+        }
     };
 
     const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -371,7 +373,8 @@ export const Calculator: React.FC<CalculatorProps> = ({
             handleCalculation();
         } else if (event.key === 'Tab' && !event.shiftKey) {
             event.preventDefault();
-            voucherInputRef.current?.focus();
+            if (activeSection === 'normal') voucherNormalRef.current?.focus();
+            else voucherVipRef.current?.focus();
         } else if (event.key === 'Escape') {
             event.preventDefault();
             onFocusSearch && onFocusSearch();
@@ -381,7 +384,6 @@ export const Calculator: React.FC<CalculatorProps> = ({
     const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
         e.target.select();
     };
-
 
     const formatCurrencyForInput = (value: string): string => {
         if (!value) return '';
@@ -393,169 +395,63 @@ export const Calculator: React.FC<CalculatorProps> = ({
         return value.replace(/[^0-9]/g, '');
     };
 
-    // --- Quick Input Handlers & Memoized Values ---
+    // --- Quick Input Logic ---
     const desiredPriceValue = useMemo(() => {
         if (!desiredPrice) return '';
         const numericValue = parseInt(desiredPrice, 10);
         if (isNaN(numericValue)) return '';
-    
         if (!useFinalPrice && isQuickPriceInput && isDesiredPriceFocused) {
             return String(Math.round(numericValue / 1000));
-        } else {
-            return formatCurrencyForInput(desiredPrice);
         }
+        return formatCurrencyForInput(desiredPrice);
     }, [desiredPrice, isQuickPriceInput, isDesiredPriceFocused, useFinalPrice]);
-    
-    const handleDesiredPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (useFinalPrice) return; // Prevent editing when using final price from data
-        
+
+    // Generic handler for formatted inputs
+    const createFormattedChangeHandler = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
         const rawValue = e.target.value;
         const numericString = parseInput(rawValue);
-
         if (isQuickPriceInput) {
             const numericValue = parseInt(numericString, 10);
-            if (isNaN(numericValue)) {
-                setDesiredPrice('');
-            } else {
-                setDesiredPrice(String(numericValue * 1000));
-            }
+            if (isNaN(numericValue)) setter('');
+            else setter(String(numericValue * 1000));
         } else {
-            setDesiredPrice(numericString);
+            setter(numericString);
         }
     };
 
-    const voucherDisplayValue = useMemo(() => {
-        if (!voucherValue) return '';
-        if (voucherType === VoucherType.Percentage) {
-            return voucherValue;
-        }
-        const numericValue = parseInt(voucherValue, 10);
+    // Generic display value
+    const getDisplayValue = (val: string, isFocused: boolean) => {
+        if (!val) return '';
+        const numericValue = parseInt(val, 10);
         if (isNaN(numericValue)) return '';
-
-        if (isQuickPriceInput && isVoucherFocused) {
-            return String(Math.round(numericValue / 1000));
-        } else {
-            return formatCurrencyForInput(voucherValue);
-        }
-    }, [voucherValue, voucherType, isQuickPriceInput, isVoucherFocused]);
-
-    const handleVoucherChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const rawValue = e.target.value;
-        const numericString = parseInput(rawValue);
-
-        if (voucherType === VoucherType.Percentage) {
-            setVoucherValue(numericString);
-        } else {
-            if (isQuickPriceInput) {
-                const numericValue = parseInt(numericString, 10);
-                if (isNaN(numericValue)) {
-                    setVoucherValue('');
-                } else {
-                    setVoucherValue(String(numericValue * 1000));
-                }
-            } else {
-                setVoucherValue(numericString);
-            }
-        }
+        if (isQuickPriceInput && isFocused) return String(Math.round(numericValue / 1000));
+        return formatCurrencyForInput(val);
     };
 
-    const minOrderDisplayValue = useMemo(() => {
-        if (!minOrderValue) return '';
-        const numericValue = parseInt(minOrderValue, 10);
-        if (isNaN(numericValue)) return '';
-    
-        if (isQuickPriceInput && isMinOrderFocused) {
-            return String(Math.round(numericValue / 1000));
-        } else {
-            return formatCurrencyForInput(minOrderValue);
-        }
-    }, [minOrderValue, isQuickPriceInput, isMinOrderFocused]);
-
-    const handleMinOrderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const rawValue = e.target.value;
-        const numericString = parseInput(rawValue);
-
-        if (isQuickPriceInput) {
-            const numericValue = parseInt(numericString, 10);
-            if (isNaN(numericValue)) {
-                setMinOrderValue('');
-            } else {
-                setMinOrderValue(String(numericValue * 1000));
-            }
-        } else {
-            setMinOrderValue(numericString);
-        }
-    };
-
-    const maxDiscountDisplayValue = useMemo(() => {
-        if (!maxDiscountValue) return '';
-        const numericValue = parseInt(maxDiscountValue, 10);
-        if (isNaN(numericValue)) return '';
-    
-        if (isQuickPriceInput && isMaxDiscountFocused) {
-            return String(Math.round(numericValue / 1000));
-        } else {
-            return formatCurrencyForInput(maxDiscountValue);
-        }
-    }, [maxDiscountValue, isQuickPriceInput, isMaxDiscountFocused]);
-
-    const handleMaxDiscountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const rawValue = e.target.value;
-        const numericString = parseInput(rawValue);
-
-        if (isQuickPriceInput) {
-            const numericValue = parseInt(numericString, 10);
-            if (isNaN(numericValue)) {
-                setMaxDiscountValue('');
-            } else {
-                setMaxDiscountValue(String(numericValue * 1000));
-            }
-        } else {
-            setMaxDiscountValue(numericString);
-        }
-    };
-
-
-    const handleCopyResult = () => {
+    const handleCopyResult = (result: number | null, isVip: boolean) => {
         if (result !== null) {
             const textToCopy = String(Math.round(result));
             navigator.clipboard.writeText(textToCopy).then(() => {
-                setIsCopied(true);
-                setTimeout(() => setIsCopied(false), 2000);
+                if (isVip) {
+                    setIsCopiedVip(true);
+                    setTimeout(() => setIsCopiedVip(false), 2000);
+                } else {
+                    setIsCopiedNormal(true);
+                    setTimeout(() => setIsCopiedNormal(false), 2000);
+                }
             });
         }
     };
 
-    // Updated Copy function to include Time
-    const handleCopyAllThree = async () => {
-        if (result !== null && productId) {
-            try {
-                // 1. Copy ID First
-                await navigator.clipboard.writeText(productId);
-                
-                // 2. Delay for Clipboard History
-                await new Promise(resolve => setTimeout(resolve, 300));
-                
-                // 3. Copy Voucher Price
-                const textToCopy = String(Math.round(result));
-                await navigator.clipboard.writeText(textToCopy);
-
-                // 4. Delay
-                await new Promise(resolve => setTimeout(resolve, 300));
-
-                // 5. Copy Rounded Time
-                const timeText = getRoundedTime(currentTime);
-                await navigator.clipboard.writeText(timeText);
-
-                setIsAllCopied(true);
-                setTimeout(() => setIsAllCopied(false), 2000);
-            } catch (err) {
-                console.error('Failed to copy', err);
-            }
-        }
+    const handleCopyTime = () => {
+        const timeText = getRoundedTime(currentTime);
+        navigator.clipboard.writeText(timeText).then(() => {
+            setIsTimeCopied(true);
+            setTimeout(() => setIsTimeCopied(false), 2000);
+        });
     };
-
-     const handleCopyId = () => {
+    
+    const handleCopyId = () => {
         if (productId) {
             navigator.clipboard.writeText(productId).then(() => {
                 setIsIdCopied(true);
@@ -573,42 +469,64 @@ export const Calculator: React.FC<CalculatorProps> = ({
         }
     };
 
-    const handleCopyTime = () => {
-        const timeText = getRoundedTime(currentTime);
-        navigator.clipboard.writeText(timeText).then(() => {
-            setIsTimeCopied(true);
-            setTimeout(() => setIsTimeCopied(false), 2000);
-        });
+    const handleCopyAll = async (result: number | null, isVip: boolean) => {
+        if (result !== null) {
+             const timeText = getRoundedTime(currentTime);
+             const price = String(Math.round(result));
+             const id = productId || 'NoID';
+             
+             // Sequential copy with delay to create distinct clipboard history entries (Win + V)
+             // Desired History Order (Top to Bottom): [Time, Price, ID]
+             // Execution Sequence: ID -> Price -> Time
+             
+             try {
+                 // 1. Copy ID
+                 await navigator.clipboard.writeText(id);
+                 await new Promise(resolve => setTimeout(resolve, 250)); // Wait for OS to register
+
+                 // 2. Copy Price
+                 await navigator.clipboard.writeText(price);
+                 await new Promise(resolve => setTimeout(resolve, 250)); 
+
+                 // 3. Copy Time (This will be the "active" current item)
+                 await navigator.clipboard.writeText(timeText);
+
+                 // UI Feedback
+                 if (isVip) {
+                    setIsCopyAllVip(true);
+                    setTimeout(() => setIsCopyAllVip(false), 2000);
+                } else {
+                    setIsCopyAllNormal(true);
+                    setTimeout(() => setIsCopyAllNormal(false), 2000);
+                }
+             } catch (err) {
+                 console.error("Multi-copy failed", err);
+             }
+        }
     };
 
     const toggleSettings = () => setIsSettingsOpen(!isSettingsOpen);
-
     const handlePresetSelection = (voucher: number) => {
         setTempSelectedPresets(prev => {
-            if (prev.includes(voucher)) {
-                return prev.filter(v => v !== voucher);
-            } else {
-                if (prev.length >= 6) return prev; 
-                return [...prev, voucher].sort((a, b) => a - b);
-            }
+            if (prev.includes(voucher)) return prev.filter(v => v !== voucher);
+            if (prev.length >= 6) return prev; 
+            return [...prev, voucher].sort((a, b) => a - b);
         });
     };
-
     const savePresets = () => {
         onSavePresets(tempSelectedPresets);
         setIsSettingsOpen(false);
     };
-
     useEffect(() => {
-        if (isSettingsOpen) {
-            setTempSelectedPresets(presetVouchers);
-        }
+        if (isSettingsOpen) setTempSelectedPresets(presetVouchers);
     }, [isSettingsOpen, presetVouchers]);
 
+    // Active field tracking for display formatting
+    const [focusedField, setFocusedField] = useState<string | null>(null);
 
     return (
         <div className="h-full flex flex-col relative overflow-hidden p-6">
-             {/* Header Card */}
+             {/* Header */}
              <div className="flex justify-between items-center mb-6 flex-shrink-0 border-b border-slate-800/50 pb-4">
                 <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-primary-500/20 rounded-xl border border-primary-500/20">
@@ -619,33 +537,15 @@ export const Calculator: React.FC<CalculatorProps> = ({
                         <p className="text-xs font-mono text-slate-500">{dealListName}</p>
                     </div>
                 </div>
-                {/* Clock - Clickable */}
-                <button 
-                    onClick={handleCopyTime}
-                    className="glass-input px-3 py-1.5 rounded-lg font-mono text-lg font-bold text-primary-300 tracking-widest shadow-inner hover:bg-slate-800 transition-colors flex items-center gap-2 group relative overflow-hidden"
-                    title="Click để copy giờ chốt đơn (làm tròn >40s)"
-                >
-                    {isTimeCopied ? (
-                        <span className="flex items-center gap-2 text-emerald-400">
-                            <CheckIcon className="w-5 h-5" />
-                            <span className="font-mono">{formattedTime}</span>
-                        </span>
-                    ) : (
-                        <span className="flex items-center gap-2">
-                             <span className="font-mono">{formattedTime}</span>
-                             <CopyIcon className="w-4 h-4 opacity-50 group-hover:opacity-100" />
-                        </span>
-                    )}
-                    {isTimeCopied && (
-                         <div className="absolute inset-0 bg-emerald-500/10 pointer-events-none" />
-                    )}
-                </button>
+                {/* Global Time Display in Header (Visual Only) */}
+                <div className="glass-input px-3 py-1.5 rounded-lg font-mono text-lg font-bold text-primary-300 tracking-widest shadow-inner flex items-center gap-2">
+                    <span className="flex items-center gap-2"><span className="font-mono">{formattedTime}</span></span>
+                </div>
             </div>
 
-            {/* SCROLLABLE BODY AREA */}
+            {/* BODY */}
             <div className="flex-grow overflow-y-auto custom-scrollbar space-y-5 pr-1 pb-2">
-                
-                 {/* Product Info Section */}
+                 {/* Product Info */}
                  <div className="space-y-3">
                     <div className="relative">
                         <label className="block text-xs font-semibold text-slate-400 mb-1.5 ml-1 uppercase tracking-wide">Sản phẩm đang chọn</label>
@@ -657,15 +557,10 @@ export const Calculator: React.FC<CalculatorProps> = ({
                             className="block w-full px-4 py-3 glass-input rounded-xl focus:ring-2 focus:ring-primary-500/50 transition-all text-sm font-medium resize-y shadow-inner placeholder:text-slate-600 min-h-[80px] hover:border-primary-500/40 hover:shadow-glow-hover hover:bg-slate-900/80"
                         />
                     </div>
-                     
-                    {/* IDs Display */}
                     {(productId || exclusiveId) && (
                         <div className="flex gap-2">
                             {productId && (
-                                <div 
-                                    onClick={handleCopyId}
-                                    className="flex-1 bg-slate-900/50 rounded-xl px-3 py-2 border border-slate-700 flex items-center justify-between cursor-pointer group hover:border-primary-500/50 hover:bg-primary-900/10 transition-all hover:shadow-glow-hover"
-                                >
+                                <div onClick={handleCopyId} className="flex-1 bg-slate-900/50 rounded-xl px-3 py-2 border border-slate-700 flex items-center justify-between cursor-pointer group hover:border-primary-500/50 hover:bg-primary-900/10 transition-all hover:shadow-glow-hover">
                                     <div className="overflow-hidden">
                                          <span className="text-[10px] font-bold text-slate-500 block mb-0.5 uppercase tracking-wider">ID Sản phẩm</span>
                                          <span className="text-xs font-mono font-bold text-slate-200 truncate block">{productId}</span>
@@ -674,10 +569,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
                                 </div>
                             )}
                              {exclusiveId && (
-                                <div 
-                                    onClick={handleCopyExclusiveId}
-                                    className="flex-1 bg-secondary-900/10 rounded-xl px-3 py-2 border border-secondary-500/20 flex items-center justify-between cursor-pointer group hover:border-secondary-500/50 hover:bg-secondary-900/20 transition-all hover:shadow-glow-hover"
-                                >
+                                <div onClick={handleCopyExclusiveId} className="flex-1 bg-secondary-900/10 rounded-xl px-3 py-2 border border-secondary-500/20 flex items-center justify-between cursor-pointer group hover:border-secondary-500/50 hover:bg-secondary-900/20 transition-all hover:shadow-glow-hover">
                                     <div className="overflow-hidden">
                                          <span className="text-[10px] font-bold text-secondary-400 block mb-0.5 uppercase tracking-wider">ID Độc quyền</span>
                                          <span className="text-xs font-mono font-bold text-secondary-200 truncate block">{exclusiveId}</span>
@@ -691,7 +583,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
 
                 <div className="h-px bg-slate-800/50 w-full"></div>
 
-                {/* Price Inputs */}
+                {/* Shared Prices */}
                 <div className="space-y-4">
                     <InputField
                         label="Giá hiển thị"
@@ -703,30 +595,19 @@ export const Calculator: React.FC<CalculatorProps> = ({
                         onFocus={handleInputFocus}
                     />
                     
-                    {/* Separated Logic for Desired Price */}
                     <div>
                         <div className="flex justify-between items-center mb-1.5 ml-1">
                             <div className="flex items-center gap-2">
                                 <label htmlFor="desiredPrice" className="block text-xs font-semibold text-slate-400 uppercase tracking-wide">Giá cuối mong muốn</label>
-                                
-                                {/* Use Final Price Toggle */}
-                                <div className="flex items-center gap-2 ml-2 bg-slate-900/50 px-2 py-0.5 rounded-full border border-slate-800/50" title="Tự động điền giá cuối từ dữ liệu sản phẩm (Giữ trạng thái khi đổi sản phẩm)">
-                                    <span className={`text-[9px] font-bold uppercase transition-colors ${useFinalPrice ? 'text-emerald-400' : 'text-slate-600'}`}>
-                                        Dùng giá cuối
-                                    </span>
-                                    <div 
-                                        onClick={handleToggleFinalPrice}
-                                        className={`w-6 h-3.5 rounded-full relative transition-colors cursor-pointer ${useFinalPrice ? 'bg-emerald-600' : 'bg-slate-700'}`}
-                                    >
+                                <div className="flex items-center gap-2 ml-2 bg-slate-900/50 px-2 py-0.5 rounded-full border border-slate-800/50" title="Tự động điền giá cuối">
+                                    <span className={`text-[9px] font-bold uppercase transition-colors ${useFinalPrice ? 'text-emerald-400' : 'text-slate-600'}`}>Dùng giá cuối</span>
+                                    <div onClick={handleToggleFinalPrice} className={`w-6 h-3.5 rounded-full relative transition-colors cursor-pointer ${useFinalPrice ? 'bg-emerald-600' : 'bg-slate-700'}`}>
                                         <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white shadow-sm transition-all ${useFinalPrice ? 'left-3' : 'left-0.5'}`} />
                                     </div>
                                 </div>
                             </div>
-                            
                             <div className={`flex items-center gap-2 cursor-pointer group ${useFinalPrice ? 'opacity-50 pointer-events-none' : ''}`} onClick={() => setIsQuickPriceInput(!isQuickPriceInput)} title="Bật/Tắt nhập nhanh (x1000)">
-                                 <span className={`text-[10px] uppercase font-bold transition-colors ${isQuickPriceInput ? 'text-primary-400' : 'text-slate-600 group-hover:text-slate-500'}`}>
-                                    x1000
-                                </span>
+                                 <span className={`text-[10px] uppercase font-bold transition-colors ${isQuickPriceInput ? 'text-primary-400' : 'text-slate-600 group-hover:text-slate-500'}`}>x1000</span>
                                 <div className={`w-7 h-3.5 rounded-full relative transition-colors ${isQuickPriceInput ? 'bg-primary-600' : 'bg-slate-700'}`}>
                                     <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white shadow-sm transition-all ${isQuickPriceInput ? 'left-4' : 'left-0.5'}`} />
                                 </div>
@@ -737,7 +618,16 @@ export const Calculator: React.FC<CalculatorProps> = ({
                             ref={desiredPriceInputRef}
                             id="desiredPrice"
                             value={desiredPriceValue}
-                            onChange={handleDesiredPriceChange}
+                            onChange={(e) => {
+                                if (useFinalPrice) return;
+                                const rawValue = e.target.value;
+                                const numericString = parseInput(rawValue);
+                                if (isQuickPriceInput) {
+                                    const num = parseInt(numericString, 10);
+                                    if (isNaN(num)) setDesiredPrice('');
+                                    else setDesiredPrice(String(num * 1000));
+                                } else setDesiredPrice(numericString);
+                            }}
                             onFocus={(e) => {
                                 if (!useFinalPrice) {
                                     setIsDesiredPriceFocused(true);
@@ -748,143 +638,156 @@ export const Calculator: React.FC<CalculatorProps> = ({
                             onKeyDown={handleDesiredPriceKeyDown}
                             readOnly={useFinalPrice}
                             disabled={useFinalPrice}
-                            placeholder={useFinalPrice ? (selectedProduct?.finalPrice ? "" : "Sản phẩm không có giá cuối") : (isQuickPriceInput ? "100 -> 100.000" : "Nhập số tiền")}
+                            placeholder={useFinalPrice ? (selectedProduct?.finalPrice ? "" : "Không có giá cuối") : (isQuickPriceInput ? "100 -> 100.000" : "Nhập số tiền")}
                             suffix={useFinalPrice ? <LockClosedIcon className="w-4 h-4 text-emerald-500/50" /> : <span className="text-slate-500 text-xs font-bold font-mono">VND</span>}
                             className={`shadow-sm ${useFinalPrice ? 'opacity-90' : ''}`}
                         />
                     </div>
                 </div>
 
-                {/* Voucher Inputs */}
-                <div className="bg-slate-900/30 p-4 rounded-2xl border border-white/5 space-y-4">
-                    <div className="flex justify-between items-center">
-                        <label className="text-xs font-semibold text-slate-400 ml-1 uppercase tracking-wide">Voucher sàn</label>
-                         <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
-                            <button
-                                onClick={() => setVoucherType(VoucherType.Percentage)}
-                                className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${voucherType === VoucherType.Percentage ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
-                            >
-                                %
-                            </button>
-                            <button
-                                onClick={() => setVoucherType(VoucherType.Fixed)}
-                                className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${voucherType === VoucherType.Fixed ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
-                            >
-                                VND
-                            </button>
+                {/* VOUCHER DUAL COLUMNS */}
+                <div className="grid grid-cols-2 gap-4">
+                    {/* NORMAL ACCOUNT */}
+                    <div 
+                        className={`space-y-3 transition-opacity ${activeSection === 'vip' ? 'opacity-60 hover:opacity-100' : 'opacity-100'}`}
+                        onClick={() => setActiveSection('normal')}
+                    >
+                        <div className="flex items-center gap-2 mb-1">
+                             <div className={`w-2 h-2 rounded-full ${activeSection === 'normal' ? 'bg-primary-500' : 'bg-slate-700'}`}></div>
+                             <span className="text-xs font-bold text-slate-300 uppercase">Tài khoản Thường</span>
                         </div>
-                    </div>
-
-                    <div className="relative">
-                         <input
-                            ref={voucherInputRef}
-                            type="text" 
-                            value={voucherDisplayValue}
-                            onChange={handleVoucherChange} 
-                            onKeyDown={handleKeyDown}
-                            onFocus={(e) => { setIsVoucherFocused(true); handleInputFocus(e); }}
-                            onBlur={() => setIsVoucherFocused(false)}
-                            placeholder={voucherType === VoucherType.Percentage ? "Nhập %" : (isQuickPriceInput ? "Nhập số tiền (x1000)" : "Nhập số tiền")}
-                            className="block w-full px-4 py-3 bg-slate-950 border border-slate-700 text-white rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-lg font-bold font-mono shadow-sm text-center placeholder:text-slate-700 hover:border-primary-500/40 hover:shadow-glow-hover hover:bg-slate-900/80"
-                        />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 font-bold text-xs">
-                            {voucherType === VoucherType.Percentage ? '%' : 'VND'}
-                        </span>
-                    </div>
-
-                    {/* Conditional Voucher Fields (Min Order & Max Discount) */}
-                    {voucherType === VoucherType.Percentage && (
-                        <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                            <div className="relative">
+                        
+                        <div className={`p-3 rounded-2xl border transition-all ${activeSection === 'normal' ? 'bg-slate-900/50 border-primary-500/30 shadow-glow-inset' : 'bg-slate-950/30 border-slate-800'}`}>
+                             {/* % Input */}
+                             <div className="relative mb-3">
                                 <input
-                                    type="text"
-                                    value={minOrderDisplayValue}
-                                    onChange={handleMinOrderChange}
-                                    onFocus={(e) => { setIsMinOrderFocused(true); handleInputFocus(e); }}
-                                    onBlur={() => setIsMinOrderFocused(false)}
+                                    ref={voucherNormalRef}
+                                    type="text" 
+                                    value={voucherNormal}
+                                    onChange={e => setVoucherNormal(e.target.value.replace(/[^0-9]/g, ''))}
                                     onKeyDown={handleKeyDown}
-                                    placeholder="Min (x1k)"
-                                    className="block w-full pl-3 pr-8 py-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl focus:ring-1 focus:ring-primary-500 text-xs font-mono shadow-sm placeholder:text-slate-700 hover:border-primary-400 hover:shadow-glow-hover hover:bg-slate-900/80 transition-all"
+                                    onFocus={handleInputFocus}
+                                    placeholder="%"
+                                    className="block w-full px-2 py-2 bg-slate-950 border border-slate-700 text-white rounded-xl focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-lg font-bold font-mono shadow-sm text-center placeholder:text-slate-700"
                                 />
-                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-600 text-[9px] font-bold pointer-events-none">MIN</span>
-                            </div>
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    value={maxDiscountDisplayValue}
-                                    onChange={handleMaxDiscountChange}
-                                    onFocus={(e) => { setIsMaxDiscountFocused(true); handleInputFocus(e); }}
-                                    onBlur={() => setIsMaxDiscountFocused(false)}
-                                    onKeyDown={handleKeyDown}
-                                    placeholder="Max (x1k)"
-                                    className="block w-full pl-3 pr-8 py-2 bg-slate-950 border border-slate-800 text-slate-200 rounded-xl focus:ring-1 focus:ring-primary-500 text-xs font-mono shadow-sm placeholder:text-slate-700 hover:border-primary-400 hover:shadow-glow-hover hover:bg-slate-900/80 transition-all"
-                                />
-                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-600 text-[9px] font-bold pointer-events-none">MAX</span>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Preset Vouchers */}
-                     {voucherType === VoucherType.Percentage && (
-                        <div>
-                            <div className="flex justify-between items-center mb-2 px-1">
-                                <span className="text-[10px] font-bold text-slate-500 uppercase">Chọn nhanh</span>
-                                <button onClick={toggleSettings} className="text-slate-600 hover:text-primary-400 transition-colors"><CogIcon className="w-3.5 h-3.5" /></button>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                                {presetVouchers.map(v => (
-                                    <button
-                                        key={v}
-                                        onClick={() => handlePresetClick(v)}
-                                        className={`flex-1 min-w-[2.5rem] py-1.5 rounded-lg text-xs font-bold border transition-all active:scale-95 font-mono ${
-                                            voucherValue === String(v) 
-                                            ? 'bg-primary-600 text-white border-primary-500 shadow-glow-sm' 
-                                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-primary-500/50 hover:text-primary-300 hover:bg-primary-900/20 hover:shadow-glow-hover'
-                                        }`}
-                                    >
-                                        {v}%
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-                
-                {/* History Section */}
-                {history.length > 0 && (
-                    <div className="pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                         <div className="flex items-center gap-2 mb-2 px-1 mt-2">
-                            <div className="w-1 h-1 rounded-full bg-primary-500"></div>
-                            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wide">Lịch sử</span>
-                            <div className="h-px bg-slate-800 flex-grow"></div>
-                         </div>
-                         <div className="space-y-2">
-                            {history.map((item) => (
-                                <div 
-                                    key={item.id}
-                                    className="bg-slate-900/40 hover:bg-slate-800/60 rounded-xl p-2.5 border border-white/5 transition-all flex justify-between items-center group cursor-pointer hover:shadow-glow-hover hover:border-primary-500/30"
-                                    onClick={() => {
-                                         navigator.clipboard.writeText(String(Math.round(item.result)));
-                                    }}
-                                    title="Click để sao chép kết quả"
-                                >
-                                    <div className="flex-1 min-w-0 mr-3">
-                                        <div className="text-xs font-medium text-slate-300 truncate">{item.productName}</div>
-                                        <div className="flex items-center gap-1 text-[10px] text-slate-500 font-mono">
-                                            <span>Mong muốn: {formatCurrency(item.desiredPrice)}</span>
-                                            <span className="text-slate-700">•</span>
-                                            <span>{item.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute:'2-digit' })}</span>
-                                        </div>
-                                    </div>
-                                    <div className="font-bold font-mono text-primary-300 text-sm bg-primary-500/10 px-2 py-1 rounded-lg border border-primary-500/20 group-hover:border-primary-500/40">
-                                        {formatCurrency(item.result)}
-                                    </div>
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 font-bold text-xs">%</span>
+                             </div>
+                             
+                             {/* Min/Max Inputs */}
+                             <div className="space-y-2">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={getDisplayValue(minNormal, focusedField === 'minNormal')}
+                                        onChange={createFormattedChangeHandler(setMinNormal)}
+                                        onFocus={(e) => { setFocusedField('minNormal'); handleInputFocus(e); setActiveSection('normal'); }}
+                                        onBlur={() => setFocusedField(null)}
+                                        onKeyDown={handleKeyDown}
+                                        placeholder="Min"
+                                        className="block w-full pl-2 pr-7 py-1.5 bg-slate-950 border border-slate-800 text-slate-300 rounded-lg text-xs font-mono focus:border-primary-500 focus:outline-none"
+                                    />
+                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-600 font-bold">MIN</span>
                                 </div>
-                            ))}
-                         </div>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={getDisplayValue(maxNormal, focusedField === 'maxNormal')}
+                                        onChange={createFormattedChangeHandler(setMaxNormal)}
+                                        onFocus={(e) => { setFocusedField('maxNormal'); handleInputFocus(e); setActiveSection('normal'); }}
+                                        onBlur={() => setFocusedField(null)}
+                                        onKeyDown={handleKeyDown}
+                                        placeholder="Max"
+                                        className="block w-full pl-2 pr-7 py-1.5 bg-slate-950 border border-slate-800 text-slate-300 rounded-lg text-xs font-mono focus:border-primary-500 focus:outline-none"
+                                    />
+                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-600 font-bold">MAX</span>
+                                </div>
+                             </div>
+                        </div>
                     </div>
-                )}
 
+                    {/* VIP ACCOUNT */}
+                    <div 
+                        className={`space-y-3 transition-opacity ${activeSection === 'normal' ? 'opacity-60 hover:opacity-100' : 'opacity-100'}`}
+                        onClick={() => setActiveSection('vip')}
+                    >
+                        <div className="flex items-center gap-2 mb-1">
+                             <div className={`w-2 h-2 rounded-full ${activeSection === 'vip' ? 'bg-amber-500' : 'bg-slate-700'}`}></div>
+                             <span className="text-xs font-bold text-amber-500 uppercase">Tài khoản VIP</span>
+                        </div>
+
+                        <div className={`p-3 rounded-2xl border transition-all ${activeSection === 'vip' ? 'bg-amber-900/10 border-amber-500/30 shadow-[inset_0_0_20px_rgba(245,158,11,0.1)]' : 'bg-slate-950/30 border-slate-800'}`}>
+                             {/* % Input */}
+                             <div className="relative mb-3">
+                                <input
+                                    ref={voucherVipRef}
+                                    type="text" 
+                                    value={voucherVip}
+                                    onChange={e => setVoucherVip(e.target.value.replace(/[^0-9]/g, ''))}
+                                    onKeyDown={handleKeyDown}
+                                    onFocus={handleInputFocus}
+                                    placeholder="%"
+                                    className="block w-full px-2 py-2 bg-slate-950 border border-slate-700 text-amber-400 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all text-lg font-bold font-mono shadow-sm text-center placeholder:text-slate-700"
+                                />
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 font-bold text-xs">%</span>
+                             </div>
+                             
+                             {/* Min/Max Inputs */}
+                             <div className="space-y-2">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={getDisplayValue(minVip, focusedField === 'minVip')}
+                                        onChange={createFormattedChangeHandler(setMinVip)}
+                                        onFocus={(e) => { setFocusedField('minVip'); handleInputFocus(e); setActiveSection('vip'); }}
+                                        onBlur={() => setFocusedField(null)}
+                                        onKeyDown={handleKeyDown}
+                                        placeholder="Min"
+                                        className="block w-full pl-2 pr-7 py-1.5 bg-slate-950 border border-slate-800 text-slate-300 rounded-lg text-xs font-mono focus:border-amber-500 focus:outline-none"
+                                    />
+                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-600 font-bold">MIN</span>
+                                </div>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={getDisplayValue(maxVip, focusedField === 'maxVip')}
+                                        onChange={createFormattedChangeHandler(setMaxVip)}
+                                        onFocus={(e) => { setFocusedField('maxVip'); handleInputFocus(e); setActiveSection('vip'); }}
+                                        onBlur={() => setFocusedField(null)}
+                                        onKeyDown={handleKeyDown}
+                                        placeholder="Max"
+                                        className="block w-full pl-2 pr-7 py-1.5 bg-slate-950 border border-slate-800 text-slate-300 rounded-lg text-xs font-mono focus:border-amber-500 focus:outline-none"
+                                    />
+                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-600 font-bold">MAX</span>
+                                </div>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Preset Vouchers */}
+                <div>
+                    <div className="flex justify-between items-center mb-2 px-1">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">
+                            Chọn nhanh (Áp dụng cho <span className={activeSection === 'vip' ? 'text-amber-500' : 'text-primary-400'}>{activeSection === 'vip' ? 'VIP' : 'Thường'}</span>)
+                        </span>
+                        <button onClick={toggleSettings} className="text-slate-600 hover:text-primary-400 transition-colors"><CogIcon className="w-3.5 h-3.5" /></button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {presetVouchers.map(v => (
+                            <button
+                                key={v}
+                                onClick={() => handlePresetClick(v)}
+                                className={`flex-1 min-w-[2.5rem] py-1.5 rounded-lg text-xs font-bold border transition-all active:scale-95 font-mono ${
+                                    (activeSection === 'normal' && voucherNormal === String(v)) || (activeSection === 'vip' && voucherVip === String(v))
+                                    ? (activeSection === 'vip' ? 'bg-amber-600 text-white border-amber-500 shadow-glow-sm' : 'bg-primary-600 text-white border-primary-500 shadow-glow-sm')
+                                    : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-600 hover:text-slate-200'
+                                }`}
+                            >
+                                {v}%
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </div>
 
              {/* Footer / Result */}
@@ -896,74 +799,104 @@ export const Calculator: React.FC<CalculatorProps> = ({
                     Tính giá ngay
                 </button>
 
-                 {result !== null && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-                        <div className="bg-gradient-to-br from-primary-600 via-secondary-600 to-primary-600 rounded-2xl p-[1px] shadow-2xl shadow-primary-900/50">
-                            <div className="bg-slate-950/90 backdrop-blur-md rounded-[15px] p-5 relative overflow-hidden">
-                                {/* Glow */}
-                                <div className="absolute top-[-50%] right-[-50%] w-full h-full bg-primary-500/20 blur-3xl rounded-full"></div>
-                                
-                                <div className="relative z-10">
-                                    {/* Platform Contribution Info */}
-                                    {(minOrderValue || maxDiscountValue) && appliedPlatformDiscount > 0 && (
-                                        <div className="mb-3 pb-3 border-b border-white/10 text-primary-200 text-xs font-medium flex justify-between items-center">
-                                            <span>Sàn tài trợ</span>
-                                            <span className="font-bold font-mono text-white text-sm bg-white/10 px-2 py-0.5 rounded border border-white/5">{formatCurrency(appliedPlatformDiscount)}</span>
+                 {(resultNormal !== null || resultVip !== null) && (
+                    <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        {/* NORMAL RESULT */}
+                        <div className="bg-slate-900 border border-slate-700 rounded-xl p-3 relative overflow-hidden group flex flex-col justify-between">
+                             {resultNormal !== null ? (
+                                <>
+                                    <div>
+                                        <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">Kết quả Thường</div>
+                                        <div className="text-xl font-black font-mono text-white tracking-tight mb-1">
+                                            {formatCurrency(resultNormal)}
                                         </div>
-                                    )}
-                                     {(parseFloat(maxDiscountValue.replace(/[^0-9]/g, '')) > 0 && appliedPlatformDiscount === parseFloat(maxDiscountValue.replace(/[^0-9]/g, ''))) && (
-                                        <div className="text-[10px] text-yellow-500 mb-2 font-bold flex items-center gap-1">
-                                            <span>⚠️</span> Đã chạm trần giảm tối đa
-                                        </div>
-                                    )}
-
-                                    {(minOrderValue || maxDiscountValue) && appliedPlatformDiscount === 0 && voucherType === VoucherType.Percentage && voucherValue && (
-                                        <div className="mb-3 pb-3 border-b border-white/10 text-red-400 text-xs font-bold flex items-center gap-1">
-                                            <span>⚠️</span> Không đủ điều kiện áp mã sàn
-                                        </div>
-                                    )}
-
-                                    <div className="flex justify-between items-end">
-                                        <div>
-                                            <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-1">Voucher người bán</p>
-                                            <div className="text-3xl font-black font-mono text-white tracking-tight">
-                                                {formatCurrency(result)} <span className="text-lg text-slate-500 font-medium">đ</span>
+                                        {platformDiscNormal > 0 && (
+                                            <div className="text-[10px] text-primary-400 font-mono flex justify-between">
+                                                <span>Sàn:</span> <span>{formatCurrency(platformDiscNormal)}</span>
                                             </div>
-                                        </div>
-                                        
-                                        <div className="flex gap-2 mb-1">
-                                            {/* Copy All Button */}
-                                            {productId && (
-                                                <button
-                                                    onClick={handleCopyAllThree}
-                                                    className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all border border-white/10 shrink-0"
-                                                    title="Copy ID, Giá & Giờ (Win+V)"
-                                                >
-                                                    {isAllCopied ? <CheckIcon className="w-5 h-5 text-green-400" /> : <Square2StackIcon className="w-5 h-5 text-slate-300" />}
-                                                </button>
-                                            )}
-                                            
-                                            {/* Copy Result Only Button */}
-                                            <button 
-                                                onClick={handleCopyResult}
-                                                className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all border border-white/10 shrink-0"
-                                                title="Chỉ sao chép giá"
-                                            >
-                                                 {isCopied ? <CheckIcon className="w-5 h-5 text-green-400" /> : <CopyIcon className="w-5 h-5 text-slate-300" />}
-                                            </button>
-
-                                             {/* Copy Time Only Button */}
-                                            <button 
-                                                onClick={handleCopyTime}
-                                                className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all border border-white/10 shrink-0"
-                                                title="Chỉ copy Giờ chốt đơn"
-                                            >
-                                                 {isTimeCopied ? <CheckIcon className="w-5 h-5 text-green-400" /> : <ClockIcon className="w-5 h-5 text-slate-300" />}
-                                            </button>
-                                        </div>
+                                        )}
                                     </div>
-                                </div>
-                            </div>
+                                    <div className="flex items-center gap-1 mt-2 justify-end">
+                                        <button
+                                            onClick={() => handleCopyAll(resultNormal, false)}
+                                            className={`p-1.5 rounded-lg transition-all ${isCopyAllNormal ? 'text-green-400 bg-green-900/20' : 'text-slate-500 hover:text-white hover:bg-slate-800'}`}
+                                            title="Copy Tất cả (ID, Giá, Giờ)"
+                                        >
+                                            {isCopyAllNormal ? <CheckIcon className="w-3.5 h-3.5" /> : <ClipboardDocumentListIcon className="w-3.5 h-3.5" />}
+                                        </button>
+                                        <button
+                                            onClick={() => handleCopyResult(resultNormal, false)}
+                                            className={`p-1.5 rounded-lg transition-all ${isCopiedNormal ? 'text-green-400 bg-green-900/20' : 'text-slate-500 hover:text-white hover:bg-slate-800'}`}
+                                            title="Copy Giá voucher"
+                                        >
+                                            {isCopiedNormal ? <CheckIcon className="w-3.5 h-3.5" /> : <Square2StackIcon className="w-3.5 h-3.5" />}
+                                        </button>
+                                         <button
+                                            onClick={handleCopyId}
+                                            className={`p-1.5 rounded-lg transition-all ${isIdCopied ? 'text-green-400 bg-green-900/20' : 'text-slate-500 hover:text-white hover:bg-slate-800'}`}
+                                            title="Copy ID Sản phẩm"
+                                        >
+                                            {isIdCopied ? <CheckIcon className="w-3.5 h-3.5" /> : <IdentificationIcon className="w-3.5 h-3.5" />}
+                                        </button>
+                                        <button
+                                            onClick={handleCopyTime}
+                                            className={`p-1.5 rounded-lg transition-all ${isTimeCopied ? 'text-green-400 bg-green-900/20' : 'text-slate-500 hover:text-white hover:bg-slate-800'}`}
+                                            title="Copy Giờ hiện tại"
+                                        >
+                                            {isTimeCopied ? <CheckIcon className="w-3.5 h-3.5" /> : <ClockIcon className="w-3.5 h-3.5" />}
+                                        </button>
+                                    </div>
+                                </>
+                             ) : <div className="text-xs text-slate-600 text-center py-4">Chưa tính</div>}
+                        </div>
+
+                        {/* VIP RESULT */}
+                        <div className="bg-amber-900/10 border border-amber-500/20 rounded-xl p-3 relative overflow-hidden group flex flex-col justify-between">
+                             {resultVip !== null ? (
+                                <>
+                                    <div>
+                                        <div className="text-[9px] font-bold text-amber-600 uppercase mb-1">Kết quả VIP</div>
+                                        <div className="text-xl font-black font-mono text-amber-400 tracking-tight mb-1">
+                                            {formatCurrency(resultVip)}
+                                        </div>
+                                        {platformDiscVip > 0 && (
+                                            <div className="text-[10px] text-amber-600/80 font-mono flex justify-between">
+                                                <span>Sàn:</span> <span>{formatCurrency(platformDiscVip)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-1 mt-2 justify-end">
+                                        <button
+                                            onClick={() => handleCopyAll(resultVip, true)}
+                                            className={`p-1.5 rounded-lg transition-all ${isCopyAllVip ? 'text-green-400 bg-green-900/20' : 'text-amber-600/70 hover:text-amber-400 hover:bg-amber-900/20'}`}
+                                            title="Copy Tất cả (ID, Giá, Giờ)"
+                                        >
+                                            {isCopyAllVip ? <CheckIcon className="w-3.5 h-3.5" /> : <ClipboardDocumentListIcon className="w-3.5 h-3.5" />}
+                                        </button>
+                                        <button
+                                            onClick={() => handleCopyResult(resultVip, true)}
+                                            className={`p-1.5 rounded-lg transition-all ${isCopiedVip ? 'text-green-400 bg-green-900/20' : 'text-amber-600/70 hover:text-amber-400 hover:bg-amber-900/20'}`}
+                                            title="Copy Giá voucher"
+                                        >
+                                            {isCopiedVip ? <CheckIcon className="w-3.5 h-3.5" /> : <Square2StackIcon className="w-3.5 h-3.5" />}
+                                        </button>
+                                        <button
+                                            onClick={handleCopyId}
+                                            className={`p-1.5 rounded-lg transition-all ${isIdCopied ? 'text-green-400 bg-green-900/20' : 'text-amber-600/70 hover:text-amber-400 hover:bg-amber-900/20'}`}
+                                            title="Copy ID Sản phẩm"
+                                        >
+                                            {isIdCopied ? <CheckIcon className="w-3.5 h-3.5" /> : <IdentificationIcon className="w-3.5 h-3.5" />}
+                                        </button>
+                                        <button
+                                            onClick={handleCopyTime}
+                                            className={`p-1.5 rounded-lg transition-all ${isTimeCopied ? 'text-green-400 bg-green-900/20' : 'text-amber-600/70 hover:text-amber-400 hover:bg-amber-900/20'}`}
+                                            title="Copy Giờ hiện tại"
+                                        >
+                                            {isTimeCopied ? <CheckIcon className="w-3.5 h-3.5" /> : <ClockIcon className="w-3.5 h-3.5" />}
+                                        </button>
+                                    </div>
+                                </>
+                             ) : <div className="text-xs text-slate-600 text-center py-4">Chưa tính</div>}
                         </div>
                     </div>
                 )}
@@ -996,12 +929,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
                             </button>
                         ))}
                     </div>
-                    <button 
-                        onClick={savePresets}
-                        className="w-full py-3 bg-white text-slate-900 rounded-xl font-bold hover:bg-slate-200 transition-all shadow-lg"
-                    >
-                        Lưu cài đặt
-                    </button>
+                    <button onClick={savePresets} className="w-full py-3 bg-white text-slate-900 rounded-xl font-bold hover:bg-slate-200 transition-all shadow-lg">Lưu cài đặt</button>
                 </div>
             )}
         </div>

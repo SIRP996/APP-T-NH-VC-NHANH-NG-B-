@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Product, ColumnMapping, DealList, FirebaseConfig, Creator } from './types';
 import { fetchProductsFromSheet, fetchSheetPreviewAndHeaders } from './services/googleSheetService';
@@ -24,7 +25,7 @@ const firebaseConfig: FirebaseConfig = {
 
 type AppState = 'LOADING' | 'LOGIN' | 'MANAGE_LISTS' | 'CONNECT_SHEET' | 'MAP_COLUMNS' | 'VIEW_DATA';
 type ViewDataTab = 'products' | 'creators';
-type Theme = 'violet' | 'green' | 'grey' | 'neon-blue';
+type Theme = 'violet' | 'green' | 'grey' | 'neon-blue' | 'milk-white';
 
 
 const MAPPING_CONFIG: { key: keyof ColumnMapping; label: string; keywords: string[], required: boolean }[] = [
@@ -89,6 +90,7 @@ const ThemeSelector: React.FC<{ currentTheme: Theme, onChange: (t: Theme) => voi
     const containerRef = useRef<HTMLDivElement>(null);
 
     const themes: { id: Theme, name: string, color: string, border: string }[] = [
+        { id: 'milk-white', name: 'Trắng Sữa (Sáng)', color: 'bg-slate-100', border: 'border-slate-300' },
         { id: 'violet', name: 'Tím mộng mơ', color: 'bg-violet-500', border: 'border-violet-400' },
         { id: 'green', name: 'Xanh lá', color: 'bg-emerald-500', border: 'border-emerald-400' },
         { id: 'grey', name: 'Xám Apple', color: 'bg-zinc-500', border: 'border-zinc-400' },
@@ -105,7 +107,7 @@ const ThemeSelector: React.FC<{ currentTheme: Theme, onChange: (t: Theme) => voi
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const currentThemeInfo = themes.find(t => t.id === currentTheme) || themes[0];
+    const currentThemeInfo = themes.find(t => t.id === currentTheme) || themes[1]; // Default to violet if milk-white not found in old array, but here it is.
 
     return (
         <div className="relative" ref={containerRef}>
@@ -437,6 +439,8 @@ const App: React.FC = () => {
             document.documentElement.setAttribute('data-theme', 'grey');
         } else if (theme === 'neon-blue') {
             document.documentElement.setAttribute('data-theme', 'neon-blue');
+        } else if (theme === 'milk-white') {
+            document.documentElement.setAttribute('data-theme', 'milk-white');
         }
         localStorage.setItem('theme', theme);
     }, [theme]);

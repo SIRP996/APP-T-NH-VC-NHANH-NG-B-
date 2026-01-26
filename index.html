@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -35,7 +36,7 @@
             },
             colors: {
                 slate: {
-                    750: '#2d3748', // Added lighter slate for better visibility
+                    750: '#2d3748', 
                     850: '#1e293b', 
                     900: '#0f172a',
                     950: '#020617', 
@@ -109,10 +110,6 @@
         --secondary-500: 217 70 239;  /* Fuchsia 500 */
         --secondary-600: 192 38 211;  /* Fuchsia 600 */
         --secondary-900: 112 26 117;  /* Fuchsia 900 */
-
-        --hero-color-start: #2a1352;
-        --hero-color-mid: #1a1d2e;
-        --hero-color-end: #2a1352;
       }
 
       [data-theme='green'] {
@@ -134,10 +131,6 @@
         --secondary-500: 14 165 233; /* Sky 500 */
         --secondary-600: 2 132 199;  /* Sky 600 */
         --secondary-900: 12 74 110;  /* Sky 900 */
-        
-        --hero-color-start: #064e3b;
-        --hero-color-mid: #022c22;
-        --hero-color-end: #064e3b;
       }
 
       [data-theme='grey'] {
@@ -159,10 +152,6 @@
         --secondary-500: 100 116 139; /* Slate 500 */
         --secondary-600: 71 85 105;   /* Slate 600 */
         --secondary-900: 15 23 42;    /* Slate 900 */
-        
-        --hero-color-start: #27272a;
-        --hero-color-mid: #18181b;
-        --hero-color-end: #27272a;
       }
 
       [data-theme='neon-blue'] {
@@ -184,17 +173,33 @@
         --secondary-500: 59 130 246; /* Blue 500 */
         --secondary-600: 37 99 235;  /* Blue 600 */
         --secondary-900: 30 58 138;
-        
-        --hero-color-start: #000000;
-        --hero-color-mid: #083344;
-        --hero-color-end: #000000;
+      }
+
+      /* Milk White Theme Configuration */
+      [data-theme='milk-white'] {
+        --primary-50: 248 250 252;
+        --primary-100: 241 245 249;
+        --primary-200: 226 232 240;
+        --primary-300: 203 213 225;
+        --primary-400: 148 163 184;
+        --primary-500: 79 70 229; /* Indigo 600 - Standard brand color */
+        --primary-550: 67 56 202;
+        --primary-600: 67 56 202;
+        --primary-700: 55 48 163;
+        --primary-800: 49 46 129;
+        --primary-900: 30 27 75;
+        --primary-950: 17 24 39;
+
+        --secondary-400: 167 139 250; 
+        --secondary-500: 139 92 246;
+        --secondary-600: 124 58 237;
+        --secondary-900: 76 29 149;
       }
 
       body {
-        /* Lighter background (Slate 900) instead of Slate 950 for better visibility */
+        /* Base Dark Mode */
         background-color: #0f172a; 
         color: #e2e8f0;
-        /* Subtle mesh gradient background */
         background-image: 
             radial-gradient(circle at 15% 50%, rgb(var(--primary-900) / 0.15), transparent 25%), 
             radial-gradient(circle at 85% 30%, rgb(var(--secondary-900) / 0.15), transparent 25%);
@@ -203,75 +208,176 @@
         transition: background-image 0.5s ease, background-color 0.5s ease;
       }
       
-      /* Neon theme specific body background override */
+      /* Neon Theme Body */
       [data-theme='neon-blue'] body {
          background-color: #000000;
-         color: #ecfeff; /* Cyan-ish white text */
+         color: #ecfeff;
          background-image: 
             radial-gradient(circle at 20% 50%, rgba(6, 182, 212, 0.15), transparent 30%), 
             radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.15), transparent 30%);
       }
-      
-      /* Custom refined scrollbar */
-      ::-webkit-scrollbar {
-        width: 8px; /* Slightly wider for easier grabbing */
-        height: 8px;
+
+      /* 
+       * MILK WHITE THEME OVERRIDES 
+       * Aggressive overrides to force light mode visuals on dark-coded components 
+       */
+      [data-theme='milk-white'] body {
+          background-color: #f1f5f9; /* Slate 100 Background */
+          background-image: none;
+          color: #0f172a; /* Slate 900 Text */
       }
-      ::-webkit-scrollbar-track {
-        background: transparent;
+
+      /* 1. TEXT COLOR OVERRIDES - FORCE DARK TEXT */
+      [data-theme='milk-white'] .text-white,
+      [data-theme='milk-white'] .text-slate-50,
+      [data-theme='milk-white'] .text-slate-100,
+      [data-theme='milk-white'] .text-slate-200,
+      [data-theme='milk-white'] .text-slate-300 {
+          color: #0f172a !important; /* Force to dark blue-black */
       }
-      ::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.15); /* Brighter scrollbar thumb */
-        border-radius: 10px;
-        border: 2px solid transparent;
-        background-clip: content-box;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 255, 255, 0.3);
-      }
-      
-      .no-scrollbar::-webkit-scrollbar {
-          display: none;
-      }
-      .no-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
+
+      [data-theme='milk-white'] .text-slate-400 {
+          color: #475569 !important; /* Darker slate for readability */
       }
       
-      /* Utilities for glassmorphism - MADE BRIGHTER/MORE VISIBLE */
-      .glass-panel {
-          /* Lighter/More opaque background for better contrast against dark body */
-          background: rgba(30, 41, 59, 0.75); 
-          backdrop-filter: blur(16px);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      [data-theme='milk-white'] .text-slate-500 {
+          color: #64748b !important;
+      }
+
+      /* Primary text colors that are too light on white */
+      [data-theme='milk-white'] .text-primary-200,
+      [data-theme='milk-white'] .text-primary-300 {
+          color: #4338ca !important; /* Indigo 700 */
+      }
+
+      /* 2. BACKGROUND & TRANSPARENCY REMOVAL */
+      
+      /* Glass Panel - Solid White, No Blur */
+      [data-theme='milk-white'] .glass-panel {
+          background: #ffffff !important;
+          backdrop-filter: none !important;
+          border: 1px solid #e2e8f0 !important;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+      }
+
+      /* Glass Input - Solid White with Border */
+      [data-theme='milk-white'] .glass-input,
+      [data-theme='milk-white'] input, 
+      [data-theme='milk-white'] textarea, 
+      [data-theme='milk-white'] select {
+          background-color: #ffffff !important;
+          background-image: none !important; 
+          border: 1px solid #cbd5e1 !important; /* Slate 300 Border */
+          color: #0f172a !important;
+          box-shadow: inset 0 1px 2px rgba(0,0,0,0.05) !important;
       }
       
-      [data-theme='neon-blue'] .glass-panel {
-          background: rgba(10, 10, 10, 0.85); /* Darker panel for Neon theme to support black look */
-          border: 1px solid rgba(6, 182, 212, 0.3); /* Cyan border */
+      [data-theme='milk-white'] .glass-input:focus,
+      [data-theme='milk-white'] input:focus {
+          border-color: #6366f1 !important; /* Indigo 500 */
+          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+          background-color: #ffffff !important;
       }
       
-      .glass-input {
-          /* Significantly brighter input background */
-          background: rgba(15, 23, 42, 0.6); 
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          color: white;
+      [data-theme='milk-white'] input::placeholder {
+          color: #94a3b8 !important;
+      }
+
+      /* Invert Dark Backgrounds to Light/White */
+      [data-theme='milk-white'] .bg-slate-950,
+      [data-theme='milk-white'] .bg-slate-900,
+      [data-theme='milk-white'] .bg-slate-800,
+      [data-theme='milk-white'] .bg-\[\#0f172a\] {
+          background-color: #ffffff !important;
+          border-color: #e2e8f0 !important;
+          color: #0f172a !important;
       }
       
-      [data-theme='neon-blue'] .glass-input {
-          background: rgba(0, 0, 0, 0.8);
-          border: 1px solid rgba(6, 182, 212, 0.4);
+      /* Semi-transparent backgrounds -> Solid Light Grey */
+      [data-theme='milk-white'] .bg-slate-900\/30,
+      [data-theme='milk-white'] .bg-slate-900\/40,
+      [data-theme='milk-white'] .bg-slate-900\/50,
+      [data-theme='milk-white'] .bg-slate-900\/80,
+      [data-theme='milk-white'] .bg-slate-900\/90 {
+          background-color: #f8fafc !important; /* Slate 50 */
+          border: 1px solid #e2e8f0 !important;
+          color: #0f172a !important;
+          backdrop-filter: none !important;
       }
       
-      .glass-input:focus {
-          border-color: rgb(var(--primary-500));
-          background: rgba(15, 23, 42, 0.9);
-          box-shadow: 0 0 0 1px rgb(var(--primary-500));
+      /* Result Box Inner Container Override */
+      [data-theme='milk-white'] .bg-slate-950\/90 {
+           background-color: #ffffff !important;
+           border: 1px solid #e2e8f0 !important;
+      }
+
+      /* 3. BORDERS & DIVIDERS */
+      [data-theme='milk-white'] .border-white\/5,
+      [data-theme='milk-white'] .border-white\/10,
+      [data-theme='milk-white'] .border-slate-800,
+      [data-theme='milk-white'] .border-slate-700,
+      [data-theme='milk-white'] .border-slate-800\/50 {
+          border-color: #cbd5e1 !important;
       }
       
-      [data-theme='neon-blue'] .glass-input:focus {
-          box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+      [data-theme='milk-white'] .divide-slate-800\/50 > * + * {
+          border-color: #e2e8f0 !important;
+      }
+
+      /* 4. TABLE STYLES */
+      [data-theme='milk-white'] thead tr th {
+          background-color: #f1f5f9 !important;
+          color: #475569 !important;
+          border-bottom: 2px solid #e2e8f0 !important;
+      }
+      
+      /* Sticky columns in white mode need solid background */
+      [data-theme='milk-white'] .sticky {
+          background-color: #ffffff !important;
+          border-right: 1px solid #e2e8f0 !important;
+      }
+      [data-theme='milk-white'] thead .sticky {
+          background-color: #f1f5f9 !important;
+      }
+
+      /* Selected Row - Needs Contrast */
+      [data-theme='milk-white'] tr.bg-primary-500\/20 {
+          background-color: #e0e7ff !important; /* Indigo 100 */
+          box-shadow: none !important;
+          border-bottom: 1px solid #c7d2fe !important;
+      }
+      [data-theme='milk-white'] tr.bg-primary-500\/20 td {
+          color: #312e81 !important; /* Indigo 900 */
+      }
+      [data-theme='milk-white'] tr.bg-primary-500\/20 .sticky {
+          background-color: #e0e7ff !important;
+          color: #312e81 !important;
+      }
+
+      /* 5. INTERACTIVE ELEMENTS */
+      [data-theme='milk-white'] button.text-slate-400:hover {
+          background-color: #f1f5f9 !important;
+          color: #0f172a !important;
+      }
+      
+      /* Toggle Switches */
+      [data-theme='milk-white'] .bg-slate-700 {
+          background-color: #cbd5e1 !important; /* Light grey for "off" state */
+      }
+      
+      /* Hover States */
+      [data-theme='milk-white'] .hover\:bg-slate-800:hover,
+      [data-theme='milk-white'] .hover\:bg-slate-900:hover,
+      [data-theme='milk-white'] .hover\:bg-white\/10:hover {
+          background-color: #f1f5f9 !important;
+      }
+
+      /* Scrollbar Visibility */
+      [data-theme='milk-white'] ::-webkit-scrollbar-thumb {
+          background: #94a3b8; /* Visible grey scrollbar */
+      }
+      [data-theme='milk-white'] ::-webkit-scrollbar-track {
+          background: #f1f5f9;
       }
     </style>
 </head>
